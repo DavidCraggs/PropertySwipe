@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(if [ -f \".prettierrc\" ])",
+      "Bash(then cat .prettierrc)",
+      "Bash(elif [ -f \".prettierrc.json\" ])",
+      "Bash(then cat .prettierrc.json)",
+      "Bash(elif [ -f \"prettier.config.js\" ])",
+      "Bash(then cat prettier.config.js)",
+      "Bash(else echo \"No Prettier config found\")",
+      "Bash(fi)",
+      "Bash(npm run lint:*)",
+      "Bash(npm run build:*)",
+      "Bash(npm install:*)",
+      "Bash(timeout 5 npm run dev:*)",
+      "Bash(ipconfig:*)",
+      "Bash(findstr:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
