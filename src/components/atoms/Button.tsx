@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 /**
  * Button variants for different use cases
  */
-type ButtonVariant = 'primary' | 'secondary' | 'success' | 'danger' | 'ghost';
+export type ButtonVariant = 'primary' | 'secondary' | 'success' | 'danger' | 'ghost' | 'outline';
 
 /**
  * Button sizes
@@ -60,6 +60,8 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         'bg-danger-500 text-white hover:bg-danger-600 active:bg-danger-700 focus-visible:ring-danger-500 shadow-sm hover:shadow-md',
       ghost:
         'bg-transparent text-neutral-700 hover:bg-neutral-100 active:bg-neutral-200 focus-visible:ring-neutral-500',
+      outline:
+        'bg-transparent border-2 border-neutral-300 text-neutral-700 hover:bg-neutral-50 active:bg-neutral-100 focus-visible:ring-neutral-500',
     };
 
     const sizeStyles: Record<ButtonSize, string> = {

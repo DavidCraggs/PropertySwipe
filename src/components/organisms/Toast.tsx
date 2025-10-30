@@ -7,6 +7,7 @@ type ToastType = 'success' | 'error' | 'info' | 'match';
 interface Toast {
   id: string;
   type: ToastType;
+  title?: string;
   message: string;
   duration?: number;
 }
@@ -67,7 +68,7 @@ interface ToastItemProps {
 }
 
 const ToastItem: React.FC<ToastItemProps> = ({ toast, onClose }) => {
-  const { type, message } = toast;
+  const { type, title, message } = toast;
 
   const styles = {
     success: 'bg-success-50 border-success-200 text-success-800',
@@ -93,7 +94,10 @@ const ToastItem: React.FC<ToastItemProps> = ({ toast, onClose }) => {
       className={`max-w-md w-full ${styles[type]} border rounded-xl shadow-lg p-4 flex items-start gap-3 pointer-events-auto`}
     >
       <Icon size={20} className="flex-shrink-0 mt-0.5" />
-      <p className="flex-1 text-sm font-medium">{message}</p>
+      <div className="flex-1">
+        {title && <p className="text-sm font-bold mb-0.5">{title}</p>}
+        <p className="text-sm">{message}</p>
+      </div>
       <button
         onClick={onClose}
         className="flex-shrink-0 opacity-70 hover:opacity-100 transition-opacity"

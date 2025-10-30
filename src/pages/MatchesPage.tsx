@@ -93,7 +93,7 @@ export const MatchesPage: React.FC = () => {
                   {lastMessage && (
                     <div className="bg-neutral-50 rounded-lg p-3 mb-3">
                       <p className="text-xs text-neutral-500 mb-1">
-                        {lastMessage.senderType === 'seller' ? 'Seller' : 'You'}
+                        {lastMessage.senderType === 'vendor' ? 'Vendor' : 'You'}
                       </p>
                       <p className="text-sm text-neutral-700 line-clamp-2">
                         {lastMessage.content}

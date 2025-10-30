@@ -180,15 +180,16 @@ export const useAppStore = create<AppState>()(
             id: `match-${Date.now()}`,
             propertyId,
             property,
-            sellerId: property.sellerId,
-            sellerName: `Seller for ${property.address.street}`,
+            vendorId: property.vendorId,
+            vendorName: `Vendor for ${property.address.street}`,
             buyerId: user.id,
+            buyerName: user.name,
             timestamp: new Date().toISOString(),
             messages: [
               {
                 id: `msg-${Date.now()}`,
-                senderId: property.sellerId,
-                senderType: 'seller',
+                senderId: property.vendorId,
+                senderType: 'vendor',
                 content:
                   SELLER_MESSAGE_TEMPLATES[
                     Math.floor(Math.random() * SELLER_MESSAGE_TEMPLATES.length)
@@ -199,6 +200,7 @@ export const useAppStore = create<AppState>()(
             ],
             lastMessageAt: new Date().toISOString(),
             unreadCount: 1,
+            hasViewingScheduled: false,
           };
 
           set({
@@ -241,12 +243,12 @@ export const useAppStore = create<AppState>()(
 
         set({ matches: updatedMatches });
 
-        // Simulate seller response after 3 seconds
+        // Simulate vendor response after 3 seconds
         setTimeout(() => {
-          const sellerReply: Message = {
+          const vendorReply: Message = {
             id: `msg-${Date.now()}`,
-            senderId: updatedMatches[matchIndex].sellerId,
-            senderType: 'seller',
+            senderId: updatedMatches[matchIndex].vendorId,
+            senderType: 'vendor',
             content: "Thanks for your message! I'll get back to you shortly.",
             timestamp: new Date().toISOString(),
             read: false,
@@ -259,7 +261,7 @@ export const useAppStore = create<AppState>()(
           const finalMatches = [...currentMatches];
           finalMatches[currentMatchIndex] = {
             ...finalMatches[currentMatchIndex],
-            messages: [...finalMatches[currentMatchIndex].messages, sellerReply],
+            messages: [...finalMatches[currentMatchIndex].messages, vendorReply],
             lastMessageAt: new Date().toISOString(),
             unreadCount: finalMatches[currentMatchIndex].unreadCount + 1,
           };

@@ -39,7 +39,7 @@ export const mockProperties: Property[] = [
       'Chain Free',
     ],
     listingDate: '2025-10-15',
-    sellerId: 'seller-001',
+    vendorId: 'seller-001',
   },
   {
     id: 'prop-002',
@@ -73,7 +73,7 @@ export const mockProperties: Property[] = [
       'Shoreditch Location',
     ],
     listingDate: '2025-10-20',
-    sellerId: 'seller-002',
+    vendorId: 'seller-002',
   },
   {
     id: 'prop-003',
@@ -107,7 +107,7 @@ export const mockProperties: Property[] = [
       'Family Bathroom',
     ],
     listingDate: '2025-10-10',
-    sellerId: 'seller-003',
+    vendorId: 'seller-003',
   },
   {
     id: 'prop-004',
@@ -120,7 +120,7 @@ export const mockProperties: Property[] = [
     price: 425000,
     bedrooms: 1,
     bathrooms: 1,
-    propertyType: 'Studio',
+    propertyType: 'Flat',
     images: [
       'https://images.unsplash.com/photo-1536376072261-38c75010e6c9?w=800',
       'https://images.unsplash.com/photo-1502672023488-70e25813eb80?w=800',
@@ -133,7 +133,7 @@ export const mockProperties: Property[] = [
     yearBuilt: 1960,
     features: ['Modern Kitchen', 'Close to Tube', 'Vibrant Area', 'Recently Refurbished'],
     listingDate: '2025-10-22',
-    sellerId: 'seller-004',
+    vendorId: 'seller-004',
   },
 
   // Manchester Properties
@@ -169,7 +169,7 @@ export const mockProperties: Property[] = [
       'Modern Build',
     ],
     listingDate: '2025-10-18',
-    sellerId: 'seller-005',
+    vendorId: 'seller-005',
   },
   {
     id: 'prop-006',
@@ -182,7 +182,7 @@ export const mockProperties: Property[] = [
     price: 575000,
     bedrooms: 4,
     bathrooms: 2,
-    propertyType: 'Semi-Detached',
+    propertyType: 'Semi-detached',
     images: [
       'https://images.unsplash.com/photo-1572120360610-d971b9d7767c?w=800',
       'https://images.unsplash.com/photo-1600607687644-c7171b42498b?w=800',
@@ -203,7 +203,7 @@ export const mockProperties: Property[] = [
       'Didsbury Village',
     ],
     listingDate: '2025-10-12',
-    sellerId: 'seller-006',
+    vendorId: 'seller-006',
   },
   {
     id: 'prop-007',
@@ -235,7 +235,7 @@ export const mockProperties: Property[] = [
       'Character Property',
     ],
     listingDate: '2025-10-19',
-    sellerId: 'seller-007',
+    vendorId: 'seller-007',
   },
   {
     id: 'prop-008',
@@ -261,7 +261,7 @@ export const mockProperties: Property[] = [
     yearBuilt: 1895,
     features: ['Victorian Terrace', 'Renovated', 'Period Features', 'Garden', 'Near Parks'],
     listingDate: '2025-10-16',
-    sellerId: 'seller-008',
+    vendorId: 'seller-008',
   },
 
   // Birmingham Properties
@@ -289,7 +289,7 @@ export const mockProperties: Property[] = [
     yearBuilt: 2019,
     features: ['City Views', 'Concierge', 'Gym', 'Balcony', 'City Centre', 'New Build'],
     listingDate: '2025-10-21',
-    sellerId: 'seller-009',
+    vendorId: 'seller-009',
   },
   {
     id: 'prop-010',
@@ -323,7 +323,7 @@ export const mockProperties: Property[] = [
       'Five Bedrooms',
     ],
     listingDate: '2025-10-08',
-    sellerId: 'seller-010',
+    vendorId: 'seller-010',
   },
   {
     id: 'prop-011',
@@ -349,7 +349,7 @@ export const mockProperties: Property[] = [
     yearBuilt: 1900,
     features: ['Loft Conversion', 'Original Features', 'Parking', 'Jewellery Quarter', 'Character'],
     listingDate: '2025-10-17',
-    sellerId: 'seller-011',
+    vendorId: 'seller-011',
   },
   {
     id: 'prop-012',
@@ -375,7 +375,7 @@ export const mockProperties: Property[] = [
     yearBuilt: 1950,
     features: ['Extended', 'Landscaped Garden', 'Parking', 'Harborne Village', 'Modern Kitchen'],
     listingDate: '2025-10-13',
-    sellerId: 'seller-012',
+    vendorId: 'seller-012',
   },
 
   // Edinburgh Properties
@@ -411,7 +411,7 @@ export const mockProperties: Property[] = [
       'Views',
     ],
     listingDate: '2025-10-14',
-    sellerId: 'seller-013',
+    vendorId: 'seller-013',
   },
   {
     id: 'prop-014',
@@ -437,7 +437,7 @@ export const mockProperties: Property[] = [
     yearBuilt: 1875,
     features: ['Stockbridge', 'Period Features', 'Private Garden', 'Cellar', 'Near River', 'Central'],
     listingDate: '2025-10-11',
-    sellerId: 'seller-014',
+    vendorId: 'seller-014',
   },
   {
     id: 'prop-015',
@@ -463,7 +463,7 @@ export const mockProperties: Property[] = [
     yearBuilt: 2016,
     features: ['Modern', 'Open Plan', 'Leith', 'Near Waterfront', 'Excellent Transport'],
     listingDate: '2025-10-20',
-    sellerId: 'seller-015',
+    vendorId: 'seller-015',
   },
   {
     id: 'prop-016',
@@ -476,7 +476,7 @@ export const mockProperties: Property[] = [
     price: 540000,
     bedrooms: 4,
     bathrooms: 2,
-    propertyType: 'Semi-Detached',
+    propertyType: 'Semi-detached',
     images: [
       'https://images.unsplash.com/photo-1572120360610-d971b9d7767c?w=800',
       'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800',
@@ -489,7 +489,7 @@ export const mockProperties: Property[] = [
     yearBuilt: 1935,
     features: ['Morningside', 'Driveway', 'Garden', 'Near Schools', 'Family Home', 'Well-Maintained'],
     listingDate: '2025-10-09',
-    sellerId: 'seller-016',
+    vendorId: 'seller-016',
   },
 
   // Additional diverse properties
@@ -524,7 +524,7 @@ export const mockProperties: Property[] = [
       'New Build',
     ],
     listingDate: '2025-10-23',
-    sellerId: 'seller-017',
+    vendorId: 'seller-017',
   },
   {
     id: 'prop-018',
@@ -537,7 +537,7 @@ export const mockProperties: Property[] = [
     price: 335000,
     bedrooms: 3,
     bathrooms: 1,
-    propertyType: 'Semi-Detached',
+    propertyType: 'Semi-detached',
     images: [
       'https://images.unsplash.com/photo-1600585154526-990dced4db0d?w=800',
       'https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?w=800',
@@ -550,7 +550,7 @@ export const mockProperties: Property[] = [
     yearBuilt: 1960,
     features: ['Three Bedrooms', 'Garage', 'Garden', 'Near Metrolink', 'Chain Free', 'Sale'],
     listingDate: '2025-10-15',
-    sellerId: 'seller-018',
+    vendorId: 'seller-018',
   },
   {
     id: 'prop-019',
@@ -576,7 +576,7 @@ export const mockProperties: Property[] = [
     yearBuilt: 1930,
     features: ['Extended', 'Modern Kitchen', 'Garden', 'King\'s Heath', 'Near Parks', 'High Street'],
     listingDate: '2025-10-18',
-    sellerId: 'seller-019',
+    vendorId: 'seller-019',
   },
   {
     id: 'prop-020',
@@ -602,7 +602,7 @@ export const mockProperties: Property[] = [
     yearBuilt: 1920,
     features: ['Portobello', 'Near Beach', 'Renovated', 'Garden', 'Modern Finish', 'Coastal'],
     listingDate: '2025-10-12',
-    sellerId: 'seller-020',
+    vendorId: 'seller-020',
   },
   {
     id: 'prop-021',
@@ -628,7 +628,7 @@ export const mockProperties: Property[] = [
     yearBuilt: 2017,
     features: ['Roof Terrace', 'Camden', 'City Views', 'Modern', 'Transport Links', 'Bright'],
     listingDate: '2025-10-22',
-    sellerId: 'seller-021',
+    vendorId: 'seller-021',
   },
   {
     id: 'prop-022',
@@ -654,7 +654,7 @@ export const mockProperties: Property[] = [
     yearBuilt: 2019,
     features: ['Waterfront', 'Balcony', 'Gym', 'Parking', 'MediaCityUK', 'Modern'],
     listingDate: '2025-10-19',
-    sellerId: 'seller-022',
+    vendorId: 'seller-022',
   },
   {
     id: 'prop-023',
@@ -667,7 +667,7 @@ export const mockProperties: Property[] = [
     price: 415000,
     bedrooms: 4,
     bathrooms: 2,
-    propertyType: 'Semi-Detached',
+    propertyType: 'Semi-detached',
     images: [
       'https://images.unsplash.com/photo-1572120360610-d971b9d7767c?w=800',
       'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800',
@@ -680,7 +680,7 @@ export const mockProperties: Property[] = [
     yearBuilt: 1910,
     features: ['Moseley', 'Character', 'Large Garden', 'Parking', 'Period Features', 'Village'],
     listingDate: '2025-10-16',
-    sellerId: 'seller-023',
+    vendorId: 'seller-023',
   },
   {
     id: 'prop-024',
@@ -706,7 +706,7 @@ export const mockProperties: Property[] = [
     yearBuilt: 1880,
     features: ['Park Views', 'Period Features', 'Parking', 'Central', 'The Meadows', 'High Ceilings'],
     listingDate: '2025-10-14',
-    sellerId: 'seller-024',
+    vendorId: 'seller-024',
   },
   {
     id: 'prop-025',
@@ -739,7 +739,7 @@ export const mockProperties: Property[] = [
       'Transport Links',
     ],
     listingDate: '2025-10-24',
-    sellerId: 'seller-025',
+    vendorId: 'seller-025',
   },
 ];
 

@@ -28,10 +28,10 @@ export const UK_CITIES = [
 export const PROPERTY_TYPES: PropertyType[] = [
   'Flat',
   'Terraced',
-  'Semi-Detached',
+  'Semi-detached',
   'Detached',
   'Bungalow',
-  'Studio',
+  'Flat',
 ];
 
 /**
@@ -56,7 +56,7 @@ export const PRICE_RANGES = [
  * Bedroom options
  */
 export const BEDROOM_OPTIONS = [
-  { label: 'Studio', value: 0 },
+  { label: 'Flat', value: 0 },
   { label: '1', value: 1 },
   { label: '2', value: 2 },
   { label: '3', value: 3 },
