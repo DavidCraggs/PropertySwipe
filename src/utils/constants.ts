@@ -110,12 +110,12 @@ export const CARD_STACK_CONFIG = {
  * LocalStorage keys
  */
 export const STORAGE_KEYS = {
-  USER: 'propertyswipe_user',
-  PREFERENCES: 'propertyswipe_preferences',
-  LIKED_PROPERTIES: 'propertyswipe_liked',
-  MATCHES: 'propertyswipe_matches',
-  MESSAGES: 'propertyswipe_messages',
-  SWIPE_HISTORY: 'propertyswipe_swipe_history',
+  USER: 'geton_user',
+  PREFERENCES: 'geton_preferences',
+  LIKED_PROPERTIES: 'geton_liked',
+  MATCHES: 'geton_matches',
+  MESSAGES: 'geton_messages',
+  SWIPE_HISTORY: 'geton_swipe_history',
 } as const;
 
 /**

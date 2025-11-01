@@ -5,11 +5,13 @@ import { RoleSelectionScreen } from './pages/RoleSelectionScreen';
 import { BuyerOnboarding } from './pages/BuyerOnboarding';
 import { VendorOnboarding } from './pages/VendorOnboarding';
 import { SwipePage } from './pages/SwipePage';
+import { VendorDashboard } from './pages/VendorDashboard';
 import { MatchesPage } from './pages/MatchesPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { BottomNav } from './components/organisms/BottomNav';
 import { ToastContainer, useToastStore } from './components/organisms/Toast';
 import { useAuthStore } from './hooks/useAuthStore';
+import { useAppStore } from './hooks/useAppStore';
 import type { UserType } from './types';
 
 type Route = 'welcome' | 'role-select' | 'buyer-onboarding' | 'vendor-onboarding' | 'app';
@@ -22,10 +24,17 @@ type AppPage = 'swipe' | 'matches' | 'profile';
 function App() {
   const { isAuthenticated, userType, currentUser } = useAuthStore();
   const { addToast } = useToastStore();
+  const { loadProperties } = useAppStore();
 
   const [currentRoute, setCurrentRoute] = useState<Route>('welcome');
   const [currentPage, setCurrentPage] = useState<AppPage>('swipe');
   const [selectedRole, setSelectedRole] = useState<UserType | null>(null);
+
+  // Load properties from storage on app initialization
+  useEffect(() => {
+    loadProperties();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Run only once on mount
 
   // Handle initial routing based on auth state
   useEffect(() => {
@@ -98,7 +107,7 @@ function App() {
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                 >
-                  <SwipePage />
+                  {userType === 'buyer' ? <SwipePage /> : <VendorDashboard />}
                 </motion.div>
               )}
               {currentPage === 'matches' && (

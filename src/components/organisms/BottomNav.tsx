@@ -1,5 +1,6 @@
-import { Home, Heart, User } from 'lucide-react';
+import { Home, Heart, User, LayoutDashboard } from 'lucide-react';
 import { useAppStore } from '../../hooks';
+import { useAuthStore } from '../../hooks/useAuthStore';
 
 interface BottomNavProps {
   currentPage: 'swipe' | 'matches' | 'profile';
@@ -10,21 +11,25 @@ interface BottomNavProps {
  * BottomNav component
  * Fixed bottom navigation with active state indicators
  * Badge for unread matches
+ * Shows different labels for vendors vs buyers
  */
 export const BottomNav: React.FC<BottomNavProps> = ({ currentPage, onNavigate }) => {
   const { matches } = useAppStore();
+  const { userType } = useAuthStore();
   const unreadCount = matches.reduce((sum, match) => sum + (match.unreadCount || 0), 0);
+
+  const isVendor = userType === 'vendor';
 
   const navItems = [
     {
       id: 'swipe' as const,
-      label: 'Swipe',
-      icon: Home,
+      label: isVendor ? 'Dashboard' : 'Swipe',
+      icon: isVendor ? LayoutDashboard : Home,
       badge: null,
     },
     {
       id: 'matches' as const,
-      label: 'Matches',
+      label: isVendor ? 'Buyers' : 'Matches',
       icon: Heart,
       badge: unreadCount > 0 ? unreadCount : null,
     },

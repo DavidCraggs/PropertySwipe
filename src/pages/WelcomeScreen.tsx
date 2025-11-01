@@ -98,7 +98,7 @@ export function WelcomeScreen({ onGetStarted }: WelcomeScreenProps) {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.8 }}
-            className="flex flex-col sm:flex-row gap-4 justify-center"
+            className="flex flex-col sm:flex-row gap-4 justify-center text-neutral-900"
           >
             <Button
               variant="primary"
@@ -106,7 +106,7 @@ export function WelcomeScreen({ onGetStarted }: WelcomeScreenProps) {
               onClick={onGetStarted}
               className="group px-8 py-4 text-lg"
             >
-              Get Started
+              Get On
               <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
             </Button>
           </motion.div>

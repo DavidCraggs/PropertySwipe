@@ -1,7 +1,7 @@
 import type { EPCRating } from '../../types';
 import { EPC_COLORS } from '../../utils/constants';
 
-type BadgeVariant = 'primary' | 'success' | 'danger' | 'warning' | 'neutral' | 'epc';
+type BadgeVariant = 'primary' | 'secondary' | 'success' | 'danger' | 'warning' | 'neutral' | 'epc';
 
 interface BadgeProps {
   children: React.ReactNode;
@@ -25,6 +25,7 @@ export const Badge: React.FC<BadgeProps> = ({
 
   const variantStyles: Record<BadgeVariant, string> = {
     primary: 'bg-primary-100 text-primary-700',
+    secondary: 'bg-secondary-100 text-secondary-700',
     success: 'bg-success-100 text-success-700',
     danger: 'bg-danger-100 text-danger-700',
     warning: 'bg-yellow-100 text-yellow-700',

@@ -1,15 +1,53 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { CardStack, SwipeControls, PropertyDetailsModal } from '../components';
+import { ViewingTimeModal } from '../components/organisms/ViewingTimeModal';
 import { useAppStore, usePropertyDeck } from '../hooks';
-import type { Property } from '../types';
+import { useToastStore } from '../components/organisms/Toast';
+import type { Property, Match } from '../types';
 
 export const SwipePage: React.FC = () => {
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [newMatch, setNewMatch] = useState<Match | null>(null);
+  const [showViewingModal, setShowViewingModal] = useState(false);
+
+  // BUGFIX #7: Track which matches we've already shown the viewing modal for
+  const processedMatchIds = useRef<Set<string>>(new Set());
 
   const { unseenProperties, handleLike, handleDislike, progress } = usePropertyDeck();
-  const { getStats, matches } = useAppStore();
+  const { getStats, matches, setViewingPreference } = useAppStore();
+  const { addToast } = useToastStore();
   const stats = getStats();
+
+  // Watch for new matches (BUGFIX #7: Prevent duplicate modal opens)
+  useEffect(() => {
+    if (matches.length > 0) {
+      const latestMatch = matches[0];
+
+      // Skip if we've already processed this match
+      if (processedMatchIds.current.has(latestMatch.id)) {
+        return;
+      }
+
+      // Check if this is a brand new match (less than 5 seconds old)
+      const matchAge = Date.now() - new Date(latestMatch.timestamp).getTime();
+      if (matchAge < 5000 && !latestMatch.viewingPreference) {
+        // Mark as processed BEFORE showing modal to prevent race conditions
+        processedMatchIds.current.add(latestMatch.id);
+
+        setNewMatch(latestMatch);
+        setShowViewingModal(true);
+
+        // Show match toast
+        addToast({
+          type: 'match',
+          title: "It's a match!",
+          message: `You and the vendor are interested in ${latestMatch.property.address.street}!`,
+          duration: 5000,
+        });
+      }
+    }
+  }, [matches, addToast]);
 
   const handleInfoClick = (property: Property) => {
     setSelectedProperty(property);
@@ -32,7 +70,7 @@ export const SwipePage: React.FC = () => {
       {/* Header */}
       <header className="max-w-md mx-auto px-4 py-6">
         <h1 className="text-4xl font-bold text-center bg-gradient-to-r from-primary-600 to-success-600 bg-clip-text text-transparent mb-2">
-          PropertySwipe
+          Get On
         </h1>
         <p className="text-center text-neutral-600">Swipe right to like, left to pass</p>
         {matches.length > 0 && (
@@ -113,6 +151,24 @@ export const SwipePage: React.FC = () => {
         onClose={() => setIsModalOpen(false)}
         onLike={handleModalLike}
       />
+
+      {/* Viewing Time Modal */}
+      {newMatch && (
+        <ViewingTimeModal
+          isOpen={showViewingModal}
+          onClose={() => setShowViewingModal(false)}
+          match={newMatch}
+          onSubmit={(preference) => {
+            setViewingPreference(newMatch.id, preference);
+            addToast({
+              type: 'success',
+              title: 'Viewing Preferences Sent!',
+              message: 'The vendor will respond with available times',
+              duration: 4000,
+            });
+          }}
+        />
+      )}
     </div>
   );
 };

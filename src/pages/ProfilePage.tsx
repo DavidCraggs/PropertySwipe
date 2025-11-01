@@ -1,38 +1,71 @@
-import { User, Settings, TrendingUp, Heart, X, Home } from 'lucide-react';
+import { User, TrendingUp, Heart, X, Home, LogOut, ShoppingBag, MapPin, CreditCard, Users } from 'lucide-react';
 import { Button } from '../components/atoms/Button';
 import { useAppStore } from '../hooks';
-import { formatDate } from '../utils/formatters';
+import { useAuthStore } from '../hooks/useAuthStore';
+import { useToastStore } from '../components/organisms/Toast';
+import type { BuyerProfile, VendorProfile } from '../types';
 
 export const ProfilePage: React.FC = () => {
-  const { user, getStats, resetApp } = useAppStore();
+  const { getStats, resetApp } = useAppStore();
+  const { currentUser, userType, logout } = useAuthStore();
+  const { addToast } = useToastStore();
   const stats = getStats();
 
-  const handleReset = () => {
-    if (confirm('Are you sure you want to reset all data? This cannot be undone.')) {
+  const handleLogout = () => {
+    if (confirm('Are you sure you want to log out?')) {
+      logout();
       resetApp();
+      addToast({
+        type: 'info',
+        message: 'You have been logged out successfully',
+      });
       window.location.reload();
     }
   };
 
-  if (!user) {
+  const handleReset = () => {
+    if (confirm('Are you sure you want to reset all data? This cannot be undone.')) {
+      resetApp();
+      logout();
+      window.location.reload();
+    }
+  };
+
+  if (!currentUser) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-success-50 flex items-center justify-center p-4">
         <div className="text-center">
           <User size={64} className="mx-auto text-neutral-400 mb-4" />
           <h2 className="text-2xl font-bold text-neutral-900 mb-2">No Profile Yet</h2>
-          <p className="text-neutral-600">Start swiping to create your profile!</p>
+          <p className="text-neutral-600">Please sign up to get started!</p>
         </div>
       </div>
     );
   }
 
+  const isBuyer = userType === 'buyer';
+  const buyerProfile = isBuyer ? (currentUser as BuyerProfile) : null;
+  const vendorProfile = !isBuyer ? (currentUser as VendorProfile) : null;
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-success-50 pb-24">
       {/* Header */}
       <header className="bg-white border-b border-neutral-200 px-4 py-6">
-        <div className="max-w-2xl mx-auto">
-          <h1 className="text-3xl font-bold text-neutral-900">Profile</h1>
-          <p className="text-neutral-600 mt-1">Manage your account and preferences</p>
+        <div className="max-w-2xl mx-auto flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-neutral-900">Profile</h1>
+            <p className="text-neutral-600 mt-1">
+              {isBuyer ? 'Your buyer account' : 'Your vendor account'}
+            </p>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            icon={<LogOut size={18} />}
+            onClick={handleLogout}
+          >
+            Logout
+          </Button>
         </div>
       </header>
 
@@ -40,24 +73,20 @@ export const ProfilePage: React.FC = () => {
         {/* User Info Card */}
         <div className="bg-white rounded-2xl shadow-sm p-6">
           <div className="flex items-start gap-4">
-            <div className="w-20 h-20 bg-gradient-to-br from-primary-500 to-success-500 rounded-full flex items-center justify-center text-white text-2xl font-bold">
-              {user.name.charAt(0).toUpperCase()}
+            <div className={`w-20 h-20 rounded-full flex items-center justify-center text-white text-2xl font-bold ${isBuyer ? 'bg-gradient-to-br from-primary-500 to-primary-600' : 'bg-gradient-to-br from-secondary-500 to-secondary-600'}`}>
+              {isBuyer ? <ShoppingBag size={32} /> : <Home size={32} />}
             </div>
             <div className="flex-1">
-              <h2 className="text-2xl font-bold text-neutral-900">{user.name}</h2>
-              <p className="text-neutral-600">{user.email}</p>
-              <p className="text-sm text-neutral-500 mt-2">
-                Member since {formatDate(user.createdAt)}
+              <div className="flex items-center gap-2 mb-1">
+                <h2 className="text-2xl font-bold text-neutral-900">{currentUser.names}</h2>
+                <span className={`px-2 py-1 text-xs font-medium rounded-full ${isBuyer ? 'bg-primary-100 text-primary-700' : 'bg-secondary-100 text-secondary-700'}`}>
+                  {isBuyer ? 'Buyer' : 'Vendor'}
+                </span>
+              </div>
+              <p className="text-sm text-neutral-500">
+                Member since {new Date(currentUser.createdAt).toLocaleDateString()}
               </p>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              icon={<Settings size={18} />}
-              onClick={() => console.log('Edit profile')}
-            >
-              Edit
-            </Button>
           </div>
         </div>
 
@@ -103,56 +132,94 @@ export const ProfilePage: React.FC = () => {
           </div>
         </div>
 
-        {/* Preferences Summary */}
-        <div className="bg-white rounded-2xl shadow-sm p-6">
-          <h3 className="text-xl font-bold text-neutral-900 mb-4">Search Preferences</h3>
+        {/* Profile Details */}
+        {isBuyer && buyerProfile && (
+          <div className="bg-white rounded-2xl shadow-sm p-6">
+            <h3 className="text-xl font-bold text-neutral-900 mb-4 flex items-center gap-2">
+              <User size={20} />
+              Buyer Profile
+            </h3>
 
-          <div className="space-y-3">
-            <div className="flex justify-between items-center py-2 border-b border-neutral-100">
-              <span className="text-neutral-600">Price Range</span>
-              <span className="font-medium text-neutral-900">
-                £{(user.preferences.priceRange.min / 1000).toFixed(0)}k - £
-                {(user.preferences.priceRange.max / 1000).toFixed(0)}k
-              </span>
-            </div>
+            <div className="space-y-3">
+              <div className="flex justify-between items-center py-2 border-b border-neutral-100">
+                <span className="text-neutral-600">Situation</span>
+                <span className="font-medium text-neutral-900 flex items-center gap-2">
+                  {buyerProfile.situation === 'Family' ? <Users size={16} /> : <User size={16} />}
+                  {buyerProfile.situation}
+                </span>
+              </div>
 
-            <div className="flex justify-between items-center py-2 border-b border-neutral-100">
-              <span className="text-neutral-600">Bedrooms</span>
-              <span className="font-medium text-neutral-900">
-                {user.preferences.bedrooms.min} - {user.preferences.bedrooms.max}
-              </span>
-            </div>
+              <div className="flex justify-between items-center py-2 border-b border-neutral-100">
+                <span className="text-neutral-600">Age(s)</span>
+                <span className="font-medium text-neutral-900">{buyerProfile.ages}</span>
+              </div>
 
-            <div className="flex justify-between items-center py-2 border-b border-neutral-100">
-              <span className="text-neutral-600">Locations</span>
-              <span className="font-medium text-neutral-900">
-                {user.preferences.locations.length > 0
-                  ? user.preferences.locations.join(', ')
-                  : 'All locations'}
-              </span>
-            </div>
+              <div className="flex justify-between items-center py-2 border-b border-neutral-100">
+                <span className="text-neutral-600">Preferred Area</span>
+                <span className="font-medium text-neutral-900 flex items-center gap-2">
+                  <MapPin size={16} />
+                  {buyerProfile.localArea}
+                </span>
+              </div>
 
-            <div className="flex justify-between items-center py-2">
-              <span className="text-neutral-600">Property Types</span>
-              <span className="font-medium text-neutral-900">
-                {user.preferences.propertyTypes.length > 0
-                  ? user.preferences.propertyTypes.join(', ')
-                  : 'All types'}
-              </span>
+              <div className="flex justify-between items-center py-2 border-b border-neutral-100">
+                <span className="text-neutral-600">Buyer Type</span>
+                <span className="font-medium text-neutral-900">{buyerProfile.buyerType}</span>
+              </div>
+
+              <div className="flex justify-between items-center py-2">
+                <span className="text-neutral-600">Purchase Type</span>
+                <span className="font-medium text-neutral-900 flex items-center gap-2">
+                  <CreditCard size={16} />
+                  {buyerProfile.purchaseType}
+                </span>
+              </div>
             </div>
           </div>
+        )}
 
-          <Button
-            variant="secondary"
-            size="md"
-            fullWidth
-            className="mt-4"
-            icon={<Settings size={18} />}
-            onClick={() => console.log('Edit preferences')}
-          >
-            Edit Preferences
-          </Button>
-        </div>
+        {!isBuyer && vendorProfile && (
+          <div className="bg-white rounded-2xl shadow-sm p-6">
+            <h3 className="text-xl font-bold text-neutral-900 mb-4 flex items-center gap-2">
+              <Home size={20} />
+              Vendor Profile
+            </h3>
+
+            <div className="space-y-3">
+              <div className="flex justify-between items-center py-2 border-b border-neutral-100">
+                <span className="text-neutral-600">Property Type</span>
+                <span className="font-medium text-neutral-900">{vendorProfile.propertyType}</span>
+              </div>
+
+              <div className="flex justify-between items-center py-2 border-b border-neutral-100">
+                <span className="text-neutral-600">Looking For</span>
+                <span className="font-medium text-neutral-900">{vendorProfile.lookingFor}</span>
+              </div>
+
+              <div className="flex justify-between items-center py-2 border-b border-neutral-100">
+                <span className="text-neutral-600">Preferred Purchase</span>
+                <span className="font-medium text-neutral-900 flex items-center gap-2">
+                  <CreditCard size={16} />
+                  {vendorProfile.preferredPurchaseType}
+                </span>
+              </div>
+
+              {vendorProfile.estateAgentLink && (
+                <div className="flex justify-between items-start py-2">
+                  <span className="text-neutral-600">Property Listing</span>
+                  <a
+                    href={vendorProfile.estateAgentLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-medium text-primary-600 hover:text-primary-700 underline text-sm break-all max-w-xs text-right"
+                  >
+                    View Listing →
+                  </a>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Danger Zone */}
         <div className="bg-white rounded-2xl shadow-sm p-6 border-2 border-danger-100">

@@ -2,7 +2,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, CheckCircle, AlertCircle, Info, Heart } from 'lucide-react';
 import { create } from 'zustand';
 
-type ToastType = 'success' | 'error' | 'info' | 'match';
+type ToastType = 'success' | 'error' | 'danger' | 'info' | 'match';
 
 interface Toast {
   id: string;
@@ -73,6 +73,7 @@ const ToastItem: React.FC<ToastItemProps> = ({ toast, onClose }) => {
   const styles = {
     success: 'bg-success-50 border-success-200 text-success-800',
     error: 'bg-danger-50 border-danger-200 text-danger-800',
+    danger: 'bg-danger-50 border-danger-200 text-danger-800',
     info: 'bg-primary-50 border-primary-200 text-primary-800',
     match: 'bg-gradient-to-r from-success-500 to-primary-500 border-success-400 text-white',
   };
@@ -80,6 +81,7 @@ const ToastItem: React.FC<ToastItemProps> = ({ toast, onClose }) => {
   const icons = {
     success: CheckCircle,
     error: AlertCircle,
+    danger: AlertCircle,
     info: Info,
     match: Heart,
   };

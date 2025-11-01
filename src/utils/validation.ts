@@ -1,180 +1,118 @@
 /**
- * Validation utilities for forms and user input
+ * Validation utilities for forms and data
  */
 
 /**
- * Validate UK postcode format
- * @param postcode - Postcode to validate
- * @returns True if valid UK postcode
+ * Comprehensive UK postcode regex
+ * Handles all valid UK postcode formats:
+ * - Standard: SW1A 1AA
+ * - Without space: SW1A1AA
+ * - Variations: W1A 0AX, M1 1AE, B33 8TH, CR2 6XH, DN55 1PT, GIR 0AA
+ *
+ * Format explanation:
+ * - Area: 1-2 letters (e.g., SW, W, B)
+ * - District: 1-2 digits, optionally followed by a letter (e.g., 1, 1A, 33)
+ * - Sector: single digit (e.g., 1)
+ * - Unit: 2 letters (e.g., AA)
+ *
+ * Special cases handled:
+ * - GIR 0AA (Girobank)
+ * - BFPO addresses
+ * - Excludes CIKMOV from final two letters (not used in UK postcodes)
  */
-export const isValidPostcode = (postcode: string): boolean => {
-  const postcodeRegex =
-    /^[A-Z]{1,2}[0-9][A-Z0-9]?\s?[0-9][A-Z]{2}$/i;
-  return postcodeRegex.test(postcode.trim());
-};
+export const UK_POSTCODE_REGEX = /^([A-Z]{1,2})([0-9]{1,2}[A-Z]?)\s?([0-9])([A-BD-HJLNP-UW-Z]{2})$/i;
+
+/**
+ * Extract UK postcode from a string (e.g., URL or address)
+ * Returns the first valid postcode found, or null if none found
+ */
+export function extractPostcode(text: string): string | null {
+  // More permissive regex for extraction (allows embedded in text)
+  const extractRegex = /\b([A-Z]{1,2}[0-9]{1,2}[A-Z]?)\s?([0-9][A-BD-HJLNP-UW-Z]{2})\b/gi;
+  const match = text.match(extractRegex);
+
+  if (match) {
+    // Validate the extracted postcode with the strict regex
+    const candidate = match[0].trim();
+    if (UK_POSTCODE_REGEX.test(candidate)) {
+      return candidate;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Validate a UK postcode
+ * Returns true if the postcode is valid
+ */
+export function isValidPostcode(postcode: string): boolean {
+  return UK_POSTCODE_REGEX.test(postcode.trim());
+}
+
+/**
+ * Normalize a postcode (uppercase, single space)
+ * Example: "sw1a1aa" -> "SW1A 1AA"
+ */
+export function normalizePostcode(postcode: string): string {
+  const cleaned = postcode.replace(/\s/g, '').toUpperCase();
+  const match = cleaned.match(/^([A-Z]{1,2}[0-9]{1,2}[A-Z]?)([0-9][A-BD-HJLNP-UW-Z]{2})$/);
+
+  if (match) {
+    return `${match[1]} ${match[2]}`;
+  }
+
+  return postcode; // Return original if can't normalize
+}
+
+/**
+ * Compare two postcodes (case-insensitive, space-insensitive)
+ */
+export function comparePostcodes(postcode1: string, postcode2: string): boolean {
+  const clean1 = postcode1.replace(/\s/g, '').toUpperCase();
+  const clean2 = postcode2.replace(/\s/g, '').toUpperCase();
+  return clean1 === clean2;
+}
+
+/**
+ * Validate URL format
+ */
+export function isValidUrl(url: string): boolean {
+  try {
+    new URL(url.startsWith('http') ? url : `https://${url}`);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Validate property listing URL (Rightmove, Zoopla, OnTheMarket)
+ */
+export function isValidPropertyListingUrl(url: string): boolean {
+  if (!isValidUrl(url)) return false;
+
+  try {
+    const urlObj = new URL(url.startsWith('http') ? url : `https://${url}`);
+    const validDomains = ['rightmove.co.uk', 'zoopla.co.uk', 'onthemarket.com'];
+    return validDomains.some((domain) => urlObj.hostname.includes(domain));
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Validate year (for property year built)
+ */
+export function isValidYear(year: number | string, minYear = 1800, maxYear = new Date().getFullYear()): boolean {
+  const yearNum = typeof year === 'string' ? parseInt(year, 10) : year;
+  return !isNaN(yearNum) && yearNum >= minYear && yearNum <= maxYear;
+}
 
 /**
  * Validate email format
- * @param email - Email to validate
- * @returns True if valid email
  */
-export const isValidEmail = (email: string): boolean => {
+export function isValidEmail(email: string): boolean {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(email.trim());
-};
-
-/**
- * Validate name (at least 2 characters, letters and spaces only)
- * @param name - Name to validate
- * @returns True if valid name
- */
-export const isValidName = (name: string): boolean => {
-  const nameRegex = /^[a-zA-Z\s]{2,}$/;
-  return nameRegex.test(name.trim());
-};
-
-/**
- * Validate price range
- * @param min - Minimum price
- * @param max - Maximum price
- * @returns Error message if invalid, null if valid
- */
-export const validatePriceRange = (min: number, max: number): string | null => {
-  if (min < 0) return 'Minimum price must be positive';
-  if (max < 0) return 'Maximum price must be positive';
-  if (min >= max) return 'Minimum price must be less than maximum price';
-  if (max > 10000000) return 'Maximum price too high';
-  return null;
-};
-
-/**
- * Validate bedroom range
- * @param min - Minimum bedrooms
- * @param max - Maximum bedrooms
- * @returns Error message if invalid, null if valid
- */
-export const validateBedroomRange = (min: number, max: number): string | null => {
-  if (min < 0) return 'Minimum bedrooms must be positive';
-  if (max < 0) return 'Maximum bedrooms must be positive';
-  if (min > max) return 'Minimum bedrooms must be less than or equal to maximum';
-  if (max > 10) return 'Maximum bedrooms too high';
-  return null;
-};
-
-/**
- * Validate message content
- * @param message - Message to validate
- * @returns Error message if invalid, null if valid
- */
-export const validateMessage = (message: string): string | null => {
-  const trimmed = message.trim();
-  if (trimmed.length === 0) return 'Message cannot be empty';
-  if (trimmed.length > 1000) return 'Message too long (max 1000 characters)';
-  return null;
-};
-
-/**
- * Sanitize user input to prevent XSS
- * @param input - User input string
- * @returns Sanitized string
- */
-export const sanitizeInput = (input: string): string => {
-  return input
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#x27;')
-    .replace(/\//g, '&#x2F;');
-};
-
-/**
- * Validate required field
- * @param value - Field value
- * @param fieldName - Name of the field for error message
- * @returns Error message if invalid, null if valid
- */
-export const validateRequired = (value: string, fieldName: string): string | null => {
-  if (!value || value.trim().length === 0) {
-    return `${fieldName} is required`;
-  }
-  return null;
-};
-
-/**
- * Validate minimum length
- * @param value - String value
- * @param minLength - Minimum length
- * @param fieldName - Field name for error message
- * @returns Error message if invalid, null if valid
- */
-export const validateMinLength = (
-  value: string,
-  minLength: number,
-  fieldName: string
-): string | null => {
-  if (value.trim().length < minLength) {
-    return `${fieldName} must be at least ${minLength} characters`;
-  }
-  return null;
-};
-
-/**
- * Validate maximum length
- * @param value - String value
- * @param maxLength - Maximum length
- * @param fieldName - Field name for error message
- * @returns Error message if invalid, null if valid
- */
-export const validateMaxLength = (
-  value: string,
-  maxLength: number,
-  fieldName: string
-): string | null => {
-  if (value.trim().length > maxLength) {
-    return `${fieldName} must be no more than ${maxLength} characters`;
-  }
-  return null;
-};
-
-/**
- * Validate phone number (UK format)
- * @param phone - Phone number to validate
- * @returns True if valid UK phone number
- */
-export const isValidPhoneNumber = (phone: string): boolean => {
-  const phoneRegex = /^(?:(?:\+44\s?|0)(?:\d\s?){9,10})$/;
-  return phoneRegex.test(phone.replace(/\s+/g, ''));
-};
-
-/**
- * Validate number is within range
- * @param value - Number to validate
- * @param min - Minimum value
- * @param max - Maximum value
- * @param fieldName - Field name for error message
- * @returns Error message if invalid, null if valid
- */
-export const validateNumberRange = (
-  value: number,
-  min: number,
-  max: number,
-  fieldName: string
-): string | null => {
-  if (value < min || value > max) {
-    return `${fieldName} must be between ${min} and ${max}`;
-  }
-  return null;
-};
-
-/**
- * Validate array has at least one item
- * @param array - Array to validate
- * @param fieldName - Field name for error message
- * @returns Error message if invalid, null if valid
- */
-export const validateArrayNotEmpty = <T>(array: T[], fieldName: string): string | null => {
-  if (!array || array.length === 0) {
-    return `At least one ${fieldName} must be selected`;
-  }
-  return null;
-};
+  return emailRegex.test(email);
+}

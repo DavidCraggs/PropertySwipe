@@ -1,11 +1,16 @@
 /**
- * Core type definitions for PropertySwipe application
+ * Core type definitions for Get On application
  */
 
-export type PropertyType = 'Flat' | 'Terraced' | 'Semi-Detached' | 'Detached' | 'Bungalow' | 'Studio';
+export type PropertyType = 'Detached' | 'Semi-detached' | 'Terraced' | 'End-Terraced' | 'Bungalow' | 'Flat';
 export type Tenure = 'Freehold' | 'Leasehold' | 'Shared Ownership';
 export type EPCRating = 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G';
-export type UserType = 'buyer' | 'seller';
+export type UserType = 'vendor' | 'buyer';
+export type LocalArea = 'Southport' | 'Liverpool' | 'Manchester';
+export type BuyerSituation = 'Family' | 'Couple' | 'Single';
+export type BuyerType = 'First Time Buyer' | 'Nothing To Sell' | 'Need To Sell On The Market' | 'Under Offer' | 'Investor';
+export type PurchaseType = 'Mortgage' | 'Cash' | 'Loan' | 'Cash on Completion';
+export type LookingFor = 'Family' | 'Investor';
 
 /**
  * Property interface representing a UK property listing
@@ -30,7 +35,7 @@ export interface Property {
   yearBuilt: number;
   features: string[];
   listingDate: string;
-  sellerId: string;
+  vendorId: string;
 }
 
 /**
@@ -83,19 +88,31 @@ export interface Message {
 }
 
 /**
- * Match between a buyer and a property/seller
+ * Match between a buyer and a property/vendor
  */
 export interface Match {
   id: string;
   propertyId: string;
   property: Property;
-  sellerId: string;
-  sellerName: string;
+  vendorId: string;
+  vendorName: string;
   buyerId: string;
+  buyerName: string;
+  // ENHANCEMENT: Full buyer profile for vendors to evaluate buyers
+  buyerProfile?: {
+    situation: BuyerSituation;
+    ages: string;
+    localArea: LocalArea;
+    buyerType: BuyerType;
+    purchaseType: PurchaseType;
+  };
   timestamp: string;
   messages: Message[];
   lastMessageAt?: string;
   unreadCount: number;
+  viewingPreference?: ViewingPreference;
+  hasViewingScheduled: boolean;
+  confirmedViewingDate?: Date;
 }
 
 /**
@@ -158,4 +175,71 @@ export interface Location {
     lat: number;
     lng: number;
   };
+}
+
+/**
+ * Vendor profile for property sellers
+ */
+export interface VendorProfile {
+  id: string;
+  names: string; // e.g., "John & Sarah Smith"
+  propertyType: PropertyType;
+  lookingFor: LookingFor;
+  preferredPurchaseType: PurchaseType;
+  estateAgentLink: string;
+  propertyId?: string;
+  createdAt: Date;
+  isComplete: boolean;
+}
+
+/**
+ * Buyer profile for property buyers
+ */
+export interface BuyerProfile {
+  id: string;
+  situation: BuyerSituation;
+  names: string;
+  ages: string; // e.g., "32" or "32 & 29"
+  localArea: LocalArea;
+  buyerType: BuyerType;
+  purchaseType: PurchaseType;
+  createdAt: Date;
+  isComplete: boolean;
+}
+
+/**
+ * Authentication state
+ */
+export interface AuthState {
+  isAuthenticated: boolean;
+  userType: UserType | null;
+  currentUser: VendorProfile | BuyerProfile | null;
+  onboardingStep: number;
+}
+
+/**
+ * Viewing time slot preference
+ */
+export interface ViewingTimeSlot {
+  dayType: 'Weekday' | 'Weekend' | 'Any Day';
+  timeOfDay: 'Morning' | 'Afternoon' | 'Evening' | 'Flexible';
+  specificDays?: ('Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday' | 'Sunday')[];
+}
+
+/**
+ * Viewing preference for property viewings
+ */
+export interface ViewingPreference {
+  id: string;
+  matchId: string;
+  buyerId: string;
+  vendorId: string;
+  propertyId: string;
+  preferredTimes: ViewingTimeSlot[];
+  specificDateTime?: Date;
+  flexibility: 'Flexible' | 'Specific' | 'ASAP';
+  additionalNotes?: string;
+  status: 'pending' | 'confirmed' | 'declined' | 'rescheduled';
+  createdAt: Date;
+  updatedAt: Date;
 }

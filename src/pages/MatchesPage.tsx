@@ -1,12 +1,16 @@
 import { useState } from 'react';
-import { Heart, MessageCircle, MapPin } from 'lucide-react';
+import { Heart, MessageCircle, MapPin, Calendar, Clock, CheckCircle } from 'lucide-react';
 import { useAppStore } from '../hooks';
 import { formatPrice, formatRelativeTime } from '../utils/formatters';
 import { Badge } from '../components/atoms/Badge';
+import { ViewingsList } from '../components/organisms/ViewingsList';
+
+type TabType = 'matches' | 'viewings';
 
 export const MatchesPage: React.FC = () => {
   const { matches } = useAppStore();
   const [selectedMatch, setSelectedMatch] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<TabType>('matches');
 
   // Sort matches by most recent
   const sortedMatches = [...matches].sort(
@@ -40,16 +44,43 @@ export const MatchesPage: React.FC = () => {
       {/* Header */}
       <header className="bg-white border-b border-neutral-200 px-4 py-6">
         <div className="max-w-4xl mx-auto">
-          <h1 className="text-3xl font-bold text-neutral-900">Matches</h1>
+          <h1 className="text-3xl font-bold text-neutral-900">Matches & Viewings</h1>
           <p className="text-neutral-600 mt-1">
-            {matches.length} {matches.length === 1 ? 'match' : 'matches'} waiting for you
+            {matches.length} {matches.length === 1 ? 'match' : 'matches'}
           </p>
+
+          {/* Tabs */}
+          <div className="flex gap-2 mt-4">
+            <button
+              onClick={() => setActiveTab('matches')}
+              className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-lg font-medium transition-all ${
+                activeTab === 'matches'
+                  ? 'bg-primary-500 text-white shadow-sm'
+                  : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+              }`}
+            >
+              <Heart className="w-4 h-4" />
+              Matches
+            </button>
+            <button
+              onClick={() => setActiveTab('viewings')}
+              className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-lg font-medium transition-all ${
+                activeTab === 'viewings'
+                  ? 'bg-primary-500 text-white shadow-sm'
+                  : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+              }`}
+            >
+              <Calendar className="w-4 h-4" />
+              Viewings
+            </button>
+          </div>
         </div>
       </header>
 
       <main className="max-w-4xl mx-auto px-4 py-8">
-        {/* Match Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Matches Tab */}
+        {activeTab === 'matches' && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {sortedMatches.map((match) => {
             const unreadCount = match.unreadCount || 0;
             const lastMessage = match.messages[match.messages.length - 1];
@@ -72,10 +103,22 @@ export const MatchesPage: React.FC = () => {
                       {unreadCount}
                     </div>
                   )}
-                  <div className="absolute top-3 left-3">
+                  <div className="absolute top-3 left-3 flex flex-col gap-2">
                     <Badge variant="success" size="sm">
                       ✨ Match!
                     </Badge>
+                    {match.hasViewingScheduled && match.confirmedViewingDate && (
+                      <Badge variant="success" size="sm">
+                        <CheckCircle className="w-3 h-3 mr-1" />
+                        Viewing Confirmed
+                      </Badge>
+                    )}
+                    {match.viewingPreference && !match.hasViewingScheduled && (
+                      <Badge variant="secondary" size="sm">
+                        <Clock className="w-3 h-3 mr-1" />
+                        Viewing Pending
+                      </Badge>
+                    )}
                   </div>
                 </div>
 
@@ -88,6 +131,36 @@ export const MatchesPage: React.FC = () => {
                     <MapPin size={16} className="flex-shrink-0 mt-0.5" />
                     <span className="text-sm">{match.property.address.street}</span>
                   </div>
+
+                  {/* Viewing Info */}
+                  {match.hasViewingScheduled && match.confirmedViewingDate && (
+                    <div className="bg-success-50 border border-success-200 rounded-lg p-3 mb-3">
+                      <div className="flex items-center gap-2 text-success-700 mb-1">
+                        <Calendar size={14} />
+                        <span className="text-xs font-medium">Viewing Scheduled</span>
+                      </div>
+                      <p className="text-sm font-semibold text-success-900">
+                        {new Date(match.confirmedViewingDate).toLocaleDateString('en-GB', {
+                          weekday: 'short',
+                          day: 'numeric',
+                          month: 'short',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </p>
+                    </div>
+                  )}
+                  {match.viewingPreference && !match.hasViewingScheduled && (
+                    <div className="bg-secondary-50 border border-secondary-200 rounded-lg p-3 mb-3">
+                      <div className="flex items-center gap-2 text-secondary-700 mb-1">
+                        <Clock size={14} />
+                        <span className="text-xs font-medium">Viewing Request Sent</span>
+                      </div>
+                      <p className="text-xs text-secondary-900">
+                        {match.viewingPreference.flexibility} • {match.viewingPreference.preferredTimes.length} time{match.viewingPreference.preferredTimes.length !== 1 ? 's' : ''}
+                      </p>
+                    </div>
+                  )}
 
                   {/* Last Message Preview */}
                   {lastMessage && (
@@ -126,18 +199,24 @@ export const MatchesPage: React.FC = () => {
               </div>
             );
           })}
-        </div>
+          </div>
+        )}
 
-        {/* Info Box */}
-        <div className="mt-8 bg-primary-50 border border-primary-200 rounded-xl p-6">
-          <h3 className="font-bold text-neutral-900 mb-2">What happens next?</h3>
-          <ul className="space-y-2 text-sm text-neutral-700">
-            <li>✅ Click on a match to start a conversation</li>
-            <li>✅ Ask questions about the property</li>
-            <li>✅ Arrange a viewing if you're interested</li>
-            <li>✅ The seller will respond to your messages</li>
-          </ul>
-        </div>
+        {/* Viewings Tab */}
+        {activeTab === 'viewings' && <ViewingsList />}
+
+        {/* Info Box - only show on matches tab */}
+        {activeTab === 'matches' && (
+          <div className="mt-8 bg-primary-50 border border-primary-200 rounded-xl p-6">
+            <h3 className="font-bold text-neutral-900 mb-2">What happens next?</h3>
+            <ul className="space-y-2 text-sm text-neutral-700">
+              <li>✅ Click on a match to start a conversation</li>
+              <li>✅ Ask questions about the property</li>
+              <li>✅ Arrange a viewing if you're interested</li>
+              <li>✅ The vendor will respond to your messages</li>
+            </ul>
+          </div>
+        )}
       </main>
 
       {/* Simple modal placeholder for conversation view */}

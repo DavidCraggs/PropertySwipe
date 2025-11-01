@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">GetOn</string>
+    <string name="title_activity_main">GetOn</string>
+    <string name="package_name">com.geton.app</string>
+    <string name="custom_url_scheme">com.geton.app</string>
+</resources>

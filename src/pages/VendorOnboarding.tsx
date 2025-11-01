@@ -4,8 +4,10 @@ import { Home, Users, Briefcase, CreditCard, Link2, Check } from 'lucide-react';
 import { FormStep } from '../components/molecules/FormStep';
 import { RadioCardGroup } from '../components/molecules/RadioCardGroup';
 import { FormField } from '../components/molecules/FormField';
-import type { VendorProfile, PropertyType, LookingFor, PurchaseType } from '../types';
+import type { VendorProfile, PropertyType, LookingFor, PurchaseType, Property } from '../types';
 import { useAuthStore } from '../hooks/useAuthStore';
+import { useAppStore } from '../hooks';
+import { extractPostcode, comparePostcodes, isValidPropertyListingUrl } from '../utils/validation';
 
 interface VendorOnboardingProps {
   onComplete: () => void;
@@ -25,6 +27,7 @@ interface VendorFormData {
  */
 export function VendorOnboarding({ onComplete }: VendorOnboardingProps) {
   const { login } = useAuthStore();
+  const { allProperties, linkPropertyToVendor } = useAppStore();
   const [currentStep, setCurrentStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -49,6 +52,29 @@ export function VendorOnboarding({ onComplete }: VendorOnboardingProps) {
       }
     }
   }, []);
+
+  // FIX BUG #11 & #14: Real-time URL validation with debounce using improved validation
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (formData.estateAgentLink.trim() && currentStep === 3) {
+        const link = formData.estateAgentLink.trim();
+
+        if (!isValidPropertyListingUrl(link)) {
+          setErrors((prev) => ({
+            ...prev,
+            estateAgentLink: 'Please enter a valid property listing URL from Rightmove, Zoopla, or OnTheMarket',
+          }));
+        } else {
+          setErrors((prev) => {
+            const { estateAgentLink, ...rest } = prev;
+            return rest;
+          });
+        }
+      }
+    }, 500); // 500ms debounce
+
+    return () => clearTimeout(timer);
+  }, [formData.estateAgentLink, currentStep]);
 
   // Auto-save draft
   useEffect(() => {
@@ -75,18 +101,11 @@ export function VendorOnboarding({ onComplete }: VendorOnboardingProps) {
       }
     }
 
+    // FIX BUG #14: Use improved validation helper
     if (step === 3 && formData.estateAgentLink.trim()) {
       const link = formData.estateAgentLink.trim();
-      try {
-        const url = new URL(link.startsWith('http') ? link : `https://${link}`);
-        const validDomains = ['rightmove.co.uk', 'zoopla.co.uk', 'onthemarket.com'];
-        const isValid = validDomains.some((domain) => url.hostname.includes(domain));
-
-        if (!isValid) {
-          newErrors.estateAgentLink = 'Please enter a valid property listing URL';
-        }
-      } catch {
-        newErrors.estateAgentLink = 'Please enter a valid URL';
+      if (!isValidPropertyListingUrl(link)) {
+        newErrors.estateAgentLink = 'Please enter a valid property listing URL from Rightmove, Zoopla, or OnTheMarket';
       }
     }
 
@@ -110,6 +129,35 @@ export function VendorOnboarding({ onComplete }: VendorOnboardingProps) {
     }
   };
 
+  // FIX BUG #14: Helper function to match property from estate agent URL with improved postcode handling
+  const matchPropertyFromUrl = (url: string): Property | null => {
+    if (!url) return null;
+
+    // Validate it's a property listing URL
+    if (!isValidPropertyListingUrl(url)) {
+      return null;
+    }
+
+    // Extract postcode from URL using improved regex
+    const postcode = extractPostcode(url);
+
+    if (postcode) {
+      // Try to find property by postcode using improved comparison
+      const matchedProperty = allProperties.find((p) =>
+        comparePostcodes(p.address.postcode, postcode)
+      );
+
+      if (matchedProperty) {
+        console.log(
+          `[Onboarding] Auto-matched property ${matchedProperty.id} from URL postcode ${postcode}`
+        );
+        return matchedProperty;
+      }
+    }
+
+    return null;
+  };
+
   const handleSubmit = async () => {
     setIsSubmitting(true);
 
@@ -122,13 +170,41 @@ export function VendorOnboarding({ onComplete }: VendorOnboardingProps) {
       formattedLink = `https://${formattedLink}`;
     }
 
+    // Generate vendor ID
+    const vendorId = `vendor-${Date.now()}`;
+
+    // CRITICAL FIX: Attempt to auto-link property from estate agent URL
+    let linkedPropertyId: string | undefined;
+    const matchedProperty = matchPropertyFromUrl(formattedLink);
+
+    if (matchedProperty) {
+      // Check if property is already linked to another vendor
+      if (!matchedProperty.vendorId || matchedProperty.vendorId.trim() === '') {
+        // Property is available - link it to this vendor
+        linkPropertyToVendor(matchedProperty.id, vendorId);
+        linkedPropertyId = matchedProperty.id;
+        console.log(
+          `[Onboarding] Successfully linked property ${matchedProperty.id} to vendor ${vendorId}`
+        );
+      } else {
+        console.warn(
+          `[Onboarding] Property ${matchedProperty.id} is already linked to vendor ${matchedProperty.vendorId}`
+        );
+      }
+    } else if (formattedLink) {
+      console.log(
+        `[Onboarding] Could not auto-match property from URL: ${formattedLink}`
+      );
+    }
+
     const profile: VendorProfile = {
-      id: `vendor-${Date.now()}`,
+      id: vendorId,
       names: formData.names.trim(),
       propertyType: formData.propertyType,
       lookingFor: formData.lookingFor,
       preferredPurchaseType: formData.preferredPurchaseType,
       estateAgentLink: formattedLink,
+      propertyId: linkedPropertyId, // Set if auto-linked
       createdAt: new Date(),
       isComplete: true,
     };
