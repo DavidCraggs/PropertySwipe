@@ -209,7 +209,7 @@ export function VendorOnboarding({ onComplete }: VendorOnboardingProps) {
       isComplete: true,
     };
 
-    login('vendor', profile);
+    await login('vendor', profile);
     localStorage.removeItem('vendor-onboarding-draft');
 
     setIsSubmitting(false);

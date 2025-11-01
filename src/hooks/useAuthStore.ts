@@ -1,12 +1,13 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { AuthState, VendorProfile, BuyerProfile, UserType } from '../types';
+import { saveVendorProfile, saveBuyerProfile } from '../lib/storage';
 
 interface AuthStore extends AuthState {
   // Actions
-  login: (userType: UserType, profile: VendorProfile | BuyerProfile) => void;
+  login: (userType: UserType, profile: VendorProfile | BuyerProfile) => Promise<void>;
   logout: () => void;
-  updateProfile: (updates: Partial<VendorProfile | BuyerProfile>) => void;
+  updateProfile: (updates: Partial<VendorProfile | BuyerProfile>) => Promise<void>;
   setOnboardingStep: (step: number) => void;
   completeOnboarding: () => void;
   getSessionData: () => AuthState;
@@ -28,7 +29,19 @@ export const useAuthStore = create<AuthStore>()(
       onboardingStep: 0,
 
       // Login action - stores user data and sets authenticated state
-      login: (userType, profile) => {
+      login: async (userType, profile) => {
+        // Save to Supabase (or localStorage if not configured)
+        try {
+          if (userType === 'vendor') {
+            await saveVendorProfile(profile as VendorProfile);
+          } else if (userType === 'buyer') {
+            await saveBuyerProfile(profile as BuyerProfile);
+          }
+          console.log(`[Auth] Profile saved to storage for ${userType}`);
+        } catch (error) {
+          console.error('[Auth] Failed to save profile to storage:', error);
+        }
+
         set({
           isAuthenticated: true,
           userType,
@@ -48,15 +61,28 @@ export const useAuthStore = create<AuthStore>()(
       },
 
       // Update user profile
-      updateProfile: (updates) => {
-        const { currentUser } = get();
+      updateProfile: async (updates) => {
+        const { currentUser, userType } = get();
         if (!currentUser) return;
 
+        const updatedProfile = {
+          ...currentUser,
+          ...updates,
+        };
+
+        // Save to Supabase (or localStorage if not configured)
+        try {
+          if (userType === 'vendor') {
+            await saveVendorProfile(updatedProfile as VendorProfile);
+          } else if (userType === 'buyer') {
+            await saveBuyerProfile(updatedProfile as BuyerProfile);
+          }
+        } catch (error) {
+          console.error('[Auth] Failed to save profile to storage:', error);
+        }
+
         set({
-          currentUser: {
-            ...currentUser,
-            ...updates,
-          },
+          currentUser: updatedProfile,
         });
       },
 

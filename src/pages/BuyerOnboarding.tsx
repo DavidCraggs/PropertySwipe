@@ -125,7 +125,7 @@ export function BuyerOnboarding({ onComplete }: BuyerOnboardingProps) {
       isComplete: true,
     };
 
-    login('buyer', profile);
+    await login('buyer', profile);
     localStorage.removeItem('buyer-onboarding-draft');
 
     setIsSubmitting(false);

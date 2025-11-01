@@ -184,11 +184,11 @@ export function VendorDashboard() {
                   Edit Property
                 </button>
                 <button
-                  onClick={() => {
+                  onClick={async () => {
                     if (!vendorProfile?.id) return;
                     try {
                       unlinkProperty(vendorProperty.id, vendorProfile.id);
-                      updateProfile({ propertyId: undefined });
+                      await updateProfile({ propertyId: undefined });
                       addToast({
                         type: 'success',
                         title: 'Property Unlinked',
@@ -325,14 +325,14 @@ export function VendorDashboard() {
           onClose={() => setShowPropertyLinker(false)}
           availableProperties={allProperties}
           currentPropertyId={vendorProfile?.propertyId}
-          onLinkProperty={(propertyId) => {
+          onLinkProperty={async (propertyId) => {
             try {
               // Update property's vendorId to match current vendor
               if (vendorProfile?.id) {
                 linkPropertyToVendor(propertyId, vendorProfile.id);
               }
               // Update vendor profile with propertyId
-              updateProfile({ propertyId });
+              await updateProfile({ propertyId });
               addToast({
                 type: 'success',
                 title: 'Property Linked!',
@@ -369,7 +369,7 @@ export function VendorDashboard() {
                     const newPropertyId = await createProperty(propertyData, vendorProfile.id);
 
                     // Link property to vendor profile
-                    updateProfile({ propertyId: newPropertyId });
+                    await updateProfile({ propertyId: newPropertyId });
 
                     addToast({
                       type: 'success',
@@ -462,12 +462,12 @@ export function VendorDashboard() {
                 Cancel
               </button>
               <button
-                onClick={() => {
+                onClick={async () => {
                   try {
                     if (!vendorProperty?.id) return;
 
-                    deleteProperty(vendorProperty.id);
-                    updateProfile({ propertyId: undefined });
+                    await deleteProperty(vendorProperty.id);
+                    await updateProfile({ propertyId: undefined });
 
                     addToast({
                       type: 'success',
