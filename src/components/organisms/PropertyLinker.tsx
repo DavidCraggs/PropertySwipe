@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Search, Home, Check, Link as LinkIcon, AlertCircle } from 'lucide-react';
 import { Button } from '../atoms/Button';
 import type { Property } from '../../types';
-import { formatPrice } from '../../utils/formatters';
 import { extractPostcode, comparePostcodes, isValidPropertyListingUrl } from '../../utils/validation';
 
 interface PropertyLinkerProps {
@@ -238,7 +237,7 @@ export function PropertyLinker({
                           className="w-full h-full object-cover"
                         />
                         <div className="absolute top-2 right-2 bg-white/95 backdrop-blur-sm px-3 py-1 rounded-full font-bold text-sm">
-                          {formatPrice(property.price)}
+                          £{property.rentPcm.toLocaleString()} pcm
                         </div>
                         {isSelected && (
                           <div className="absolute inset-0 bg-primary-500/20 flex items-center justify-center">

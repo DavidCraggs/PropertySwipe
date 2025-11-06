@@ -1,13 +1,15 @@
 import type { Property, UserPreferences } from '../types';
+import { AFFORDABILITY_PERCENTAGE } from './constants';
 
 /**
- * Utility functions for filtering properties based on user preferences
+ * Utility functions for filtering rental properties based on renter preferences
+ * Updated for GetOn Rental Platform (RRA 2025 compliant)
  */
 
 /**
- * Filter properties based on user preferences
- * @param properties - Array of properties to filter
- * @param preferences - User preferences
+ * Filter rental properties based on renter preferences
+ * @param properties - Array of rental properties to filter
+ * @param preferences - Renter preferences
  * @returns Filtered properties
  */
 export const filterProperties = (
@@ -15,6 +17,11 @@ export const filterProperties = (
   preferences: UserPreferences
 ): Property[] => {
   return properties.filter((property) => {
+    // RRA 2025: Only show properties that can be legally marketed
+    if (!property.canBeMarketed) {
+      return false;
+    }
+
     // Filter by location
     if (
       preferences.locations.length > 0 &&
@@ -23,8 +30,8 @@ export const filterProperties = (
       return false;
     }
 
-    // Filter by price range
-    if (property.price < preferences.priceRange.min || property.price > preferences.priceRange.max) {
+    // Filter by rent range
+    if (property.rentPcm < preferences.rentRange.min || property.rentPcm > preferences.rentRange.max) {
       return false;
     }
 
@@ -40,6 +47,15 @@ export const filterProperties = (
     if (
       preferences.propertyTypes.length > 0 &&
       !preferences.propertyTypes.includes(property.propertyType)
+    ) {
+      return false;
+    }
+
+    // Filter by furnishing type
+    if (
+      preferences.furnishing &&
+      preferences.furnishing.length > 0 &&
+      !preferences.furnishing.includes(property.furnishing)
     ) {
       return false;
     }
@@ -60,21 +76,18 @@ export const filterProperties = (
       return false;
     }
 
-    // Filter by new build requirement
-    if (preferences.newBuildOnly) {
-      const currentYear = new Date().getFullYear();
-      const age = currentYear - property.yearBuilt;
-      if (age > 5) {
-        // Consider "new build" as less than 5 years old
-        return false;
-      }
+    // Filter by pets requirement
+    // RRA 2025: All properties must consider pets
+    // Just check if property will consider pets if renter requires them
+    if (preferences.petsRequired && !property.petsPolicy?.willConsiderPets) {
+      return false;
     }
 
-    // Filter by property age if maxAge is specified
-    if (preferences.maxAge !== undefined) {
-      const currentYear = new Date().getFullYear();
-      const age = currentYear - property.yearBuilt;
-      if (age > preferences.maxAge) {
+    // Filter by availability date
+    if (preferences.minMoveInDate) {
+      const availableDate = new Date(property.availableFrom);
+      const preferredDate = new Date(preferences.minMoveInDate);
+      if (availableDate > preferredDate) {
         return false;
       }
     }
@@ -84,23 +97,39 @@ export const filterProperties = (
 };
 
 /**
- * Sort properties by specified criteria
+ * Filter properties by affordability (30% rule)
+ * @param properties - Array of properties
+ * @param monthlyIncome - Renter's monthly income
+ * @returns Properties that are affordable
+ */
+export const filterByAffordability = (
+  properties: Property[],
+  monthlyIncome: number
+): Property[] => {
+  const maxAffordableRent = monthlyIncome * AFFORDABILITY_PERCENTAGE;
+  return properties.filter((property) => property.rentPcm <= maxAffordableRent);
+};
+
+/**
+ * Sort rental properties by specified criteria
  * @param properties - Array of properties to sort
  * @param sortBy - Sort criteria
  * @returns Sorted properties
  */
 export const sortProperties = (
   properties: Property[],
-  sortBy: 'price-asc' | 'price-desc' | 'newest' | 'bedrooms'
+  sortBy: 'rent-asc' | 'rent-desc' | 'newest' | 'bedrooms' | 'available-soonest' | 'price-asc' | 'price-desc'
 ): Property[] => {
   const sorted = [...properties];
 
   switch (sortBy) {
-    case 'price-asc':
-      return sorted.sort((a, b) => a.price - b.price);
+    case 'rent-asc':
+    case 'price-asc': // Backward compatibility
+      return sorted.sort((a, b) => a.rentPcm - b.rentPcm);
 
-    case 'price-desc':
-      return sorted.sort((a, b) => b.price - a.price);
+    case 'rent-desc':
+    case 'price-desc': // Backward compatibility
+      return sorted.sort((a, b) => b.rentPcm - a.rentPcm);
 
     case 'newest':
       return sorted.sort(
@@ -110,16 +139,21 @@ export const sortProperties = (
     case 'bedrooms':
       return sorted.sort((a, b) => b.bedrooms - a.bedrooms);
 
+    case 'available-soonest':
+      return sorted.sort(
+        (a, b) => new Date(a.availableFrom).getTime() - new Date(b.availableFrom).getTime()
+      );
+
     default:
       return sorted;
   }
 };
 
 /**
- * Calculate match score between property and user preferences
+ * Calculate match score between property and renter preferences
  * Higher score means better match
  * @param property - Property to score
- * @param preferences - User preferences
+ * @param preferences - Renter preferences
  * @returns Match score (0-100)
  */
 export const calculateMatchScore = (
@@ -128,11 +162,13 @@ export const calculateMatchScore = (
 ): number => {
   let score = 0;
   const weights = {
-    location: 30,
-    price: 25,
+    location: 25,
+    rent: 20,
     bedrooms: 20,
-    propertyType: 15,
+    propertyType: 10,
+    furnishing: 10,
     features: 10,
+    availability: 5,
   };
 
   // Location match
@@ -140,12 +176,12 @@ export const calculateMatchScore = (
     score += weights.location;
   }
 
-  // Price match (closer to middle of range is better)
-  const priceRange = preferences.priceRange.max - preferences.priceRange.min;
-  const priceMid = preferences.priceRange.min + priceRange / 2;
-  const priceDiff = Math.abs(property.price - priceMid);
-  const priceScore = Math.max(0, 1 - priceDiff / priceRange);
-  score += priceScore * weights.price;
+  // Rent match (closer to middle of range is better)
+  const rentRangeSpan = preferences.rentRange.max - preferences.rentRange.min;
+  const rentMid = preferences.rentRange.min + rentRangeSpan / 2;
+  const rentDiff = Math.abs(property.rentPcm - rentMid);
+  const rentScore = Math.max(0, 1 - rentDiff / rentRangeSpan);
+  score += rentScore * weights.rent;
 
   // Bedrooms match
   if (
@@ -158,6 +194,13 @@ export const calculateMatchScore = (
   // Property type match
   if (preferences.propertyTypes.includes(property.propertyType)) {
     score += weights.propertyType;
+  }
+
+  // Furnishing match
+  if (preferences.furnishing && preferences.furnishing.includes(property.furnishing)) {
+    score += weights.furnishing;
+  } else if (!preferences.furnishing || preferences.furnishing.length === 0) {
+    score += weights.furnishing; // No preference, give full score
   }
 
   // Features match
@@ -178,19 +221,37 @@ export const calculateMatchScore = (
     }
   }
 
+  if (preferences.petsRequired) {
+    requiredFeatures++;
+    if (property.petsPolicy?.willConsiderPets) {
+      featureMatches++;
+    }
+  }
+
   if (requiredFeatures > 0) {
     score += (featureMatches / requiredFeatures) * weights.features;
   } else {
     score += weights.features; // No required features, give full score
   }
 
+  // Availability match (available sooner is better)
+  if (preferences.minMoveInDate) {
+    const availableDate = new Date(property.availableFrom);
+    const preferredDate = new Date(preferences.minMoveInDate);
+    if (availableDate <= preferredDate) {
+      score += weights.availability;
+    }
+  } else {
+    score += weights.availability; // No preference, give full score
+  }
+
   return Math.round(score);
 };
 
 /**
- * Get properties sorted by best match
+ * Get rental properties sorted by best match
  * @param properties - Array of properties
- * @param preferences - User preferences
+ * @param preferences - Renter preferences
  * @returns Properties sorted by match score
  */
 export const sortByBestMatch = (
@@ -244,16 +305,61 @@ export const getUniqueCities = (properties: Property[]): string[] => {
 };
 
 /**
- * Get price range statistics from properties
+ * Get rent range statistics from properties
  * @param properties - Array of properties
- * @returns Min and max prices
+ * @returns Min and max monthly rent
  */
-export const getPriceRange = (properties: Property[]): { min: number; max: number } => {
+export const getRentRange = (properties: Property[]): { min: number; max: number } => {
   if (properties.length === 0) return { min: 0, max: 0 };
 
-  const prices = properties.map((p) => p.price);
+  const rents = properties.map((p) => p.rentPcm);
   return {
-    min: Math.min(...prices),
-    max: Math.max(...prices),
+    min: Math.min(...rents),
+    max: Math.max(...rents),
   };
+};
+
+/**
+ * Legacy alias for backward compatibility (DEPRECATED)
+ */
+export const getPriceRange = getRentRange;
+
+/**
+ * Check if property meets RRA 2025 compliance requirements
+ * @param property - Property to check
+ * @returns true if property is compliant and can be marketed
+ */
+export const isPropertyCompliant = (property: Property): boolean => {
+  return (
+    property.prsPropertyRegistrationStatus === 'active' &&
+    property.meetsDecentHomesStandard === true &&
+    property.awaabsLawCompliant === true
+  );
+};
+
+/**
+ * Filter properties by landlord rating
+ * @param properties - Array of properties
+ * @param minRating - Minimum landlord rating (1-5)
+ * @returns Properties from landlords with acceptable rating
+ */
+export const filterByLandlordRating = (
+  properties: Property[],
+  _minRating: number
+): Property[] => {
+  return properties.filter((_property) => {
+    // In real implementation, would join with landlord_profiles table
+    // For now, assumes property has landlord rating attached
+    return true; // Placeholder for actual landlord rating check
+  });
+};
+
+/**
+ * Get unique furnishing types from properties
+ * @param properties - Array of properties
+ * @returns Array of unique furnishing types
+ */
+export const getUniqueFurnishingTypes = (properties: Property[]): string[] => {
+  const types = properties.map((p) => p.furnishing);
+  return Array.from(new Set(types)).sort();
 };

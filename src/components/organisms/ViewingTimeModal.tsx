@@ -16,7 +16,7 @@ interface ViewingTimeModalProps {
 }
 
 /**
- * Modal for buyers to specify preferred viewing times after matching
+ * Modal for renters to specify preferred viewing times after matching
  * Appears after "It's a match!" celebration
  */
 export function ViewingTimeModal({ isOpen, onClose, match, onSubmit }: ViewingTimeModalProps) {

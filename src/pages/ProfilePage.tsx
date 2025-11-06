@@ -3,7 +3,7 @@ import { Button } from '../components/atoms/Button';
 import { useAppStore } from '../hooks';
 import { useAuthStore } from '../hooks/useAuthStore';
 import { useToastStore } from '../components/organisms/Toast';
-import type { BuyerProfile, VendorProfile } from '../types';
+import type { RenterProfile, LandlordProfile } from '../types';
 
 export const ProfilePage: React.FC = () => {
   const { getStats, resetApp } = useAppStore();
@@ -43,9 +43,10 @@ export const ProfilePage: React.FC = () => {
     );
   }
 
-  const isBuyer = userType === 'buyer';
-  const buyerProfile = isBuyer ? (currentUser as BuyerProfile) : null;
-  const vendorProfile = !isBuyer ? (currentUser as VendorProfile) : null;
+  const isRenter = userType === 'renter';
+  const isAgency = userType === 'estate_agent' || userType === 'management_agency';
+  const renterProfile = isRenter ? (currentUser as RenterProfile) : null;
+  const landlordProfile = userType === 'landlord' ? (currentUser as LandlordProfile) : null;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-success-50 pb-24">
@@ -55,7 +56,7 @@ export const ProfilePage: React.FC = () => {
           <div>
             <h1 className="text-3xl font-bold text-neutral-900">Profile</h1>
             <p className="text-neutral-600 mt-1">
-              {isBuyer ? 'Your buyer account' : 'Your vendor account'}
+              {isRenter ? 'Your renter account' : 'Your vendor account'}
             </p>
           </div>
           <Button
@@ -73,14 +74,18 @@ export const ProfilePage: React.FC = () => {
         {/* User Info Card */}
         <div className="bg-white rounded-2xl shadow-sm p-6">
           <div className="flex items-start gap-4">
-            <div className={`w-20 h-20 rounded-full flex items-center justify-center text-white text-2xl font-bold ${isBuyer ? 'bg-gradient-to-br from-primary-500 to-primary-600' : 'bg-gradient-to-br from-secondary-500 to-secondary-600'}`}>
-              {isBuyer ? <ShoppingBag size={32} /> : <Home size={32} />}
+            <div className={`w-20 h-20 rounded-full flex items-center justify-center text-white text-2xl font-bold ${isRenter ? 'bg-gradient-to-br from-primary-500 to-primary-600' : 'bg-gradient-to-br from-secondary-500 to-secondary-600'}`}>
+              {isRenter ? <ShoppingBag size={32} /> : <Home size={32} />}
             </div>
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-1">
-                <h2 className="text-2xl font-bold text-neutral-900">{currentUser.names}</h2>
-                <span className={`px-2 py-1 text-xs font-medium rounded-full ${isBuyer ? 'bg-primary-100 text-primary-700' : 'bg-secondary-100 text-secondary-700'}`}>
-                  {isBuyer ? 'Buyer' : 'Vendor'}
+                <h2 className="text-2xl font-bold text-neutral-900">
+                  {isAgency
+                    ? (currentUser as any).companyName
+                    : (currentUser as RenterProfile | LandlordProfile).names}
+                </h2>
+                <span className={`px-2 py-1 text-xs font-medium rounded-full ${isRenter ? 'bg-primary-100 text-primary-700' : 'bg-secondary-100 text-secondary-700'}`}>
+                  {isRenter ? 'Renter' : isAgency ? 'Agency' : 'Vendor'}
                 </span>
               </div>
               <p className="text-sm text-neutral-500">
@@ -133,90 +138,92 @@ export const ProfilePage: React.FC = () => {
         </div>
 
         {/* Profile Details */}
-        {isBuyer && buyerProfile && (
+        {isRenter && renterProfile && (
           <div className="bg-white rounded-2xl shadow-sm p-6">
             <h3 className="text-xl font-bold text-neutral-900 mb-4 flex items-center gap-2">
               <User size={20} />
-              Buyer Profile
+              Renter Profile
             </h3>
 
             <div className="space-y-3">
               <div className="flex justify-between items-center py-2 border-b border-neutral-100">
                 <span className="text-neutral-600">Situation</span>
                 <span className="font-medium text-neutral-900 flex items-center gap-2">
-                  {buyerProfile.situation === 'Family' ? <Users size={16} /> : <User size={16} />}
-                  {buyerProfile.situation}
+                  {renterProfile.situation === 'Family' ? <Users size={16} /> : <User size={16} />}
+                  {renterProfile.situation}
                 </span>
               </div>
 
               <div className="flex justify-between items-center py-2 border-b border-neutral-100">
                 <span className="text-neutral-600">Age(s)</span>
-                <span className="font-medium text-neutral-900">{buyerProfile.ages}</span>
+                <span className="font-medium text-neutral-900">{renterProfile.ages}</span>
               </div>
 
               <div className="flex justify-between items-center py-2 border-b border-neutral-100">
                 <span className="text-neutral-600">Preferred Area</span>
                 <span className="font-medium text-neutral-900 flex items-center gap-2">
                   <MapPin size={16} />
-                  {buyerProfile.localArea}
+                  {renterProfile.localArea}
                 </span>
               </div>
 
               <div className="flex justify-between items-center py-2 border-b border-neutral-100">
-                <span className="text-neutral-600">Buyer Type</span>
-                <span className="font-medium text-neutral-900">{buyerProfile.buyerType}</span>
+                <span className="text-neutral-600">Renter Type</span>
+                <span className="font-medium text-neutral-900">{renterProfile.renterType}</span>
+              </div>
+
+              <div className="flex justify-between items-center py-2 border-b border-neutral-100">
+                <span className="text-neutral-600">Employment Status</span>
+                <span className="font-medium text-neutral-900">{renterProfile.employmentStatus}</span>
               </div>
 
               <div className="flex justify-between items-center py-2">
-                <span className="text-neutral-600">Purchase Type</span>
+                <span className="text-neutral-600">Monthly Income</span>
                 <span className="font-medium text-neutral-900 flex items-center gap-2">
                   <CreditCard size={16} />
-                  {buyerProfile.purchaseType}
+                  £{renterProfile.monthlyIncome?.toLocaleString()}
                 </span>
               </div>
             </div>
           </div>
         )}
 
-        {!isBuyer && vendorProfile && (
+        {!isRenter && landlordProfile && (
           <div className="bg-white rounded-2xl shadow-sm p-6">
             <h3 className="text-xl font-bold text-neutral-900 mb-4 flex items-center gap-2">
               <Home size={20} />
-              Vendor Profile
+              Landlord Profile
             </h3>
 
             <div className="space-y-3">
               <div className="flex justify-between items-center py-2 border-b border-neutral-100">
                 <span className="text-neutral-600">Property Type</span>
-                <span className="font-medium text-neutral-900">{vendorProfile.propertyType}</span>
+                <span className="font-medium text-neutral-900">{landlordProfile.propertyType}</span>
               </div>
 
               <div className="flex justify-between items-center py-2 border-b border-neutral-100">
-                <span className="text-neutral-600">Looking For</span>
-                <span className="font-medium text-neutral-900">{vendorProfile.lookingFor}</span>
+                <span className="text-neutral-600">Preferred Tenants</span>
+                <span className="font-medium text-neutral-900">{landlordProfile.preferredTenantTypes.join(', ')}</span>
               </div>
 
               <div className="flex justify-between items-center py-2 border-b border-neutral-100">
-                <span className="text-neutral-600">Preferred Purchase</span>
-                <span className="font-medium text-neutral-900 flex items-center gap-2">
-                  <CreditCard size={16} />
-                  {vendorProfile.preferredPurchaseType}
+                <span className="text-neutral-600">Furnishing Preference</span>
+                <span className="font-medium text-neutral-900">{landlordProfile.furnishingPreference}</span>
+              </div>
+
+              <div className="flex justify-between items-center py-2 border-b border-neutral-100">
+                <span className="text-neutral-600">Pets Policy</span>
+                <span className="font-medium text-neutral-900">
+                  {landlordProfile.defaultPetsPolicy.willConsiderPets
+                    ? `Will consider pets (max ${landlordProfile.defaultPetsPolicy.maxPetsAllowed})`
+                    : 'No pets'}
                 </span>
               </div>
 
-              {vendorProfile.estateAgentLink && (
-                <div className="flex justify-between items-start py-2">
-                  <span className="text-neutral-600">Property Listing</span>
-                  <a
-                    href={vendorProfile.estateAgentLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="font-medium text-primary-600 hover:text-primary-700 underline text-sm break-all max-w-xs text-right"
-                  >
-                    View Listing →
-                  </a>
-                </div>
-              )}
+              <div className="flex justify-between items-center py-2">
+                <span className="text-neutral-600">PRS Registration</span>
+                <span className="font-medium text-neutral-900">{landlordProfile.prsRegistrationStatus}</span>
+              </div>
             </div>
           </div>
         )}

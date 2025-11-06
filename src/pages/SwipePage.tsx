@@ -42,7 +42,7 @@ export const SwipePage: React.FC = () => {
         addToast({
           type: 'match',
           title: "It's a match!",
-          message: `You and the vendor are interested in ${latestMatch.property.address.street}!`,
+          message: `You and the landlord are interested in ${latestMatch.property.address.street}!`,
           duration: 5000,
         });
       }
@@ -163,7 +163,7 @@ export const SwipePage: React.FC = () => {
             addToast({
               type: 'success',
               title: 'Viewing Preferences Sent!',
-              message: 'The vendor will respond with available times',
+              message: 'The landlord will respond with available times',
               duration: 4000,
             });
           }}

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Heart, MessageCircle, MapPin, Calendar, Clock, CheckCircle } from 'lucide-react';
 import { useAppStore } from '../hooks';
-import { formatPrice, formatRelativeTime } from '../utils/formatters';
+import { formatRelativeTime } from '../utils/formatters';
 import { Badge } from '../components/atoms/Badge';
 import { ViewingsList } from '../components/organisms/ViewingsList';
 
@@ -125,7 +125,7 @@ export const MatchesPage: React.FC = () => {
                 {/* Property Info */}
                 <div className="p-4">
                   <div className="text-2xl font-bold text-neutral-900 mb-1">
-                    {formatPrice(match.property.price)}
+                    £{match.property.rentPcm.toLocaleString()} <span className="text-lg font-medium text-neutral-600">pcm</span>
                   </div>
                   <div className="flex items-start gap-2 text-neutral-600 mb-3">
                     <MapPin size={16} className="flex-shrink-0 mt-0.5" />
@@ -166,7 +166,7 @@ export const MatchesPage: React.FC = () => {
                   {lastMessage && (
                     <div className="bg-neutral-50 rounded-lg p-3 mb-3">
                       <p className="text-xs text-neutral-500 mb-1">
-                        {lastMessage.senderType === 'vendor' ? 'Vendor' : 'You'}
+                        {lastMessage.senderType === 'landlord' ? 'Landlord' : 'You'}
                       </p>
                       <p className="text-sm text-neutral-700 line-clamp-2">
                         {lastMessage.content}
@@ -213,7 +213,7 @@ export const MatchesPage: React.FC = () => {
               <li>✅ Click on a match to start a conversation</li>
               <li>✅ Ask questions about the property</li>
               <li>✅ Arrange a viewing if you're interested</li>
-              <li>✅ The vendor will respond to your messages</li>
+              <li>✅ The landlord will respond to your messages</li>
             </ul>
           </div>
         )}

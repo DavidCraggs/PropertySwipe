@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Home, ShoppingBag, ArrowLeft } from 'lucide-react';
+import { Home, ShoppingBag, ArrowLeft, Building2, Briefcase } from 'lucide-react';
 import type { UserType } from '../types';
 
 interface RoleSelectionScreenProps {
@@ -8,26 +8,43 @@ interface RoleSelectionScreenProps {
 }
 
 /**
- * Role selection screen for users to choose between buyer or vendor
+ * Role selection screen for users to choose their role
+ * Supports: Renter, Landlord, Estate Agent, Management Agency
  * Clean, centered layout with large tappable cards
  */
 export function RoleSelectionScreen({ onSelectRole, onBack }: RoleSelectionScreenProps) {
   const roles = [
     {
-      type: 'buyer' as UserType,
+      type: 'renter' as UserType,
       icon: ShoppingBag,
-      title: "I'm a Buyer",
-      description: 'Looking for your next home in Southport, Liverpool, or Manchester',
+      title: "I'm a Renter",
+      description: 'Looking for a rental property in Southport, Liverpool, or Manchester',
       gradient: 'from-primary-500 to-primary-600',
       bgGradient: 'from-primary-50 to-primary-100',
     },
     {
-      type: 'vendor' as UserType,
+      type: 'landlord' as UserType,
       icon: Home,
-      title: "I'm a Vendor",
-      description: 'Selling your property and want to find the right buyer',
+      title: "I'm a Landlord",
+      description: 'Letting your property and want to find the right tenant',
       gradient: 'from-secondary-500 to-secondary-600',
       bgGradient: 'from-secondary-50 to-secondary-100',
+    },
+    {
+      type: 'estate_agent' as UserType,
+      icon: Briefcase,
+      title: "I'm an Estate Agent",
+      description: 'Marketing properties and connecting landlords with tenants',
+      gradient: 'from-accent-500 to-accent-600',
+      bgGradient: 'from-accent-50 to-accent-100',
+    },
+    {
+      type: 'management_agency' as UserType,
+      icon: Building2,
+      title: "I'm a Management Agency",
+      description: 'Managing rental properties and providing tenancy support',
+      gradient: 'from-success-500 to-success-600',
+      bgGradient: 'from-success-50 to-success-100',
     },
   ];
 
@@ -50,7 +67,7 @@ export function RoleSelectionScreen({ onSelectRole, onBack }: RoleSelectionScree
 
       {/* Main Content */}
       <main className="flex-1 flex items-center justify-center">
-        <div className="max-w-4xl w-full">
+        <div className="max-w-6xl w-full">
           {/* Title */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -66,8 +83,8 @@ export function RoleSelectionScreen({ onSelectRole, onBack }: RoleSelectionScree
             </p>
           </motion.div>
 
-          {/* Role Cards */}
-          <div className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto">
+          {/* Role Cards - 2x2 Grid */}
+          <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
             {roles.map((role, index) => (
               <motion.button
                 key={role.type}

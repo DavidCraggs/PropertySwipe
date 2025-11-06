@@ -15,12 +15,12 @@ export function WelcomeScreen({ onGetStarted }: WelcomeScreenProps) {
     {
       icon: Zap,
       title: 'Fast Matching',
-      description: 'Connect with serious buyers or find your dream home in minutes',
+      description: 'Connect with quality renters or find your perfect rental in minutes',
     },
     {
       icon: Heart,
       title: 'Direct Connection',
-      description: 'No middlemen. Chat directly with buyers and vendors',
+      description: 'No middlemen. Chat directly with renters and landlords',
     },
     {
       icon: Home,
@@ -59,13 +59,13 @@ export function WelcomeScreen({ onGetStarted }: WelcomeScreenProps) {
             className="text-center mb-12"
           >
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-neutral-900 mb-4">
-              Get On the property ladder,{' '}
+              Get On with living better,{' '}
               <span className="bg-gradient-to-r from-primary-500 to-secondary-500 bg-clip-text text-transparent">
                 faster
               </span>
             </h1>
             <p className="text-lg md:text-xl text-neutral-600 max-w-2xl mx-auto">
-              The modern way to match buyers and sellers. Swipe. Match. Move in.
+              The modern way to match renters and landlords. Swipe. Match. Move in.
             </p>
           </motion.div>
 
@@ -119,7 +119,7 @@ export function WelcomeScreen({ onGetStarted }: WelcomeScreenProps) {
             className="text-center mt-12"
           >
             <p className="text-sm text-neutral-500">
-              Helping buyers and vendors connect across <strong>Southport, Liverpool & Manchester</strong>
+              Helping renters and landlords connect across <strong>Southport, Liverpool & Manchester</strong>
             </p>
           </motion.div>
         </div>

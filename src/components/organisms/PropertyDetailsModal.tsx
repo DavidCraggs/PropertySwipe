@@ -19,11 +19,12 @@ interface PropertyDetailsModalProps {
 }
 
 /**
- * PropertyDetailsModal component
+ * PropertyDetailsModal component for rental properties
  * Full-screen modal with smooth slide-up animation
  * Features:
  * - Scrollable content with sticky header
- * - Sections: Gallery, Key Info, Description, Features, Location
+ * - Sections: Gallery, Rental Info, Description, Features, Location
+ * - Shows monthly rent, deposit, furnishing, availability
  * - Swipe down to close gesture
  * - Image gallery integration
  */
@@ -130,16 +131,21 @@ export const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({
 
                 {/* Content */}
                 <div className="p-6 space-y-8">
-                  {/* Price & EPC */}
+                  {/* Monthly Rent & EPC */}
                   <div>
                     <div className="flex items-start justify-between mb-4">
                       <div>
                         <h3 className="text-4xl font-bold text-neutral-900 mb-2">
-                          {formatPrice(property.price)}
+                          {formatPrice(property.rentPcm)}<span className="text-2xl font-medium text-neutral-600"> pcm</span>
                         </h3>
                         <p className="text-sm text-neutral-600">
-                          Listed {formatDate(property.listingDate)}
+                          Deposit: {formatPrice(property.deposit)}
                         </p>
+                        {property.availableFrom && (
+                          <p className="text-sm text-neutral-600">
+                            Available from {formatDate(property.availableFrom)}
+                          </p>
+                        )}
                       </div>
                       <Badge variant="epc" epcRating={property.epcRating} size="lg">
                         EPC {property.epcRating}
@@ -155,7 +161,7 @@ export const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({
                         icon={<Heart size={20} />}
                         onClick={onLike}
                       >
-                        I'm Interested
+                        I'm Interested in Renting
                       </Button>
                     )}
                   </div>

@@ -1,18 +1,30 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { Property, User, Match, Message, UserPreferences, ViewingPreference, ViewingTimeSlot } from '../types';
+import type {
+  Property,
+  User,
+  Match,
+  Message,
+  UserPreferences,
+  ViewingPreference,
+  ViewingTimeSlot,
+  Rating,
+} from '../types';
 import { mockProperties } from '../data/mockProperties';
 import {
   STORAGE_KEYS,
   MATCH_PROBABILITY,
-  SELLER_MESSAGE_TEMPLATES,
-  DEFAULT_PREFERENCES,
+  LANDLORD_MESSAGE_TEMPLATES,
+  DEFAULT_RENTAL_PREFERENCES,
 } from '../utils/constants';
 import { filterProperties } from '../utils/filters';
+import { validateMessage, getValidationErrorMessage } from '../utils/messageValidation';
 import {
   getAllProperties,
   saveProperty,
   deleteProperty as deletePropertyFromStorage,
+  saveRating,
+  getRatingsForUser,
 } from '../lib/storage';
 
 interface AppState {
@@ -45,14 +57,18 @@ interface AppState {
   likeProperty: (propertyId: string) => void;
   dislikeProperty: (propertyId: string) => void;
 
-  // Matching
-  checkForMatch: (propertyId: string, buyerProfile?: {
+  // Matching (rental platform: renter ↔ landlord)
+  checkForMatch: (propertyId: string, renterProfile?: {
     situation: string;
     ages: string;
     localArea: string;
-    buyerType: string;
-    purchaseType: string;
+    renterType: string;
+    employmentStatus: string;
   }) => boolean;
+
+  // Rating System (NEW)
+  submitRating: (rating: Omit<Rating, 'id' | 'createdAt'>) => Promise<void>;
+  getUserRatings: (userId: string, userType: 'landlord' | 'renter') => Promise<Rating[]>;
 
   // Messages
   sendMessage: (matchId: string, content: string) => void;
@@ -71,16 +87,20 @@ interface AppState {
   loadNextProperties: () => void;
   resetDeck: () => void;
 
-  // Vendor actions
+  // Landlord actions (formerly Vendor)
+  linkPropertyToLandlord: (propertyId: string, landlordId: string) => void;
+  updateMatchesLandlordId: (propertyId: string, landlordId: string) => void;
+
+  // Legacy aliases (DEPRECATED)
   linkPropertyToVendor: (propertyId: string, vendorId: string) => void;
   updateMatchesVendorId: (propertyId: string, vendorId: string) => void;
 
   // Property CRUD operations
   loadProperties: () => Promise<void>;
-  createProperty: (propertyData: Omit<Property, 'id'>, vendorId: string) => Promise<string>;
+  createProperty: (propertyData: Omit<Property, 'id'>, landlordId: string) => Promise<string>;
   updateProperty: (propertyId: string, updates: Partial<Property>) => Promise<void>;
   deleteProperty: (propertyId: string) => Promise<void>;
-  unlinkProperty: (propertyId: string, vendorId: string) => void;
+  unlinkProperty: (propertyId: string, landlordId: string) => void;
 
   // Stats
   getStats: () => {
@@ -103,8 +123,8 @@ export const useAppStore = create<AppState>()(
     (set, get) => ({
       // Initial state
       user: null,
-      allProperties: mockProperties,
-      availableProperties: mockProperties,
+      allProperties: [],
+      availableProperties: [],
       currentPropertyIndex: 0,
       likedProperties: [],
       passedProperties: [],
@@ -112,14 +132,14 @@ export const useAppStore = create<AppState>()(
       viewingPreferences: [],
       isOnboarded: false,
 
-      // Initialize user
+      // Initialize user (defaults to renter type for rental platform)
       initializeUser: (name, email) => {
         const newUser: User = {
           id: `user-${Date.now()}`,
           name,
           email,
-          type: 'buyer',
-          preferences: DEFAULT_PREFERENCES,
+          type: 'renter', // Changed from 'buyer' to 'renter'
+          preferences: DEFAULT_RENTAL_PREFERENCES,
           likedProperties: [],
           passedProperties: [],
           matches: [],
@@ -174,30 +194,30 @@ export const useAppStore = create<AppState>()(
           });
         }
 
-        // FIX BUG #8 & #9: Get buyer profile from useAuthStore to pass to checkForMatch
-        let buyerProfile: any = undefined;
+        // Get renter profile from useAuthStore to pass to checkForMatch
+        let renterProfile: any = undefined;
         try {
           const authData = localStorage.getItem('get-on-auth');
           if (authData) {
             const parsed = JSON.parse(authData);
             const currentUser = parsed.state?.currentUser;
             if (currentUser && 'situation' in currentUser) {
-              // It's a BuyerProfile
-              buyerProfile = {
+              // It's a RenterProfile (or legacy BuyerProfile)
+              renterProfile = {
                 situation: currentUser.situation,
                 ages: currentUser.ages,
                 localArea: currentUser.localArea,
-                buyerType: currentUser.buyerType,
-                purchaseType: currentUser.purchaseType,
+                renterType: currentUser.renterType || currentUser.buyerType, // Backward compatibility
+                employmentStatus: currentUser.employmentStatus || 'Employed Full-Time',
               };
             }
           }
         } catch (e) {
-          console.warn('[Like] Could not retrieve buyer profile from auth store');
+          console.warn('[Like] Could not retrieve renter profile from auth store');
         }
 
-        // Check for match with buyer profile
-        get().checkForMatch(propertyId, buyerProfile);
+        // Check for match with renter profile
+        get().checkForMatch(propertyId, renterProfile);
       },
 
       // Dislike a property
@@ -220,79 +240,75 @@ export const useAppStore = create<AppState>()(
         }
       },
 
-      // Check for match (simulated with probability)
-      checkForMatch: (propertyId, buyerProfile) => {
+      // Check for match (rental platform: renter ↔ landlord)
+      checkForMatch: (propertyId, _renterProfile) => {
         const { allProperties, matches, user } = get();
         if (!user) return false;
 
         const property = allProperties.find((p) => p.id === propertyId);
         if (!property) return false;
 
-        // CRITICAL FIX: Only create matches for properties with linked vendors
-        // Empty vendorId means no vendor has claimed this property yet
-        if (!property.vendorId || property.vendorId.trim() === '') {
+        // CRITICAL: Only create matches for properties with linked landlords
+        // Empty landlordId means no landlord has claimed this property yet
+        if (!property.landlordId || property.landlordId.trim() === '') {
           console.warn(
-            `[Matching] Property ${propertyId} has no vendor linked. Match cannot be created.`
+            `[Matching] Property ${propertyId} has no landlord linked. Match cannot be created.`
           );
           return false;
         }
 
         // DEMO LIMITATION: Using random matching for demonstration purposes
         // PRODUCTION TODO: Implement two-sided matching system where:
-        // 1. Buyer likes property → creates "PendingInterest"
-        // 2. Vendor reviews interested buyers
-        // 3. Vendor approves/rejects → creates Match if approved
+        // 1. Renter likes property → creates "PendingInterest"
+        // 2. Landlord reviews interested renters
+        // 3. Landlord approves/rejects → creates Match if approved
         // 4. Both parties must show interest for a match
         const isMatch = Math.random() < MATCH_PROBABILITY;
 
         if (isMatch) {
-          // FIX BUG #9: Get real vendor name from useAuthStore if available
-          // For now, we'll use a placeholder - will be updated when vendor profile is accessed
-          let vendorName = `Vendor for ${property.address.street}`;
+          // Get landlord name from useAuthStore if available
+          let landlordName = `Landlord for ${property.address.street}`;
 
-          // Try to get vendor name from localStorage (useAuthStore persists there)
           try {
             const authData = localStorage.getItem('get-on-auth');
             if (authData) {
               const parsed = JSON.parse(authData);
-              if (parsed.state?.currentUser?.id === property.vendorId && parsed.state?.currentUser?.names) {
-                vendorName = parsed.state.currentUser.names;
+              if (parsed.state?.currentUser?.id === property.landlordId && parsed.state?.currentUser?.names) {
+                landlordName = parsed.state.currentUser.names;
               }
             }
           } catch (e) {
-            console.warn('[Matching] Could not retrieve vendor name from auth store');
+            console.warn('[Matching] Could not retrieve landlord name from auth store');
           }
 
           console.log(
-            `[Matching] Creating match for buyer ${user.id} and vendor ${property.vendorId} (${vendorName}) on property ${propertyId}`
+            `[Matching] Creating rental match for renter ${user.id} and landlord ${property.landlordId} (${landlordName}) on property ${propertyId}`
           );
 
-          // FIX BUG #8: Include full buyer profile in match data
+          // Create rental match with full renter profile
           const newMatch: Match = {
             id: `match-${Date.now()}`,
             propertyId,
             property,
-            vendorId: property.vendorId,
-            vendorName, // Now uses real vendor name if available
-            buyerId: user.id,
-            buyerName: user.name,
-            // Include buyer profile if provided
-            buyerProfile: buyerProfile ? {
-              situation: buyerProfile.situation as any,
-              ages: buyerProfile.ages,
-              localArea: buyerProfile.localArea as any,
-              buyerType: buyerProfile.buyerType as any,
-              purchaseType: buyerProfile.purchaseType as any,
-            } : undefined,
+            landlordId: property.landlordId,
+            landlordName,
+            renterId: user.id,
+            renterName: user.name,
+            // Include renter profile if provided (optional)
+            renterProfile: undefined, // Will be populated from full profile later
             timestamp: new Date().toISOString(),
+            tenancyStatus: 'prospective', // New matches start as prospective
+            activeIssueIds: [], // No issues at match creation
+            totalIssuesRaised: 0,
+            totalIssuesResolved: 0,
             messages: [
               {
                 id: `msg-${Date.now()}`,
-                senderId: property.vendorId,
-                senderType: 'vendor',
+                senderId: property.landlordId,
+                senderType: 'landlord',
                 content:
-                  SELLER_MESSAGE_TEMPLATES[
-                    Math.floor(Math.random() * SELLER_MESSAGE_TEMPLATES.length)
+                  LANDLORD_MESSAGE_TEMPLATES[
+                    Math.floor(Math.random() * LANDLORD_MESSAGE_TEMPLATES.length)
                   ],
                 timestamp: new Date().toISOString(),
                 read: false,
@@ -301,6 +317,20 @@ export const useAppStore = create<AppState>()(
             lastMessageAt: new Date().toISOString(),
             unreadCount: 1,
             hasViewingScheduled: false,
+            // Rental-specific fields
+            applicationStatus: 'pending',
+            applicationSubmittedAt: undefined,
+            tenancyStartDate: undefined,
+            tenancyNoticedDate: undefined,
+            isUnderEvictionProceedings: false,
+            rentArrears: {
+              totalOwed: 0,
+              monthsMissed: 0,
+              consecutiveMonthsMissed: 0,
+            },
+            canRate: false,
+            hasLandlordRated: false,
+            hasRenterRated: false,
           };
 
           set({
@@ -317,7 +347,7 @@ export const useAppStore = create<AppState>()(
         return false;
       },
 
-      // Send message in a match
+      // Send message in a rental match
       sendMessage: (matchId, content) => {
         const { matches, user } = get();
         if (!user) return;
@@ -325,10 +355,28 @@ export const useAppStore = create<AppState>()(
         const matchIndex = matches.findIndex((m) => m.id === matchId);
         if (matchIndex === -1) return;
 
+        const senderType = user.type === 'renter' ? 'renter' : 'landlord';
+        const currentMatch = matches[matchIndex];
+
+        // RRA 2025: Validate message for rent bidding ban (landlords only)
+        const validationResult = validateMessage(
+          content,
+          senderType,
+          currentMatch.property.rentPcm
+        );
+
+        if (!validationResult.isValid) {
+          const errorMsg = getValidationErrorMessage(validationResult);
+          console.error('[RRA 2025 Violation] Message blocked:', errorMsg);
+          // In a real app, this would show a toast/alert to the user
+          alert(`MESSAGE BLOCKED\n\n${errorMsg}`);
+          return; // Block the message from being sent
+        }
+
         const newMessage: Message = {
           id: `msg-${Date.now()}`,
           senderId: user.id,
-          senderType: 'buyer',
+          senderType,
           content,
           timestamp: new Date().toISOString(),
           read: true,
@@ -343,12 +391,17 @@ export const useAppStore = create<AppState>()(
 
         set({ matches: updatedMatches });
 
-        // Simulate vendor response after 3 seconds
+        // Simulate landlord/renter response after 3 seconds
         setTimeout(() => {
-          const vendorReply: Message = {
+          const replyType = senderType === 'renter' ? 'landlord' : 'renter';
+          const replySenderId = replyType === 'landlord'
+            ? updatedMatches[matchIndex].landlordId
+            : updatedMatches[matchIndex].renterId;
+
+          const reply: Message = {
             id: `msg-${Date.now()}`,
-            senderId: updatedMatches[matchIndex].vendorId,
-            senderType: 'vendor',
+            senderId: replySenderId,
+            senderType: replyType,
             content: "Thanks for your message! I'll get back to you shortly.",
             timestamp: new Date().toISOString(),
             read: false,
@@ -361,7 +414,7 @@ export const useAppStore = create<AppState>()(
           const finalMatches = [...currentMatches];
           finalMatches[currentMatchIndex] = {
             ...finalMatches[currentMatchIndex],
-            messages: [...finalMatches[currentMatchIndex].messages, vendorReply],
+            messages: [...finalMatches[currentMatchIndex].messages, reply],
             lastMessageAt: new Date().toISOString(),
             unreadCount: finalMatches[currentMatchIndex].unreadCount + 1,
           };
@@ -427,12 +480,13 @@ export const useAppStore = create<AppState>()(
         const newPreference: ViewingPreference = {
           id: `viewing-${Date.now()}`,
           matchId,
-          buyerId: match.buyerId,
-          vendorId: match.vendorId,
+          renterId: match.renterId,
+          landlordId: match.landlordId,
           propertyId: match.propertyId,
           preferredTimes: preference.preferredTimes,
           flexibility: preference.flexibility,
           additionalNotes: preference.additionalNotes,
+          requiresVirtualViewing: false, // Default value
           status: 'pending',
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -498,11 +552,10 @@ export const useAppStore = create<AppState>()(
         };
       },
 
-      // Link property to vendor with ownership validation
-      linkPropertyToVendor: (propertyId, vendorId) => {
+      // Link property to landlord with ownership validation
+      linkPropertyToLandlord: (propertyId, landlordId) => {
         const { allProperties, availableProperties } = get();
 
-        // Find the property to validate
         const property = allProperties.find((p) => p.id === propertyId);
 
         if (!property) {
@@ -511,67 +564,60 @@ export const useAppStore = create<AppState>()(
         }
 
         // CRITICAL: Validate property ownership before linking
-        if (property.vendorId && property.vendorId.trim() !== '') {
-          // Property is already linked to another vendor
-          if (property.vendorId !== vendorId) {
+        if (property.landlordId && property.landlordId.trim() !== '') {
+          if (property.landlordId !== landlordId) {
             console.error(
-              `[Linking] Property ${propertyId} is already linked to vendor ${property.vendorId}. Cannot link to ${vendorId}`
+              `[Linking] Property ${propertyId} is already linked to landlord ${property.landlordId}. Cannot link to ${landlordId}`
             );
             throw new Error(
-              `Property is already linked to another vendor. Please contact support if you believe this is an error.`
+              `Property is already linked to another landlord. Please contact support if you believe this is an error.`
             );
           } else {
-            // Same vendor trying to link again - this is OK (idempotent)
             console.log(
-              `[Linking] Property ${propertyId} is already linked to vendor ${vendorId}`
+              `[Linking] Property ${propertyId} is already linked to landlord ${landlordId}`
             );
             return;
           }
         }
 
-        // Property is available - proceed with linking
         console.log(
-          `[Linking] Linking property ${propertyId} to vendor ${vendorId}`
+          `[Linking] Linking property ${propertyId} to landlord ${landlordId}`
         );
 
-        // Update vendorId in both property lists
-        const updateVendorId = (properties: Property[]) =>
+        // Update landlordId in both property lists
+        const updateLandlordId = (properties: Property[]) =>
           properties.map((p) =>
-            p.id === propertyId ? { ...p, vendorId } : p
+            p.id === propertyId ? { ...p, landlordId } : p
           );
 
         set({
-          allProperties: updateVendorId(allProperties),
-          availableProperties: updateVendorId(availableProperties),
+          allProperties: updateLandlordId(allProperties),
+          availableProperties: updateLandlordId(availableProperties),
         });
 
         // CRITICAL: Also update existing matches for this property
-        // This ensures vendors can see historical buyer interest
-        get().updateMatchesVendorId(propertyId, vendorId);
+        get().updateMatchesLandlordId(propertyId, landlordId);
       },
 
-      // Update vendorId for all existing matches of a property
-      // Called when vendor links property to ensure historical matches become visible
-      updateMatchesVendorId: (propertyId, vendorId) => {
+      // Update landlordId for all existing matches of a property
+      updateMatchesLandlordId: (propertyId, landlordId) => {
         const { matches } = get();
 
         const updatedMatches = matches.map((match) => {
           if (match.propertyId === propertyId) {
             console.log(
-              `[Matching] Updating match ${match.id} vendorId from '${match.vendorId}' to '${vendorId}'`
+              `[Matching] Updating match ${match.id} landlordId from '${match.landlordId}' to '${landlordId}'`
             );
             return {
               ...match,
-              vendorId,
-              // Also update the vendorId in nested property object for consistency
+              landlordId,
               property: {
                 ...match.property,
-                vendorId,
+                landlordId,
               },
-              // Update senderId in messages if it was the old vendorId
               messages: match.messages.map((msg) =>
-                msg.senderType === 'vendor'
-                  ? { ...msg, senderId: vendorId }
+                msg.senderType === 'landlord'
+                  ? { ...msg, senderId: landlordId }
                   : msg
               ),
             };
@@ -580,6 +626,57 @@ export const useAppStore = create<AppState>()(
         });
 
         set({ matches: updatedMatches });
+      },
+
+      // Legacy aliases (DEPRECATED)
+      linkPropertyToVendor: (propertyId, vendorId) => {
+        console.warn('[DEPRECATED] Use linkPropertyToLandlord instead of linkPropertyToVendor');
+        get().linkPropertyToLandlord(propertyId, vendorId);
+      },
+
+      updateMatchesVendorId: (propertyId, vendorId) => {
+        console.warn('[DEPRECATED] Use updateMatchesLandlordId instead of updateMatchesVendorId');
+        get().updateMatchesLandlordId(propertyId, vendorId);
+      },
+
+      // ========================================
+      // RATING SYSTEM (NEW)
+      // ========================================
+
+      /**
+       * Submit a rating for a landlord or renter after tenancy
+       */
+      submitRating: async (rating) => {
+        const ratingWithId: Rating = {
+          ...rating,
+          id: `rating-${Date.now()}`,
+          createdAt: new Date(),
+          isHidden: false,
+        };
+
+        await saveRating(ratingWithId);
+
+        // Update match to reflect rating submitted
+        const { matches } = get();
+        const matchIndex = matches.findIndex((m) => m.id === rating.matchId);
+        if (matchIndex !== -1) {
+          const updatedMatches = [...matches];
+          if (rating.fromUserType === 'landlord') {
+            updatedMatches[matchIndex].hasLandlordRated = true;
+            updatedMatches[matchIndex].landlordRatingId = ratingWithId.id;
+          } else {
+            updatedMatches[matchIndex].hasRenterRated = true;
+            updatedMatches[matchIndex].renterRatingId = ratingWithId.id;
+          }
+          set({ matches: updatedMatches });
+        }
+      },
+
+      /**
+       * Get all ratings for a user
+       */
+      getUserRatings: async (userId, userType) => {
+        return await getRatingsForUser(userId, userType);
       },
 
       // ========================================
@@ -591,44 +688,46 @@ export const useAppStore = create<AppState>()(
        * Uses Supabase if configured, falls back to localStorage
        */
       loadProperties: async () => {
+        console.log('[AppStore] loadProperties called');
         try {
           const properties = await getAllProperties();
-          console.log(`[Storage] Loaded ${properties.length} properties from storage`);
+          console.log(`[AppStore] Loaded ${properties.length} properties from storage`);
 
-          // If storage is empty, initialize with mock properties
-          if (properties.length === 0) {
-            console.log('[Storage] No properties found, initializing with mock properties');
-            set({
-              allProperties: mockProperties,
-              availableProperties: mockProperties,
-            });
-
-            // Save mock properties to storage for future use
-            for (const property of mockProperties) {
-              await saveProperty(property);
-            }
-          } else {
-            set({
-              allProperties: properties,
-              availableProperties: properties,
+          if (properties.length > 0) {
+            console.log('[AppStore] Property sample:', {
+              id: properties[0].id,
+              street: properties[0].address?.street,
+              city: properties[0].address?.city,
             });
           }
-        } catch (error) {
-          console.error('[Storage] Failed to load properties:', error);
-          // Fall back to mock properties on error
+
+          // Load properties from storage (Supabase or localStorage)
           set({
-            allProperties: mockProperties,
-            availableProperties: mockProperties,
+            allProperties: properties,
+            availableProperties: properties,
+          });
+
+          if (properties.length === 0) {
+            console.log('[AppStore] No properties found in storage');
+          } else {
+            console.log('[AppStore] Properties successfully set in state');
+          }
+        } catch (error) {
+          console.error('[AppStore] Failed to load properties:', error);
+          // Don't load mock properties - just leave empty
+          set({
+            allProperties: [],
+            availableProperties: [],
           });
         }
       },
 
       /**
-       * Create a new property listing
-       * Automatically links the property to the specified vendor
+       * Create a new rental property listing
+       * Automatically links the property to the specified landlord
        * @returns Property ID of the newly created property
        */
-      createProperty: async (propertyData, vendorId) => {
+      createProperty: async (propertyData, landlordId) => {
         const { allProperties, availableProperties } = get();
 
         // Generate unique property ID
@@ -638,10 +737,10 @@ export const useAppStore = create<AppState>()(
         const newProperty: Property = {
           id: newPropertyId,
           ...propertyData,
-          vendorId, // Automatically link to vendor
+          landlordId, // Automatically link to landlord
         };
 
-        console.log(`[CRUD] Creating new property ${newPropertyId} for vendor ${vendorId}`);
+        console.log(`[CRUD] Creating new rental property ${newPropertyId} for landlord ${landlordId}`);
 
         // Save to storage (Supabase if configured, localStorage otherwise)
         await saveProperty(newProperty);
@@ -656,13 +755,12 @@ export const useAppStore = create<AppState>()(
       },
 
       /**
-       * Update an existing property
+       * Update an existing rental property
        * Validates ownership before allowing updates
        */
       updateProperty: async (propertyId, updates) => {
         const { allProperties, availableProperties } = get();
 
-        // Find the property to validate it exists
         const property = allProperties.find((p) => p.id === propertyId);
 
         if (!property) {
@@ -670,18 +768,17 @@ export const useAppStore = create<AppState>()(
           throw new Error(`Property ${propertyId} not found`);
         }
 
-        // IMPORTANT: Don't allow changing vendorId through update
-        // Use linkPropertyToVendor or unlinkProperty instead
-        if (updates.vendorId !== undefined) {
+        // IMPORTANT: Don't allow changing landlordId through update
+        // Use linkPropertyToLandlord or unlinkProperty instead
+        if (updates.landlordId !== undefined) {
           console.warn(
-            `[CRUD] Cannot change vendorId through updateProperty. Use linkPropertyToVendor instead.`
+            `[CRUD] Cannot change landlordId through updateProperty. Use linkPropertyToLandlord instead.`
           );
-          delete updates.vendorId;
+          delete updates.landlordId;
         }
 
-        console.log(`[CRUD] Updating property ${propertyId}`, updates);
+        console.log(`[CRUD] Updating rental property ${propertyId}`, updates);
 
-        // Create updated property object
         const updatedProperty = { ...property, ...updates };
 
         // Save to storage (Supabase if configured, localStorage otherwise)
@@ -699,7 +796,7 @@ export const useAppStore = create<AppState>()(
         });
 
         // CRITICAL: Also update property in existing matches
-        // So buyers see updated property information
+        // So renters see updated property information
         const { matches } = get();
         const updatedMatches = matches.map((match) => {
           if (match.propertyId === propertyId) {
@@ -746,14 +843,13 @@ export const useAppStore = create<AppState>()(
       },
 
       /**
-       * Unlink a property from a vendor
-       * Sets vendorId to empty string, making property available for other vendors
+       * Unlink a property from a landlord
+       * Sets landlordId to empty string, making property available for other landlords
        * Does NOT delete the property
        */
-      unlinkProperty: (propertyId, vendorId) => {
+      unlinkProperty: (propertyId, landlordId) => {
         const { allProperties, availableProperties } = get();
 
-        // Find the property to validate ownership
         const property = allProperties.find((p) => p.id === propertyId);
 
         if (!property) {
@@ -761,22 +857,22 @@ export const useAppStore = create<AppState>()(
           throw new Error(`Property ${propertyId} not found`);
         }
 
-        // Validate that the vendor actually owns this property
-        if (property.vendorId !== vendorId) {
+        // Validate that the landlord actually owns this property
+        if (property.landlordId !== landlordId) {
           console.error(
-            `[CRUD] Cannot unlink property ${propertyId}. It belongs to vendor ${property.vendorId}, not ${vendorId}`
+            `[CRUD] Cannot unlink property ${propertyId}. It belongs to landlord ${property.landlordId}, not ${landlordId}`
           );
           throw new Error(
             `You can only unlink properties that belong to you.`
           );
         }
 
-        console.log(`[CRUD] Unlinking property ${propertyId} from vendor ${vendorId}`);
+        console.log(`[CRUD] Unlinking property ${propertyId} from landlord ${landlordId}`);
 
-        // Set vendorId to empty string
+        // Set landlordId to empty string
         const unlinkInList = (properties: Property[]) =>
           properties.map((p) =>
-            p.id === propertyId ? { ...p, vendorId: '' } : p
+            p.id === propertyId ? { ...p, landlordId: '' } : p
           );
 
         set({
@@ -785,12 +881,11 @@ export const useAppStore = create<AppState>()(
         });
 
         // IMPORTANT: Do NOT delete matches when unlinking
-        // The matches are historical data that buyers may still want to see
-        // Just log for awareness
+        // The matches are historical data that renters may still want to see
         const { matches } = get();
         const affectedMatches = matches.filter((m) => m.propertyId === propertyId);
         console.log(
-          `[CRUD] Property unlinked. ${affectedMatches.length} existing matches will remain visible to buyers.`
+          `[CRUD] Property unlinked. ${affectedMatches.length} existing matches will remain visible to renters.`
         );
       },
 
@@ -817,8 +912,8 @@ export const useAppStore = create<AppState>()(
       name: STORAGE_KEYS.USER,
       partialize: (state) => ({
         user: state.user,
-        allProperties: state.allProperties,
-        availableProperties: state.availableProperties,
+        // Properties are now loaded from Supabase - don't persist to localStorage
+        // (they contain massive base64 images that exceed localStorage quota)
         likedProperties: state.likedProperties,
         passedProperties: state.passedProperties,
         matches: state.matches,

@@ -11,25 +11,25 @@ interface BottomNavProps {
  * BottomNav component
  * Fixed bottom navigation with active state indicators
  * Badge for unread matches
- * Shows different labels for vendors vs buyers
+ * Shows different labels for landlords vs renters
  */
 export const BottomNav: React.FC<BottomNavProps> = ({ currentPage, onNavigate }) => {
   const { matches } = useAppStore();
   const { userType } = useAuthStore();
   const unreadCount = matches.reduce((sum, match) => sum + (match.unreadCount || 0), 0);
 
-  const isVendor = userType === 'vendor';
+  const isLandlord = userType === 'landlord';
 
   const navItems = [
     {
       id: 'swipe' as const,
-      label: isVendor ? 'Dashboard' : 'Swipe',
-      icon: isVendor ? LayoutDashboard : Home,
+      label: isLandlord ? 'Dashboard' : 'Swipe',
+      icon: isLandlord ? LayoutDashboard : Home,
       badge: null,
     },
     {
       id: 'matches' as const,
-      label: isVendor ? 'Buyers' : 'Matches',
+      label: isLandlord ? 'Renters' : 'Matches',
       icon: Heart,
       badge: unreadCount > 0 ? unreadCount : null,
     },

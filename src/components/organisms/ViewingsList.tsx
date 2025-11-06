@@ -1,12 +1,11 @@
 import { Calendar, Clock, MapPin, User, CheckCircle, AlertCircle, MessageSquare } from 'lucide-react';
 import { useAppStore } from '../../hooks/useAppStore';
 import { useAuthStore } from '../../hooks/useAuthStore';
-import { formatPrice } from '../../utils/formatters';
 import type { Match } from '../../types';
 
 /**
  * ViewingsList component showing upcoming, pending, and past viewings
- * Different views for buyers and vendors
+ * Different views for renters and landlords
  */
 export function ViewingsList() {
   const { matches, getUpcomingViewings } = useAppStore();
@@ -18,7 +17,7 @@ export function ViewingsList() {
     (m) => m.hasViewingScheduled && m.confirmedViewingDate && new Date(m.confirmedViewingDate) <= new Date()
   );
 
-  const isBuyer = userType === 'buyer';
+  const isRenter = userType === 'renter';
 
   return (
     <div className="space-y-6">
@@ -41,15 +40,15 @@ export function ViewingsList() {
             <Calendar className="w-12 h-12 mx-auto text-neutral-300 mb-3" />
             <h3 className="font-semibold text-neutral-700 mb-1">No upcoming viewings</h3>
             <p className="text-sm text-neutral-500">
-              {isBuyer
-                ? 'Schedule viewings with vendors to see them here'
-                : 'Confirmed viewings with buyers will appear here'}
+              {isRenter
+                ? 'Schedule viewings with landlords to see them here'
+                : 'Confirmed viewings with renters will appear here'}
             </p>
           </div>
         ) : (
           <div className="space-y-3">
             {upcomingViewings.map((match) => (
-              <UpcomingViewingCard key={match.id} match={match} isBuyer={isBuyer} />
+              <UpcomingViewingCard key={match.id} match={match} isRenter={isRenter} />
             ))}
           </div>
         )}
@@ -70,7 +69,7 @@ export function ViewingsList() {
 
           <div className="space-y-3">
             {pendingRequests.map((match) => (
-              <PendingViewingCard key={match.id} match={match} isBuyer={isBuyer} />
+              <PendingViewingCard key={match.id} match={match} isRenter={isRenter} />
             ))}
           </div>
         </section>
@@ -86,7 +85,7 @@ export function ViewingsList() {
 
           <div className="space-y-3">
             {pastViewings.map((match) => (
-              <PastViewingCard key={match.id} match={match} isBuyer={isBuyer} />
+              <PastViewingCard key={match.id} match={match} isRenter={isRenter} />
             ))}
           </div>
         </section>
@@ -97,10 +96,10 @@ export function ViewingsList() {
 
 interface ViewingCardProps {
   match: Match;
-  isBuyer: boolean;
+  isRenter: boolean;
 }
 
-function UpcomingViewingCard({ match, isBuyer }: ViewingCardProps) {
+function UpcomingViewingCard({ match, isRenter }: ViewingCardProps) {
   const viewingDate = match.confirmedViewingDate ? new Date(match.confirmedViewingDate) : null;
   if (!viewingDate) return null;
 
@@ -161,7 +160,7 @@ function UpcomingViewingCard({ match, isBuyer }: ViewingCardProps) {
           <div className="flex items-center gap-2 text-sm text-neutral-700">
             <User className="w-4 h-4" />
             <span>
-              {isBuyer ? `Vendor: ${match.vendorName}` : `Buyer: ${match.buyerName}`}
+              {isRenter ? `Landlord: ${match.landlordName}` : `Renter: ${match.renterName}`}
             </span>
           </div>
         </div>
@@ -181,7 +180,7 @@ function UpcomingViewingCard({ match, isBuyer }: ViewingCardProps) {
   );
 }
 
-function PendingViewingCard({ match, isBuyer }: ViewingCardProps) {
+function PendingViewingCard({ match, isRenter }: ViewingCardProps) {
   const preference = match.viewingPreference;
   if (!preference) return null;
 
@@ -202,13 +201,13 @@ function PendingViewingCard({ match, isBuyer }: ViewingCardProps) {
           <h3 className="font-semibold text-neutral-900 mb-1 truncate">
             {match.property.address.street}
           </h3>
-          <p className="text-sm text-neutral-600 mb-2">{formatPrice(match.property.price)}</p>
+          <p className="text-sm text-neutral-600 mb-2">£{match.property.rentPcm.toLocaleString()} pcm</p>
 
           {/* Status */}
           <div className="flex items-center gap-2 mb-2">
             <AlertCircle className="w-4 h-4 text-secondary-600" />
             <span className="text-sm text-secondary-700 font-medium">
-              {isBuyer
+              {isRenter
                 ? 'Awaiting vendor response'
                 : 'Awaiting your response'}
             </span>
@@ -228,7 +227,7 @@ function PendingViewingCard({ match, isBuyer }: ViewingCardProps) {
         </div>
 
         {/* Actions */}
-        {!isBuyer && (
+        {!isRenter && (
           <div className="flex flex-col gap-2">
             <button className="px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white text-sm font-medium rounded-lg transition-colors whitespace-nowrap">
               Suggest Time
@@ -240,7 +239,7 @@ function PendingViewingCard({ match, isBuyer }: ViewingCardProps) {
   );
 }
 
-function PastViewingCard({ match, isBuyer }: ViewingCardProps) {
+function PastViewingCard({ match, isRenter }: ViewingCardProps) {
   const viewingDate = match.confirmedViewingDate ? new Date(match.confirmedViewingDate) : null;
   if (!viewingDate) return null;
 
@@ -264,7 +263,7 @@ function PastViewingCard({ match, isBuyer }: ViewingCardProps) {
             Viewed on {viewingDate.toLocaleDateString('en-GB')}
           </p>
           <p className="text-xs text-neutral-500">
-            {isBuyer ? `Vendor: ${match.vendorName}` : `Buyer: ${match.buyerName}`}
+            {isRenter ? `Landlord: ${match.landlordName}` : `Renter: ${match.renterName}`}
           </p>
         </div>
 

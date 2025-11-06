@@ -2,14 +2,14 @@ import {
   Bed,
   Bath,
   Home,
-  Maximize,
+  Sofa,
   Calendar,
   Key,
   MapPin,
   Building2,
+  Users,
 } from 'lucide-react';
 import type { Property } from '../../types';
-import { formatSquareFootage } from '../../utils/formatters';
 
 interface PropertyInfoGridProps {
   property: Property;
@@ -42,9 +42,9 @@ export const PropertyInfoGrid: React.FC<PropertyInfoGridProps> = ({
       value: property.propertyType,
     },
     {
-      icon: <Maximize size={20} />,
-      label: 'Size',
-      value: formatSquareFootage(property.squareFootage),
+      icon: <Sofa size={20} />,
+      label: 'Furnishing',
+      value: property.furnishing,
     },
     {
       icon: <Calendar size={20} />,
@@ -53,8 +53,13 @@ export const PropertyInfoGrid: React.FC<PropertyInfoGridProps> = ({
     },
     {
       icon: <Key size={20} />,
-      label: 'Tenure',
-      value: property.tenure,
+      label: 'Tenancy Type',
+      value: 'Periodic (Rolling)',
+    },
+    {
+      icon: <Users size={20} />,
+      label: 'Max Occupants',
+      value: property.maxOccupants.toString(),
     },
     {
       icon: <Building2 size={20} />,

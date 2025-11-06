@@ -42,7 +42,7 @@ export function FormStep({
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -20 }}
       transition={{ duration: 0.3 }}
-      className="flex flex-col h-full"
+      className="flex flex-col h-full p-8"
     >
       {/* Progress Bar */}
       <div className="w-full bg-neutral-200 h-1.5 rounded-full overflow-hidden mb-8">

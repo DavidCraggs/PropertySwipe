@@ -3,8 +3,9 @@ import { useAppStore } from './useAppStore';
 import type { Property } from '../types';
 
 /**
- * Custom hook for managing the property deck
- * Handles card filtering, preloading, and state
+ * Custom hook for managing the rental property deck
+ * Handles card filtering, preloading, and swipe state
+ * Compatible with rental platform (renters swiping on rental properties)
  */
 export const usePropertyDeck = () => {
   const {

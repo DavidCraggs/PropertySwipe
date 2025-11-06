@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bed, Bath, Home, MapPin, Info, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Bed, Bath, Home, MapPin, Info, ChevronLeft, ChevronRight, PawPrint, Sofa } from 'lucide-react';
 import type { Property } from '../../types';
 import { Badge } from '../atoms/Badge';
 import { IconButton } from '../atoms/IconButton';
-import { formatPrice, formatSquareFootage } from '../../utils/formatters';
+import { formatPrice } from '../../utils/formatters';
 
 interface PropertyCardProps {
   property: Property;
@@ -13,9 +13,9 @@ interface PropertyCardProps {
 }
 
 /**
- * PropertyCard component displays a single property with image carousel
- * Shows key information overlay and info button to expand details
- * Mobile-first responsive design
+ * PropertyCard component displays a single rental property with image carousel
+ * Shows key information overlay (rent, furnishing, pets) and info button to expand details
+ * Mobile-first responsive design for rental platform
  */
 export const PropertyCard: React.FC<PropertyCardProps> = ({
   property,
@@ -116,14 +116,14 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({
 
         {/* Bottom Info Overlay */}
         <div className="absolute bottom-0 left-0 right-0 p-6 text-white z-10">
-          {/* Price */}
+          {/* Monthly Rent */}
           <motion.h2
             className="text-4xl font-bold mb-2"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
           >
-            {formatPrice(property.price)}
+            {formatPrice(property.rentPcm)}<span className="text-2xl font-medium"> pcm</span>
           </motion.h2>
 
           {/* Address */}
@@ -144,7 +144,7 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({
 
           {/* Property Details */}
           <motion.div
-            className="flex items-center gap-4 text-sm"
+            className="flex items-center gap-4 text-sm flex-wrap"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
@@ -161,17 +161,31 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({
               <Home size={18} />
               <span>{property.propertyType}</span>
             </div>
+            {property.furnishing && (
+              <div className="flex items-center gap-1.5">
+                <Sofa size={18} />
+                <span>{property.furnishing}</span>
+              </div>
+            )}
+            {property.petsPolicy.preferredPetTypes.length > 0 && (
+              <div className="flex items-center gap-1.5">
+                <PawPrint size={18} />
+                <span>Pets Considered</span>
+              </div>
+            )}
           </motion.div>
 
-          {/* Square Footage */}
-          <motion.p
-            className="text-sm text-white/80 mt-2"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.25 }}
-          >
-            {formatSquareFootage(property.squareFootage)}
-          </motion.p>
+          {/* Available Date */}
+          {property.availableFrom && (
+            <motion.div
+              className="text-sm text-white/80 mt-2"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.25 }}
+            >
+              <span>Available {new Date(property.availableFrom).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })}</span>
+            </motion.div>
+          )}
         </div>
 
         {/* Info Button */}

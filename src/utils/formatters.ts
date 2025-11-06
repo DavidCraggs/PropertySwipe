@@ -1,35 +1,78 @@
 /**
  * Utility functions for formatting data for display
+ * Updated for GetOn Rental Platform (RRA 2025 compliant)
  */
 
+import type { FurnishingType } from '../types';
+import { MAX_DEPOSIT_WEEKS } from './constants';
+
 /**
- * Format price in GBP with proper thousands separators
- * @param price - Price in pounds
- * @returns Formatted price string (e.g., "£1,250,000")
+ * Format monthly rent in GBP (per calendar month)
+ * @param rentPcm - Monthly rent in pounds
+ * @returns Formatted rent string (e.g., "£800 pcm")
  */
-export const formatPrice = (price: number): string => {
+export const formatRent = (rentPcm: number): string => {
   return new Intl.NumberFormat('en-GB', {
     style: 'currency',
     currency: 'GBP',
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
-  }).format(price);
+  }).format(rentPcm) + ' pcm';
 };
 
 /**
- * Format price in compact form for mobile displays
- * @param price - Price in pounds
- * @returns Compact price string (e.g., "£1.25M")
+ * Format rent in compact form for mobile displays
+ * @param rentPcm - Monthly rent in pounds
+ * @returns Compact rent string (e.g., "£1.2K pcm")
  */
-export const formatPriceCompact = (price: number): string => {
-  if (price >= 1000000) {
-    return `£${(price / 1000000).toFixed(2)}M`;
+export const formatRentCompact = (rentPcm: number): string => {
+  if (rentPcm >= 1000) {
+    return `£${(rentPcm / 1000).toFixed(1)}K pcm`;
   }
-  if (price >= 1000) {
-    return `£${(price / 1000).toFixed(0)}K`;
-  }
-  return `£${price}`;
+  return `£${rentPcm} pcm`;
 };
+
+/**
+ * Format deposit amount
+ * @param deposit - Deposit in pounds
+ * @returns Formatted deposit string (e.g., "£1,000")
+ */
+export const formatDeposit = (deposit: number): string => {
+  return new Intl.NumberFormat('en-GB', {
+    style: 'currency',
+    currency: 'GBP',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(deposit);
+};
+
+/**
+ * Calculate standard deposit (5 weeks rent per RRA 2025)
+ * @param rentPcm - Monthly rent in pounds
+ * @returns Calculated deposit amount
+ */
+export const calculateDeposit = (rentPcm: number): number => {
+  const weeklyRent = (rentPcm * 12) / 52;
+  return Math.round(weeklyRent * MAX_DEPOSIT_WEEKS);
+};
+
+/**
+ * Format deposit with weeks calculation
+ * @param deposit - Deposit in pounds
+ * @param rentPcm - Monthly rent in pounds
+ * @returns Formatted string (e.g., "£1,000 (5 weeks rent)")
+ */
+export const formatDepositWithWeeks = (deposit: number, rentPcm: number): string => {
+  const weeklyRent = (rentPcm * 12) / 52;
+  const weeks = Math.round(deposit / weeklyRent);
+  return `${formatDeposit(deposit)} (${weeks} weeks rent)`;
+};
+
+/**
+ * Legacy aliases for backward compatibility (DEPRECATED)
+ */
+export const formatPrice = formatRent;
+export const formatPriceCompact = formatRentCompact;
 
 /**
  * Format date to relative time (e.g., "2 days ago", "Just now")
@@ -163,4 +206,171 @@ export const getInitials = (name: string): string => {
     .join('')
     .toUpperCase()
     .substring(0, 2);
+};
+
+/**
+ * Format furnishing type for display
+ * @param furnishing - Furnishing type
+ * @returns Formatted string
+ */
+export const formatFurnishing = (furnishing: FurnishingType): string => {
+  return furnishing;
+};
+
+/**
+ * Format availability date for display
+ * @param dateString - ISO date string
+ * @returns Formatted availability (e.g., "Available Now", "Available 15 Oct 2025")
+ */
+export const formatAvailability = (dateString: string): string => {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffInMs = date.getTime() - now.getTime();
+  const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+
+  if (diffInDays <= 0) {
+    return 'Available Now';
+  }
+  if (diffInDays <= 7) {
+    return `Available in ${diffInDays} ${pluralize(diffInDays, 'day')}`;
+  }
+  if (diffInDays <= 30) {
+    const weeks = Math.ceil(diffInDays / 7);
+    return `Available in ${weeks} ${pluralize(weeks, 'week')}`;
+  }
+  return `Available ${formatDate(dateString)}`;
+};
+
+/**
+ * Format rating score for display
+ * @param score - Rating score (1-5)
+ * @returns Formatted rating (e.g., "4.5")
+ */
+export const formatRating = (score: number): string => {
+  return score.toFixed(1);
+};
+
+/**
+ * Format rating count for display
+ * @param count - Number of ratings
+ * @returns Formatted count (e.g., "(12 reviews)")
+ */
+export const formatRatingCount = (count: number): string => {
+  return `(${count} ${pluralize(count, 'review')})`;
+};
+
+/**
+ * Format percentage for display
+ * @param percentage - Percentage value (0-100)
+ * @returns Formatted percentage (e.g., "92%")
+ */
+export const formatPercentage = (percentage: number): string => {
+  return `${Math.round(percentage)}%`;
+};
+
+/**
+ * Format tenancy duration in days to readable format
+ * @param days - Number of days
+ * @returns Formatted duration (e.g., "6 months", "2 years")
+ */
+export const formatTenancyDuration = (days: number): string => {
+  if (days < 30) {
+    return `${days} ${pluralize(days, 'day')}`;
+  }
+  if (days < 365) {
+    const months = Math.floor(days / 30);
+    return `${months} ${pluralize(months, 'month')}`;
+  }
+  const years = Math.floor(days / 365);
+  const remainingMonths = Math.floor((days % 365) / 30);
+  if (remainingMonths === 0) {
+    return `${years} ${pluralize(years, 'year')}`;
+  }
+  return `${years} ${pluralize(years, 'year')}, ${remainingMonths} ${pluralize(remainingMonths, 'month')}`;
+};
+
+/**
+ * Format monthly income for display
+ * @param income - Monthly income in pounds
+ * @returns Formatted income (e.g., "£2,500")
+ */
+export const formatIncome = (income: number): string => {
+  return new Intl.NumberFormat('en-GB', {
+    style: 'currency',
+    currency: 'GBP',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(income);
+};
+
+/**
+ * Calculate and format affordability percentage
+ * @param rentPcm - Monthly rent in pounds
+ * @param monthlyIncome - Monthly income in pounds
+ * @returns Formatted affordability (e.g., "32% of income")
+ */
+export const formatAffordability = (rentPcm: number, monthlyIncome: number): string => {
+  const percentage = (rentPcm / monthlyIncome) * 100;
+  return `${Math.round(percentage)}% of income`;
+};
+
+/**
+ * Format pets policy for display
+ * @param willConsiderPets - Whether pets are considered
+ * @param preferredPetTypes - Array of preferred pet types
+ * @returns Formatted pets policy (e.g., "Pets Considered (Cat, Dog)")
+ */
+export const formatPetsPolicy = (
+  willConsiderPets: boolean,
+  preferredPetTypes?: ('cat' | 'dog' | 'small_caged' | 'fish')[]
+): string => {
+  if (!willConsiderPets) {
+    return 'Pets Considered'; // RRA 2025: cannot say "No Pets"
+  }
+  if (!preferredPetTypes || preferredPetTypes.length === 0) {
+    return 'All Pets Considered';
+  }
+  const formattedTypes = preferredPetTypes.map(type => {
+    const typeMap: Record<string, string> = {
+      cat: 'Cat',
+      dog: 'Dog',
+      small_caged: 'Small Caged Pets',
+      fish: 'Fish',
+    };
+    return typeMap[type] || type;
+  });
+  return `Pets Considered (${formattedTypes.join(', ')})`;
+};
+
+/**
+ * Format hazard deadline status
+ * @param deadline - Deadline date string
+ * @returns Status string (e.g., "Due in 3 days", "Overdue by 2 days")
+ */
+export const formatHazardDeadline = (deadline: string): string => {
+  const deadlineDate = new Date(deadline);
+  const now = new Date();
+  const diffInMs = deadlineDate.getTime() - now.getTime();
+  const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+
+  if (diffInDays > 0) {
+    return `Due in ${diffInDays} ${pluralize(diffInDays, 'day')}`;
+  }
+  if (diffInDays === 0) {
+    return 'Due Today';
+  }
+  return `Overdue by ${Math.abs(diffInDays)} ${pluralize(Math.abs(diffInDays), 'day')}`;
+};
+
+/**
+ * Format eviction notice period
+ * @param noticeDays - Number of days notice
+ * @returns Formatted notice period (e.g., "8 weeks notice")
+ */
+export const formatEvictionNotice = (noticeDays: number): string => {
+  if (noticeDays < 14) {
+    return `${noticeDays} ${pluralize(noticeDays, 'day')} notice`;
+  }
+  const weeks = Math.floor(noticeDays / 7);
+  return `${weeks} ${pluralize(weeks, 'week')} notice`;
 };

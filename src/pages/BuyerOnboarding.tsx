@@ -1,48 +1,48 @@
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
 import { User, Users, Baby, MapPin, Home, CreditCard, Check } from 'lucide-react';
 import { FormStep } from '../components/molecules/FormStep';
 import { RadioCardGroup } from '../components/molecules/RadioCardGroup';
 import { FormField } from '../components/molecules/FormField';
-import type { BuyerProfile, BuyerSituation, LocalArea, BuyerType, PurchaseType } from '../types';
+import type { RenterProfile, RenterSituation, LocalArea, RenterType, EmploymentStatus } from '../types';
 import { useAuthStore } from '../hooks/useAuthStore';
 
-interface BuyerOnboardingProps {
+interface RenterOnboardingProps {
   onComplete: () => void;
 }
 
-interface BuyerFormData {
-  situation: BuyerSituation;
+interface RenterFormData {
+  situation: RenterSituation;
   names: string;
   ages: string;
   localArea: LocalArea;
-  buyerType: BuyerType;
-  purchaseType: PurchaseType;
+  renterType: RenterType;
+  employmentStatus: EmploymentStatus;
 }
 
 /**
- * Multi-step onboarding wizard for buyers
- * Collects personal info, location, buyer status, and purchase type
+ * Multi-step onboarding wizard for renters
+ * Collects personal info, location, renter status, and purchase type
  */
-export function BuyerOnboarding({ onComplete }: BuyerOnboardingProps) {
+export function RenterOnboarding({ onComplete }: RenterOnboardingProps) {
   const { login } = useAuthStore();
   const [currentStep, setCurrentStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const [formData, setFormData] = useState<BuyerFormData>({
+  const [formData, setFormData] = useState<RenterFormData>({
     situation: 'Single',
     names: '',
     ages: '',
     localArea: 'Southport',
-    buyerType: 'First Time Buyer',
-    purchaseType: 'Mortgage',
+    renterType: 'Young Professional',
+    employmentStatus: 'Employed Full-Time',
   });
 
-  const [errors, setErrors] = useState<Partial<Record<keyof BuyerFormData, string>>>({});
+  const [errors, setErrors] = useState<Partial<Record<keyof RenterFormData, string>>>({});
 
   // Load draft from localStorage
   useEffect(() => {
-    const draft = localStorage.getItem('buyer-onboarding-draft');
+    const draft = localStorage.getItem('renter-onboarding-draft');
     if (draft) {
       try {
         setFormData(JSON.parse(draft));
@@ -54,10 +54,10 @@ export function BuyerOnboarding({ onComplete }: BuyerOnboardingProps) {
 
   // Auto-save draft
   useEffect(() => {
-    localStorage.setItem('buyer-onboarding-draft', JSON.stringify(formData));
+    localStorage.setItem('renter-onboarding-draft', JSON.stringify(formData));
   }, [formData]);
 
-  const updateField = <K extends keyof BuyerFormData>(field: K, value: BuyerFormData[K]) => {
+  const updateField = <K extends keyof RenterFormData>(field: K, value: RenterFormData[K]) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     // Clear error when user edits field
     if (errors[field]) {
@@ -66,7 +66,7 @@ export function BuyerOnboarding({ onComplete }: BuyerOnboardingProps) {
   };
 
   const validateStep = (step: number): boolean => {
-    const newErrors: Partial<Record<keyof BuyerFormData, string>> = {};
+    const newErrors: Partial<Record<keyof RenterFormData, string>> = {};
 
     if (step === 0) {
       if (!formData.names.trim()) {
@@ -113,20 +113,31 @@ export function BuyerOnboarding({ onComplete }: BuyerOnboardingProps) {
     // Simulate API call
     await new Promise((resolve) => setTimeout(resolve, 1500));
 
-    const profile: BuyerProfile = {
-      id: `buyer-${Date.now()}`,
+    const profile: RenterProfile = {
+      id: `renter-${Date.now()}`,
+      status: 'prospective', // New renters start as prospective
       situation: formData.situation,
       names: formData.names.trim(),
       ages: formData.ages.trim(),
       localArea: formData.localArea,
-      buyerType: formData.buyerType,
-      purchaseType: formData.purchaseType,
+      renterType: formData.renterType,
+      employmentStatus: formData.employmentStatus,
+      monthlyIncome: 0, // TODO: Add form field
+      hasPets: false, // TODO: Add form field
+      smokingStatus: 'Non-Smoker' as const,
+      hasGuarantor: false,
+      receivesUniversalCredit: false,
+      numberOfChildren: 0,
+      currentRentalSituation: 'Currently Renting',
+      hasRentalHistory: true,
+      previousLandlordReference: false,
+      receivesHousingBenefit: false,
       createdAt: new Date(),
       isComplete: true,
     };
 
-    await login('buyer', profile);
-    localStorage.removeItem('buyer-onboarding-draft');
+    await login('renter', profile);
+    localStorage.removeItem('renter-onboarding-draft');
 
     setIsSubmitting(false);
     onComplete();
@@ -186,7 +197,7 @@ export function BuyerOnboarding({ onComplete }: BuyerOnboardingProps) {
         <RadioCardGroup
           name="situation"
           value={formData.situation}
-          onChange={(value) => updateField('situation', value as BuyerSituation)}
+          onChange={(value) => updateField('situation', value as RenterSituation)}
           columns={3}
           options={[
             {
@@ -273,7 +284,7 @@ export function BuyerOnboarding({ onComplete }: BuyerOnboardingProps) {
       />
     </FormStep>,
 
-    // Step 2: Buyer Type
+    // Step 2: Renter Type
     <FormStep
       key="step-2"
       title="What's your situation?"
@@ -284,15 +295,15 @@ export function BuyerOnboarding({ onComplete }: BuyerOnboardingProps) {
       onBack={handleBack}
     >
       <RadioCardGroup
-        name="buyerType"
-        value={formData.buyerType}
-        onChange={(value) => updateField('buyerType', value as BuyerType)}
+        name="renterType"
+        value={formData.renterType}
+        onChange={(value) => updateField('renterType', value as RenterType)}
         columns={1}
         size="compact"
         options={[
           {
-            value: 'First Time Buyer',
-            label: 'First Time Buyer',
+            value: 'Young Professional',
+            label: 'Young Professional',
             description: 'Taking your first step onto the property ladder',
             icon: Home,
             badge: 'Popular',
@@ -324,17 +335,6 @@ export function BuyerOnboarding({ onComplete }: BuyerOnboardingProps) {
         ]}
       />
 
-      {formData.buyerType === 'Need To Sell On The Market' && (
-        <motion.div
-          initial={{ opacity: 0, height: 0 }}
-          animate={{ opacity: 1, height: 'auto' }}
-          className="mt-4 p-4 bg-primary-50 border border-primary-200 rounded-xl"
-        >
-          <p className="text-sm text-primary-900">
-            We understand this can add complexity. We'll help you find vendors who are happy to wait for the right buyer.
-          </p>
-        </motion.div>
-      )}
     </FormStep>,
 
     // Step 3: Purchase Type
@@ -348,18 +348,17 @@ export function BuyerOnboarding({ onComplete }: BuyerOnboardingProps) {
       onBack={handleBack}
     >
       <RadioCardGroup
-        name="purchaseType"
-        value={formData.purchaseType}
-        onChange={(value) => updateField('purchaseType', value as PurchaseType)}
+        name="employmentStatus"
+        value={formData.employmentStatus}
+        onChange={(value) => updateField('employmentStatus', value as EmploymentStatus)}
         columns={1}
         size="compact"
         options={[
           {
-            value: 'Mortgage',
-            label: 'Mortgage',
-            description: 'Financing through a mortgage lender',
+            value: 'Employed Full-Time',
+            label: 'Employed Full-Time',
+            description: 'Working full-time',
             icon: Home,
-            badge: formData.buyerType === 'First Time Buyer' ? 'FTB' : undefined,
           },
           {
             value: 'Cash',
@@ -414,10 +413,10 @@ export function BuyerOnboarding({ onComplete }: BuyerOnboardingProps) {
         />
 
         <ReviewCard
-          title="Buyer Status"
+          title="Renter Status"
           items={[
-            { label: 'Type', value: formData.buyerType },
-            { label: 'Purchase Type', value: formData.purchaseType },
+            { label: 'Renter Type', value: formData.renterType },
+            { label: 'Employment Status', value: formData.employmentStatus },
           ]}
           onEdit={() => setCurrentStep(2)}
         />
@@ -469,3 +468,7 @@ function ReviewCard({ title, items, onEdit }: ReviewCardProps) {
     </div>
   );
 }
+
+
+// Backwards compatibility export
+export { RenterOnboarding as BuyerOnboarding };

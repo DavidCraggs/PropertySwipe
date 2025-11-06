@@ -1,9 +1,11 @@
 import { useAppStore } from './useAppStore';
-import type { PropertyType } from '../types';
+import type { PropertyType, FurnishingType } from '../types';
+import { DEFAULT_RENTAL_PREFERENCES } from '../utils/constants';
 
 /**
- * Custom hook for managing user preferences
- * Provides convenient methods for updating filters
+ * Custom hook for managing renter preferences
+ * Provides convenient methods for updating rental filters
+ * Updated for rental platform (RRA 2025 compliant)
  */
 export const usePreferences = () => {
   const { user, updatePreferences } = useAppStore();
@@ -29,12 +31,15 @@ export const usePreferences = () => {
     updatePreferences({ locations: newLocations });
   };
 
-  // Update price range
-  const updatePriceRange = (min: number, max: number) => {
+  // Update rent range (monthly rent, not purchase price)
+  const updateRentRange = (min: number, max: number) => {
     updatePreferences({
-      priceRange: { min, max },
+      rentRange: { min, max },
     });
   };
+
+  // Legacy alias for backward compatibility
+  const updatePriceRange = updateRentRange;
 
   // Update bedroom range
   const updateBedroomRange = (min: number, max: number) => {
@@ -68,28 +73,34 @@ export const usePreferences = () => {
     updatePreferences({ mustHaveParking: value });
   };
 
-  // Update new build requirement
-  const setNewBuildOnly = (value: boolean) => {
-    updatePreferences({ newBuildOnly: value });
+  // Update furnishing preference (NEW for rental platform)
+  const updateFurnishing = (furnishing: FurnishingType[]) => {
+    updatePreferences({ furnishing });
   };
 
-  // Update max age
-  const setMaxAge = (years: number | undefined) => {
-    updatePreferences({ maxAge: years });
+  // Toggle furnishing type
+  const toggleFurnishing = (type: FurnishingType) => {
+    if (!preferences) return;
+    const current = preferences.furnishing || [];
+    const newFurnishing = current.includes(type)
+      ? current.filter((f) => f !== type)
+      : [...current, type];
+    updatePreferences({ furnishing: newFurnishing });
   };
 
-  // Reset to defaults
+  // Set pets required
+  const setPetsRequired = (value: boolean) => {
+    updatePreferences({ petsRequired: value });
+  };
+
+  // Set move-in date
+  const setMoveInDate = (date: Date | undefined) => {
+    updatePreferences({ minMoveInDate: date });
+  };
+
+  // Reset to rental defaults
   const resetToDefaults = () => {
-    updatePreferences({
-      locations: [],
-      priceRange: { min: 100000, max: 500000 },
-      bedrooms: { min: 1, max: 5 },
-      propertyTypes: [],
-      mustHaveGarden: false,
-      mustHaveParking: false,
-      newBuildOnly: false,
-      maxAge: undefined,
-    });
+    updatePreferences(DEFAULT_RENTAL_PREFERENCES);
   };
 
   return {
@@ -97,14 +108,18 @@ export const usePreferences = () => {
     updateLocations,
     addLocation,
     removeLocation,
-    updatePriceRange,
+    updateRentRange,
+    updatePriceRange, // Legacy
     updateBedroomRange,
     updatePropertyTypes,
     togglePropertyType,
     setMustHaveGarden,
     setMustHaveParking,
-    setNewBuildOnly,
-    setMaxAge,
+    // NEW rental-specific
+    updateFurnishing,
+    toggleFurnishing,
+    setPetsRequired,
+    setMoveInDate,
     resetToDefaults,
   };
 };

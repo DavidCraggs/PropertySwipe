@@ -1,9 +1,8 @@
 import { useState } from 'react';
-import { Home, TrendingUp, Users, Heart, MessageSquare, Calendar, Eye, Clock, Edit, Trash2, LinkIcon, PlusCircle } from 'lucide-react';
+import { Home, TrendingUp, Users, Heart, MessageSquare, Calendar, Eye, Clock, Edit, Trash2, LinkIcon, PlusCircle, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { useAuthStore } from '../hooks/useAuthStore';
 import { useAppStore } from '../hooks';
-import type { VendorProfile, Match } from '../types';
-import { formatPrice } from '../utils/formatters';
+import type { LandlordProfile, Match } from '../types';
 import { ViewingScheduler } from '../components/organisms/ViewingScheduler';
 import { PropertyLinker } from '../components/organisms/PropertyLinker';
 import { PropertyForm } from '../components/organisms/PropertyForm';
@@ -11,8 +10,8 @@ import { PropertyImage } from '../components/atoms/PropertyImage';
 import { useToastStore } from '../components/organisms/Toast';
 
 /**
- * Dashboard for vendors showing their property listing and interested buyers
- * Different from buyer swipe interface
+ * Dashboard for landlords showing their rental property listing and interested renters
+ * Different from renter swipe interface
  */
 export function VendorDashboard() {
   const { currentUser, updateProfile } = useAuthStore();
@@ -20,7 +19,7 @@ export function VendorDashboard() {
     matches,
     allProperties,
     confirmViewing,
-    linkPropertyToVendor,
+    linkPropertyToLandlord,
     createProperty,
     updateProperty,
     deleteProperty,
@@ -33,24 +32,31 @@ export function VendorDashboard() {
   const [showPropertyEditor, setShowPropertyEditor] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  const vendorProfile = currentUser as VendorProfile;
+  const landlordProfile = currentUser as LandlordProfile;
 
-  // Find vendor's property if linked
-  const vendorProperty = vendorProfile?.propertyId
-    ? allProperties.find((p) => p.id === vendorProfile.propertyId)
+  // Find landlord's property if linked
+  const landlordProperty = landlordProfile?.propertyId
+    ? allProperties.find((p) => p.id === landlordProfile.propertyId)
     : null;
 
-  // Get matches where vendor is the seller
-  const buyerInterests = matches.filter((m) => m.vendorId === vendorProfile?.id);
+  // Get matches where landlord is the property owner
+  const allLandlordMatches = matches.filter((m) => m.landlordId === landlordProfile?.id);
+
+  // Phase 4: Separate active tenancies from prospective matches
+  const activeTenancies = allLandlordMatches.filter((m) => m.tenancyStatus === 'active');
+  const renterInterests = allLandlordMatches.filter((m) => m.tenancyStatus === 'prospective');
 
   // FIX BUG #12: Calculate real stats from match data instead of random numbers
   const stats = {
-    // Profile views = interested buyers (each buyer "viewed" the property by swiping right)
-    totalViews: buyerInterests.length,
-    interestedBuyers: buyerInterests.length,
-    messages: buyerInterests.reduce((acc, m) => acc + m.messages.length, 0),
-    viewingsScheduled: buyerInterests.filter((m) => m.hasViewingScheduled).length,
-    viewingRequests: buyerInterests.filter((m) => m.viewingPreference && !m.hasViewingScheduled).length,
+    // Profile views = interested renters (each renter "viewed" the property by swiping right)
+    totalViews: renterInterests.length,
+    interestedRenters: renterInterests.length,
+    messages: allLandlordMatches.reduce((acc, m) => acc + m.messages.length, 0),
+    viewingsScheduled: renterInterests.filter((m) => m.hasViewingScheduled).length,
+    viewingRequests: renterInterests.filter((m) => m.viewingPreference && !m.hasViewingScheduled).length,
+    // Phase 4: Add active tenancy stats
+    activeTenants: activeTenancies.length,
+    totalIssuesOpen: activeTenancies.reduce((acc, m) => acc + (m.activeIssueIds?.length || 0), 0),
   };
 
   return (
@@ -58,18 +64,19 @@ export function VendorDashboard() {
       {/* Header */}
       <header className="bg-white border-b border-neutral-200 px-4 py-6">
         <div className="max-w-4xl mx-auto">
-          <h1 className="text-3xl font-bold text-neutral-900">Vendor Dashboard</h1>
-          <p className="text-neutral-600 mt-1">Manage your listing and connect with buyers</p>
+          <h1 className="text-3xl font-bold text-neutral-900">Landlord Dashboard</h1>
+          <p className="text-neutral-600 mt-1">Manage your rental listing and connect with renters</p>
         </div>
       </header>
 
       <main className="max-w-4xl mx-auto px-4 py-8 space-y-6">
         {/* Welcome Card */}
         <div className="bg-gradient-to-r from-secondary-500 to-secondary-600 rounded-2xl shadow-lg p-6 text-white">
-          <h2 className="text-2xl font-bold mb-2">Welcome back, {vendorProfile?.names}!</h2>
+          <h2 className="text-2xl font-bold mb-2">Welcome back, {landlordProfile?.names}!</h2>
           <p className="text-secondary-100">
-            You're looking for {vendorProfile?.lookingFor === 'Family' ? 'a family buyer' : 'an investor'} for your{' '}
-            {vendorProfile?.propertyType} property
+            {landlordProfile?.preferredTenantTypes && landlordProfile.preferredTenantTypes.length > 0
+              ? `Looking for ${landlordProfile.preferredTenantTypes.join(', ')} tenants`
+              : 'Looking for quality tenants'} for your {landlordProfile?.propertyType} property
           </p>
         </div>
 
@@ -90,9 +97,9 @@ export function VendorDashboard() {
               <div className="w-10 h-10 bg-success-100 rounded-lg flex items-center justify-center">
                 <Heart className="w-5 h-5 text-success-600" />
               </div>
-              <div className="text-2xl font-bold text-neutral-900">{stats.interestedBuyers}</div>
+              <div className="text-2xl font-bold text-neutral-900">{stats.interestedRenters}</div>
             </div>
-            <div className="text-sm text-neutral-600">Interested Buyers</div>
+            <div className="text-sm text-neutral-600">Interested Renters</div>
           </div>
 
           <div className="bg-white rounded-xl shadow-sm p-5">
@@ -138,41 +145,41 @@ export function VendorDashboard() {
         </div>
 
         {/* Property Listing Card */}
-        {vendorProperty ? (
+        {landlordProperty ? (
           <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
             <div className="relative h-64">
               {/* FIX BUG #13: Use PropertyImage with loading states */}
               <PropertyImage
-                src={vendorProperty.images[0]}
-                alt={vendorProperty.address.street}
+                src={landlordProperty.images[0]}
+                alt={landlordProperty.address.street}
                 className="w-full h-full object-cover"
               />
               <div className="absolute top-4 right-4 bg-white/95 backdrop-blur-sm px-4 py-2 rounded-full font-bold text-lg">
-                {formatPrice(vendorProperty.price)}
+                £{landlordProperty.rentPcm.toLocaleString()} pcm
               </div>
             </div>
             <div className="p-6">
               <h3 className="text-2xl font-bold text-neutral-900 mb-2">
-                {vendorProperty.address.street}
+                {landlordProperty.address.street}
               </h3>
               <p className="text-neutral-600 mb-4">
-                {vendorProperty.address.city}, {vendorProperty.address.postcode}
+                {landlordProperty.address.city}, {landlordProperty.address.postcode}
               </p>
               <div className="flex flex-wrap gap-2 mb-4">
                 <span className="px-3 py-1 bg-neutral-100 rounded-full text-sm text-neutral-700">
-                  {vendorProperty.bedrooms} bed
+                  {landlordProperty.bedrooms} bed
                 </span>
                 <span className="px-3 py-1 bg-neutral-100 rounded-full text-sm text-neutral-700">
-                  {vendorProperty.bathrooms} bath
+                  {landlordProperty.bathrooms} bath
                 </span>
                 <span className="px-3 py-1 bg-neutral-100 rounded-full text-sm text-neutral-700">
-                  {vendorProperty.propertyType}
+                  {landlordProperty.propertyType}
                 </span>
                 <span className="px-3 py-1 bg-neutral-100 rounded-full text-sm text-neutral-700">
-                  EPC: {vendorProperty.epcRating}
+                  EPC: {landlordProperty.epcRating}
                 </span>
               </div>
-              <p className="text-neutral-700 line-clamp-3 mb-4">{vendorProperty.description}</p>
+              <p className="text-neutral-700 line-clamp-3 mb-4">{landlordProperty.description}</p>
 
               {/* Property Action Buttons */}
               <div className="flex gap-2 flex-wrap">
@@ -185,9 +192,9 @@ export function VendorDashboard() {
                 </button>
                 <button
                   onClick={async () => {
-                    if (!vendorProfile?.id) return;
+                    if (!landlordProfile?.id) return;
                     try {
-                      unlinkProperty(vendorProperty.id, vendorProfile.id);
+                      unlinkProperty(landlordProperty.id, landlordProfile.id);
                       await updateProfile({ propertyId: undefined });
                       addToast({
                         type: 'success',
@@ -223,7 +230,7 @@ export function VendorDashboard() {
             <Home size={48} className="mx-auto text-neutral-400 mb-4" />
             <h3 className="text-xl font-bold text-neutral-900 mb-2">No Property Linked</h3>
             <p className="text-neutral-600 mb-4">
-              Create a new property listing or link an existing one to start receiving interest from buyers
+              Create a new property listing or link an existing one to start receiving interest from renters
             </p>
             <div className="flex gap-3 justify-center">
               <button
@@ -244,30 +251,49 @@ export function VendorDashboard() {
           </div>
         )}
 
-        {/* Interested Buyers */}
+        {/* Phase 4: Active Tenancies Section */}
+        {activeTenancies.length > 0 && (
+          <div className="bg-white rounded-2xl shadow-sm p-6">
+            <div className="flex items-center gap-2 mb-6">
+              <Home size={24} className="text-success-600" />
+              <h3 className="text-xl font-bold text-neutral-900">Active Tenancies</h3>
+              <span className="ml-auto px-3 py-1 bg-success-100 text-success-700 rounded-full text-sm font-medium">
+                {stats.activeTenants} active
+              </span>
+            </div>
+
+            <div className="space-y-4">
+              {activeTenancies.map((match) => (
+                <ActiveTenancyCard key={match.id} match={match} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Interested Renters */}
         <div className="bg-white rounded-2xl shadow-sm p-6">
           <div className="flex items-center gap-2 mb-6">
             <Users size={24} className="text-secondary-600" />
-            <h3 className="text-xl font-bold text-neutral-900">Interested Buyers</h3>
-            {stats.interestedBuyers > 0 && (
+            <h3 className="text-xl font-bold text-neutral-900">Interested Renters</h3>
+            {stats.interestedRenters > 0 && (
               <span className="ml-auto px-3 py-1 bg-success-100 text-success-700 rounded-full text-sm font-medium">
-                {stats.interestedBuyers} active
+                {stats.interestedRenters} active
               </span>
             )}
           </div>
 
-          {buyerInterests.length === 0 ? (
+          {renterInterests.length === 0 ? (
             <div className="text-center py-12">
               <Heart size={48} className="mx-auto text-neutral-300 mb-4" />
-              <h4 className="text-lg font-semibold text-neutral-700 mb-2">No buyers yet</h4>
+              <h4 className="text-lg font-semibold text-neutral-700 mb-2">No renters yet</h4>
               <p className="text-neutral-500">
-                When buyers express interest in your property, they'll appear here
+                When renters express interest in your property, they'll appear here
               </p>
             </div>
           ) : (
             <div className="space-y-4">
-              {buyerInterests.map((match) => (
-                <BuyerInterestCard
+              {renterInterests.map((match) => (
+                <RenterInterestCard
                   key={match.id}
                   match={match}
                   onScheduleViewing={setSchedulingMatch}
@@ -282,12 +308,12 @@ export function VendorDashboard() {
           <div className="flex items-start gap-3">
             <TrendingUp size={24} className="text-primary-600 flex-shrink-0" />
             <div>
-              <h4 className="font-bold text-neutral-900 mb-2">Tips to attract buyers:</h4>
+              <h4 className="font-bold text-neutral-900 mb-2">Tips to attract renters:</h4>
               <ul className="space-y-1 text-sm text-neutral-700">
-                <li>• Respond quickly to messages - buyers appreciate fast communication</li>
-                <li>• Be flexible with viewing times to accommodate more potential buyers</li>
+                <li>• Respond quickly to messages - renters appreciate fast communication</li>
+                <li>• Be flexible with viewing times to accommodate more potential renters</li>
                 <li>• Keep your property listing up-to-date with recent photos</li>
-                <li>• Highlight unique features that match what buyers are looking for</li>
+                <li>• Highlight unique features that match what renters are looking for</li>
               </ul>
             </div>
           </div>
@@ -324,12 +350,12 @@ export function VendorDashboard() {
           isOpen={true}
           onClose={() => setShowPropertyLinker(false)}
           availableProperties={allProperties}
-          currentPropertyId={vendorProfile?.propertyId}
+          currentPropertyId={landlordProfile?.propertyId}
           onLinkProperty={async (propertyId) => {
             try {
-              // Update property's vendorId to match current vendor
-              if (vendorProfile?.id) {
-                linkPropertyToVendor(propertyId, vendorProfile.id);
+              // Update property's landlordId to match current landlord
+              if (landlordProfile?.id) {
+                linkPropertyToLandlord(propertyId, landlordProfile.id);
               }
               // Update vendor profile with propertyId
               await updateProfile({ propertyId });
@@ -361,12 +387,12 @@ export function VendorDashboard() {
                 mode="create"
                 onSubmit={async (propertyData) => {
                   try {
-                    if (!vendorProfile?.id) {
+                    if (!landlordProfile?.id) {
                       throw new Error('Vendor profile not found');
                     }
 
                     // Create property and get the new property ID
-                    const newPropertyId = await createProperty(propertyData, vendorProfile.id);
+                    const newPropertyId = await createProperty(propertyData, landlordProfile.id);
 
                     // Link property to vendor profile
                     await updateProfile({ propertyId: newPropertyId });
@@ -396,21 +422,21 @@ export function VendorDashboard() {
       )}
 
       {/* Property Editor Modal */}
-      {showPropertyEditor && vendorProperty && (
+      {showPropertyEditor && landlordProperty && (
         <div className="fixed inset-0 bg-black/50 z-50 overflow-y-auto">
           <div className="min-h-screen flex items-center justify-center p-4 py-8">
             <div className="bg-white rounded-2xl w-full max-w-3xl shadow-2xl">
               <PropertyForm
                 mode="edit"
-                initialData={vendorProperty}
+                initialData={landlordProperty}
                 onSubmit={async (propertyData) => {
                   try {
-                    if (!vendorProperty?.id) {
+                    if (!landlordProperty?.id) {
                       throw new Error('Property not found');
                     }
 
                     // Update property with new data
-                    updateProperty(vendorProperty.id, propertyData);
+                    updateProperty(landlordProperty.id, propertyData);
 
                     addToast({
                       type: 'success',
@@ -437,7 +463,7 @@ export function VendorDashboard() {
       )}
 
       {/* Delete Confirmation Modal */}
-      {showDeleteConfirm && vendorProperty && (
+      {showDeleteConfirm && landlordProperty && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl p-6 max-w-md w-full">
             <div className="flex items-center gap-3 mb-4">
@@ -448,7 +474,7 @@ export function VendorDashboard() {
             </div>
 
             <p className="text-neutral-700 mb-2">
-              Are you sure you want to delete <strong>{vendorProperty.address.street}</strong>?
+              Are you sure you want to delete <strong>{landlordProperty.address.street}</strong>?
             </p>
             <p className="text-sm text-neutral-600 mb-6">
               This will permanently remove the property and all associated matches. This action cannot be undone.
@@ -464,9 +490,9 @@ export function VendorDashboard() {
               <button
                 onClick={async () => {
                   try {
-                    if (!vendorProperty?.id) return;
+                    if (!landlordProperty?.id) return;
 
-                    await deleteProperty(vendorProperty.id);
+                    await deleteProperty(landlordProperty.id);
                     await updateProfile({ propertyId: undefined });
 
                     addToast({
@@ -497,24 +523,24 @@ export function VendorDashboard() {
   );
 }
 
-interface BuyerInterestCardProps {
+interface RenterInterestCardProps {
   match: Match;
   onScheduleViewing: (match: Match) => void;
 }
 
-function BuyerInterestCard({ match, onScheduleViewing }: BuyerInterestCardProps) {
+function RenterInterestCard({ match, onScheduleViewing }: RenterInterestCardProps) {
   const lastMessage = match.messages[match.messages.length - 1];
 
   return (
     <div className="border-2 border-neutral-200 rounded-xl p-4 hover:border-primary-300 transition-colors">
       <div className="flex items-start gap-4">
         <div className="w-12 h-12 bg-gradient-to-br from-primary-500 to-primary-600 rounded-full flex items-center justify-center text-white font-bold">
-          {match.buyerName?.charAt(0).toUpperCase() || 'B'}
+          {match.renterName?.charAt(0).toUpperCase() || 'R'}
         </div>
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <h4 className="font-semibold text-neutral-900">{match.buyerName || 'Interested Buyer'}</h4>
+            <h4 className="font-semibold text-neutral-900">{match.renterName || 'Interested Renter'}</h4>
             {match.unreadCount > 0 && (
               <span className="px-2 py-0.5 bg-danger-500 text-white text-xs font-bold rounded-full">
                 {match.unreadCount}
@@ -581,7 +607,7 @@ function BuyerInterestCard({ match, onScheduleViewing }: BuyerInterestCardProps)
           {lastMessage && (
             <div className="bg-neutral-50 rounded-lg p-3 text-sm">
               <p className="text-xs text-neutral-500 mb-1">
-                {lastMessage.senderType === 'buyer' ? match.buyerName : 'You'}
+                {lastMessage.senderType === 'renter' ? match.renterName : 'You'}
               </p>
               <p className="text-neutral-700 line-clamp-2">{lastMessage.content}</p>
             </div>
@@ -597,6 +623,123 @@ function BuyerInterestCard({ match, onScheduleViewing }: BuyerInterestCardProps)
                 className="px-4 py-2 bg-neutral-100 hover:bg-neutral-200 text-neutral-700 rounded-lg font-medium text-sm transition-colors"
               >
                 Schedule Viewing
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Phase 4: ActiveTenancyCard Component
+ * Displays information about current tenants with issue tracking
+ */
+interface ActiveTenancyCardProps {
+  match: Match;
+}
+
+function ActiveTenancyCard({ match }: ActiveTenancyCardProps) {
+  const lastMessage = match.messages[match.messages.length - 1];
+  const openIssuesCount = match.activeIssueIds?.length || 0;
+  const totalIssues = match.totalIssuesRaised || 0;
+  const resolvedIssues = match.totalIssuesResolved || 0;
+
+  // Calculate tenancy duration
+  const moveInDate = match.tenancyStartDate ? new Date(match.tenancyStartDate) : null;
+  const tenancyDuration = moveInDate
+    ? Math.floor((Date.now() - moveInDate.getTime()) / (1000 * 60 * 60 * 24 * 30))
+    : 0;
+
+  return (
+    <div className="border-2 border-success-200 bg-success-50/30 rounded-xl p-4 hover:border-success-400 transition-colors">
+      <div className="flex items-start gap-4">
+        <div className="w-12 h-12 bg-gradient-to-br from-success-500 to-success-600 rounded-full flex items-center justify-center text-white font-bold">
+          {match.renterName?.charAt(0).toUpperCase() || 'T'}
+        </div>
+
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1">
+            <h4 className="font-semibold text-neutral-900">{match.renterName || 'Current Tenant'}</h4>
+            <span className="px-2 py-0.5 bg-success-500 text-white text-xs font-bold rounded-full">
+              ACTIVE
+            </span>
+            {match.unreadCount > 0 && (
+              <span className="px-2 py-0.5 bg-danger-500 text-white text-xs font-bold rounded-full">
+                {match.unreadCount}
+              </span>
+            )}
+          </div>
+
+          {/* Tenancy Info */}
+          <div className="flex items-center gap-4 mb-3 text-sm text-neutral-600">
+            {moveInDate && (
+              <span>
+                Moved in: {moveInDate.toLocaleDateString()}
+              </span>
+            )}
+            {tenancyDuration > 0 && (
+              <span>
+                • {tenancyDuration} month{tenancyDuration !== 1 ? 's' : ''}
+              </span>
+            )}
+            {match.monthlyRentAmount && (
+              <span>
+                • £{match.monthlyRentAmount.toLocaleString()}/mo
+              </span>
+            )}
+          </div>
+
+          {/* Issue Status Banner */}
+          {totalIssues > 0 && (
+            <div className={`rounded-lg p-3 mb-3 ${
+              openIssuesCount > 0
+                ? 'bg-warning-50 border border-warning-200'
+                : 'bg-success-50 border border-success-200'
+            }`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  {openIssuesCount > 0 ? (
+                    <AlertTriangle size={16} className="text-warning-600" />
+                  ) : (
+                    <CheckCircle2 size={16} className="text-success-600" />
+                  )}
+                  <span className={`text-sm font-medium ${
+                    openIssuesCount > 0 ? 'text-warning-700' : 'text-success-700'
+                  }`}>
+                    {openIssuesCount > 0
+                      ? `${openIssuesCount} Open Issue${openIssuesCount !== 1 ? 's' : ''}`
+                      : 'No Open Issues'}
+                  </span>
+                </div>
+                <span className="text-xs text-neutral-600">
+                  {resolvedIssues}/{totalIssues} resolved
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* Last Message Preview */}
+          {lastMessage && (
+            <div className="bg-white rounded-lg p-3 text-sm mb-3 border border-neutral-200">
+              <p className="text-xs text-neutral-500 mb-1">
+                {lastMessage.senderType === 'renter' ? match.renterName : 'You'}
+              </p>
+              <p className="text-neutral-700 line-clamp-2">{lastMessage.content}</p>
+            </div>
+          )}
+
+          {/* Action Buttons */}
+          <div className="flex gap-2">
+            <button className="flex-1 px-4 py-2 bg-success-500 hover:bg-success-600 text-white rounded-lg font-medium text-sm transition-colors flex items-center justify-center gap-2">
+              <MessageSquare size={16} />
+              View Messages
+            </button>
+            {openIssuesCount > 0 && (
+              <button className="px-4 py-2 bg-warning-500 hover:bg-warning-600 text-white rounded-lg font-medium text-sm transition-colors flex items-center gap-2">
+                <AlertTriangle size={16} />
+                View Issues ({openIssuesCount})
               </button>
             )}
           </div>

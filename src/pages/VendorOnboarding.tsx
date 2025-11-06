@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { AnimatePresence } from 'framer-motion';
-import { Home, Users, Briefcase, CreditCard, Link2, Check } from 'lucide-react';
+import { Home, Link2, Check } from 'lucide-react';
 import { FormStep } from '../components/molecules/FormStep';
 import { RadioCardGroup } from '../components/molecules/RadioCardGroup';
 import { FormField } from '../components/molecules/FormField';
-import type { VendorProfile, PropertyType, LookingFor, PurchaseType, Property } from '../types';
+import type { LandlordProfile, PropertyType, Property, FurnishingType, RenterType } from '../types';
 import { useAuthStore } from '../hooks/useAuthStore';
 import { useAppStore } from '../hooks';
 import { extractPostcode, comparePostcodes, isValidPropertyListingUrl } from '../utils/validation';
@@ -16,26 +16,26 @@ interface VendorOnboardingProps {
 interface VendorFormData {
   names: string;
   propertyType: PropertyType;
-  lookingFor: LookingFor;
-  preferredPurchaseType: PurchaseType;
+  preferredTenantTypes: RenterType[];
+  furnishingPreference: FurnishingType;
   estateAgentLink: string;
 }
 
 /**
  * Multi-step onboarding wizard for vendors
- * Collects names, property details, buyer preferences, and listing link
+ * * Collects names, property details, renter preferences, and listing link
  */
 export function VendorOnboarding({ onComplete }: VendorOnboardingProps) {
   const { login } = useAuthStore();
-  const { allProperties, linkPropertyToVendor } = useAppStore();
+  const { allProperties, linkPropertyToLandlord } = useAppStore();
   const [currentStep, setCurrentStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [formData, setFormData] = useState<VendorFormData>({
     names: '',
     propertyType: 'Detached',
-    lookingFor: 'Family',
-    preferredPurchaseType: 'Mortgage',
+    preferredTenantTypes: ['Family'],
+    furnishingPreference: 'Unfurnished',
     estateAgentLink: '',
   });
 
@@ -170,25 +170,25 @@ export function VendorOnboarding({ onComplete }: VendorOnboardingProps) {
       formattedLink = `https://${formattedLink}`;
     }
 
-    // Generate vendor ID
-    const vendorId = `vendor-${Date.now()}`;
+    // Generate landlord ID
+    const landlordId = `landlord-${Date.now()}`;
 
     // CRITICAL FIX: Attempt to auto-link property from estate agent URL
     let linkedPropertyId: string | undefined;
     const matchedProperty = matchPropertyFromUrl(formattedLink);
 
     if (matchedProperty) {
-      // Check if property is already linked to another vendor
-      if (!matchedProperty.vendorId || matchedProperty.vendorId.trim() === '') {
-        // Property is available - link it to this vendor
-        linkPropertyToVendor(matchedProperty.id, vendorId);
+      // Check if property is already linked to another landlord
+      if (!matchedProperty.landlordId || matchedProperty.landlordId.trim() === '') {
+        // Property is available - link it to this landlord
+        linkPropertyToLandlord(matchedProperty.id, landlordId);
         linkedPropertyId = matchedProperty.id;
         console.log(
-          `[Onboarding] Successfully linked property ${matchedProperty.id} to vendor ${vendorId}`
+          `[Onboarding] Successfully linked property ${matchedProperty.id} to landlord ${landlordId}`
         );
       } else {
         console.warn(
-          `[Onboarding] Property ${matchedProperty.id} is already linked to vendor ${matchedProperty.vendorId}`
+          `[Onboarding] Property ${matchedProperty.id} is already linked to landlord ${matchedProperty.landlordId}`
         );
       }
     } else if (formattedLink) {
@@ -197,19 +197,32 @@ export function VendorOnboarding({ onComplete }: VendorOnboardingProps) {
       );
     }
 
-    const profile: VendorProfile = {
-      id: vendorId,
+    const profile: LandlordProfile = {
+      id: landlordId,
       names: formData.names.trim(),
       propertyType: formData.propertyType,
-      lookingFor: formData.lookingFor,
-      preferredPurchaseType: formData.preferredPurchaseType,
+      furnishingPreference: formData.furnishingPreference,
+      preferredTenantTypes: formData.preferredTenantTypes,
+      defaultPetsPolicy: {
+        willConsiderPets: true,
+        requiresPetInsurance: true,
+        preferredPetTypes: ['cat', 'dog'],
+        maxPetsAllowed: 2,
+      },
+      prsRegistrationNumber: '',
+      prsRegistrationStatus: 'not_registered',
+      ombudsmanScheme: 'not_registered',
+      ombudsmanMembershipNumber: '',
+      isRegisteredLandlord: false,
+      isFullyCompliant: false,
+      depositScheme: 'DPS',
       estateAgentLink: formattedLink,
       propertyId: linkedPropertyId, // Set if auto-linked
       createdAt: new Date(),
       isComplete: true,
     };
 
-    await login('vendor', profile);
+    await login('landlord', profile);
     localStorage.removeItem('vendor-onboarding-draft');
 
     setIsSubmitting(false);
@@ -299,82 +312,76 @@ export function VendorOnboarding({ onComplete }: VendorOnboardingProps) {
     <FormStep
       key="step-2"
       title="Who are you looking for?"
-      subtitle="What type of buyer do you prefer?"
+      subtitle="What type of renter do you prefer??"
       currentStep={2}
       totalSteps={5}
       onNext={handleNext}
       onBack={handleBack}
     >
-      <RadioCardGroup
-        name="lookingFor"
-        value={formData.lookingFor}
-        onChange={(value) => updateField('lookingFor', value as LookingFor)}
-        columns={1}
-        options={[
-          {
-            value: 'Family',
-            label: 'Family',
-            description: 'Looking for a family buyer who will make this their home',
-            icon: Users,
-          },
-          {
-            value: 'Investor',
-            label: 'Investor',
-            description: 'Open to buy-to-let investors or developers',
-            icon: Briefcase,
-          },
-        ]}
-      />
+      <div className="space-y-4">
+        <p className="text-sm text-neutral-600">Select the types of tenants you'd prefer (this is a preference, not a filter)</p>
+        {(['Family', 'Young Professional', 'Student', 'Couple', 'Professional Sharers', 'Retired'] as const).map((type) => (
+          <label key={type} className="flex items-center gap-3 p-4 border-2 border-neutral-200 rounded-xl hover:border-primary-300 cursor-pointer transition-colors">
+            <input
+              type="checkbox"
+              checked={formData.preferredTenantTypes.includes(type)}
+              onChange={(e) => {
+                const current = formData.preferredTenantTypes;
+                const updated = e.target.checked
+                  ? [...current, type]
+                  : current.filter(t => t !== type);
+                updateField('preferredTenantTypes', updated);
+              }}
+              className="w-5 h-5"
+            />
+            <span className="font-medium">{type}</span>
+          </label>
+        ))}
+      </div>
     </FormStep>,
 
-    // Step 3: Purchase Type
+    // Step 3: Furnishing Preference
     <FormStep
       key="step-3"
-      title="Purchase preference"
-      subtitle="What type of purchase would you prefer?"
+      title="Furnishing Preference"
+      subtitle="How is your property furnished?"
       currentStep={3}
       totalSteps={5}
       onNext={handleNext}
       onBack={handleBack}
     >
       <RadioCardGroup
-        name="preferredPurchaseType"
-        value={formData.preferredPurchaseType}
-        onChange={(value) => updateField('preferredPurchaseType', value as PurchaseType)}
+        name="furnishingPreference"
+        value={formData.furnishingPreference}
+        onChange={(value) => updateField('furnishingPreference', value as FurnishingType)}
         columns={1}
         size="compact"
         options={[
           {
-            value: 'Mortgage',
-            label: 'Mortgage',
-            description: 'Happy with mortgage buyers (most common)',
+            value: 'Furnished',
+            label: 'Furnished',
+            description: 'Fully furnished with all furniture and appliances',
             icon: Home,
             badge: 'Popular',
           },
           {
-            value: 'Cash',
-            label: 'Cash',
-            description: 'Prefer cash buyers for faster completion',
-            icon: CreditCard,
+            value: 'Part Furnished',
+            label: 'Part Furnished',
+            description: 'Some furniture included (e.g., white goods)',
+            icon: Home,
           },
           {
-            value: 'Loan',
-            label: 'Loan',
-            description: 'Open to personal or bridging loan purchases',
-            icon: CreditCard,
-          },
-          {
-            value: 'Cash on Completion',
-            label: 'Cash on Completion',
-            description: 'Cash payment when sale completes',
-            icon: Check,
+            value: 'Unfurnished',
+            label: 'Unfurnished',
+            description: 'No furniture - tenant brings their own',
+            icon: Home,
           },
         ]}
       />
 
       <div className="mt-6 p-4 bg-primary-50 border border-primary-200 rounded-xl">
         <p className="text-sm text-primary-900">
-          <strong>Note:</strong> This is your preference, but you'll still see all types of buyers. You can always filter later.
+          <strong>Note:</strong> This is your preference, but you'll still see all types of renters. You can always filter later.
         </p>
       </div>
     </FormStep>,
@@ -403,7 +410,7 @@ export function VendorOnboarding({ onComplete }: VendorOnboardingProps) {
       <div className="mt-6 space-y-3">
         <div className="flex items-start gap-3 text-sm text-neutral-600">
           <Check className="w-5 h-5 text-success-500 flex-shrink-0 mt-0.5" />
-          <span>Buyers can view full property details and photos</span>
+          <span>Renters can view full property details and photos</span>
         </div>
         <div className="flex items-start gap-3 text-sm text-neutral-600">
           <Check className="w-5 h-5 text-success-500 flex-shrink-0 mt-0.5" />
@@ -440,8 +447,8 @@ export function VendorOnboarding({ onComplete }: VendorOnboardingProps) {
           title="Property Details"
           items={[
             { label: 'Property Type', value: formData.propertyType },
-            { label: 'Looking For', value: formData.lookingFor },
-            { label: 'Preferred Purchase', value: formData.preferredPurchaseType },
+            { label: 'Preferred Tenants', value: formData.preferredTenantTypes.join(', ') || 'Any' },
+            { label: 'Furnishing', value: formData.furnishingPreference },
           ]}
           onEdit={() => setCurrentStep(1)}
         />

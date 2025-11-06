@@ -12,8 +12,8 @@ interface ViewingSchedulerProps {
 }
 
 /**
- * Modal for vendors to respond to viewing requests
- * Shows buyer's preferences and allows vendor to suggest specific date/time
+ * Modal for landlords to respond to viewing requests
+ * Shows renter's preferences and allows landlord to suggest specific date/time
  */
 export function ViewingScheduler({ isOpen, onClose, match, onConfirm }: ViewingSchedulerProps) {
   const [selectedDate, setSelectedDate] = useState('');
@@ -109,7 +109,7 @@ export function ViewingScheduler({ isOpen, onClose, match, onConfirm }: ViewingS
                 Schedule Viewing
               </h2>
               <p className="text-neutral-600">
-                For {match.buyerName} at {match.property.address.street}
+                For {match.renterName} at {match.property.address.street}
               </p>
             </div>
             <button
@@ -123,10 +123,10 @@ export function ViewingScheduler({ isOpen, onClose, match, onConfirm }: ViewingS
 
           {/* Content */}
           <div className="flex-1 overflow-y-auto p-6 space-y-6">
-            {/* Buyer's Preferences */}
+            {/* Renter's Preferences */}
             {match.viewingPreference && (
               <div className="bg-primary-50 border border-primary-200 rounded-xl p-4">
-                <h3 className="font-semibold text-neutral-900 mb-3">Buyer's Preferences</h3>
+                <h3 className="font-semibold text-neutral-900 mb-3">Renter's Preferences</h3>
                 <div className="space-y-2 text-sm">
                   <div className="flex items-center gap-2">
                     <span className="font-medium text-neutral-700">Flexibility:</span>
@@ -249,7 +249,7 @@ export function ViewingScheduler({ isOpen, onClose, match, onConfirm }: ViewingS
             {/* Info Box */}
             <div className="bg-secondary-50 border border-secondary-200 rounded-xl p-4">
               <p className="text-sm text-secondary-900">
-                💡 <strong>Tip:</strong> The buyer will receive a notification with the confirmed viewing time. Make sure you're available!
+                💡 <strong>Tip:</strong> The renter will receive a notification with the confirmed viewing time. Make sure you're available!
               </p>
             </div>
           </div>
