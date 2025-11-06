@@ -66,21 +66,24 @@ export function FormStep({
           </button>
         )}
         <div className="flex gap-2">
-          {Array.from({ length: totalSteps }).map((_, index) => (
-            <div
-              key={index}
-              className={`h-2 rounded-full transition-all duration-300 ${
-                index < currentStep
-                  ? 'w-8 bg-primary-500'
-                  : index === currentStep
-                    ? 'w-12 bg-primary-500'
-                    : 'w-2 bg-neutral-300'
-              }`}
-            />
-          ))}
+          {Array.from({ length: totalSteps }).map((_, index) => {
+            const stepNumber = index + 1; // Convert to 1-based for comparison
+            return (
+              <div
+                key={index}
+                className={`h-2 rounded-full transition-all duration-300 ${
+                  stepNumber < currentStep
+                    ? 'w-8 bg-primary-500'
+                    : stepNumber === currentStep
+                      ? 'w-12 bg-primary-500'
+                      : 'w-2 bg-neutral-300'
+                }`}
+              />
+            );
+          })}
         </div>
         <span className="text-sm text-neutral-500 ml-auto">
-          Step {currentStep + 1} of {totalSteps}
+          Step {currentStep} of {totalSteps}
         </span>
       </div>
 
