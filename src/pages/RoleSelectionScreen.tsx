@@ -35,8 +35,8 @@ export function RoleSelectionScreen({ onSelectRole, onBack }: RoleSelectionScree
       icon: Briefcase,
       title: "I'm an Estate Agent",
       description: 'Marketing properties and connecting landlords with tenants',
-      gradient: 'from-accent-500 to-accent-600',
-      bgGradient: 'from-accent-50 to-accent-100',
+      gradient: 'from-danger-500 to-danger-600',
+      bgGradient: 'from-danger-50 to-danger-100',
     },
     {
       type: 'management_agency' as UserType,

@@ -293,7 +293,7 @@ export function PropertyForm({ mode, initialData, onSubmit, onCancel }: Property
       title="Property Address"
       subtitle="Where is the property located?"
       currentStep={currentStep + 1}
-      totalSteps={6}
+      totalSteps={8}
       onNext={handleNext}
       onBack={currentStep > 0 ? handleBack : undefined}
       isNextDisabled={!validateStep(0)}
@@ -342,7 +342,7 @@ export function PropertyForm({ mode, initialData, onSubmit, onCancel }: Property
       title="Rental Details"
       subtitle="Pricing and basic information"
       currentStep={currentStep + 1}
-      totalSteps={7}
+      totalSteps={8}
       onNext={handleNext}
       onBack={handleBack}
       isNextDisabled={!validateStep(1)}
@@ -483,7 +483,7 @@ export function PropertyForm({ mode, initialData, onSubmit, onCancel }: Property
       title="Property Type"
       subtitle="What type of property is it?"
       currentStep={currentStep + 1}
-      totalSteps={7}
+      totalSteps={8}
       onNext={handleNext}
       onBack={handleBack}
       isNextDisabled={!validateStep(2)}
@@ -515,7 +515,7 @@ export function PropertyForm({ mode, initialData, onSubmit, onCancel }: Property
       title="Furnishing"
       subtitle="What's included in the property?"
       currentStep={currentStep + 1}
-      totalSteps={7}
+      totalSteps={8}
       onNext={handleNext}
       onBack={handleBack}
     >
@@ -656,7 +656,7 @@ export function PropertyForm({ mode, initialData, onSubmit, onCancel }: Property
       title="Property Images"
       subtitle="Add photos of your property"
       currentStep={currentStep + 1}
-      totalSteps={7}
+      totalSteps={8}
       onNext={handleNext}
       onBack={handleBack}
       isNextDisabled={!validateStep(4)}
@@ -674,7 +674,7 @@ export function PropertyForm({ mode, initialData, onSubmit, onCancel }: Property
       title="Description"
       subtitle="Describe your property"
       currentStep={currentStep + 1}
-      totalSteps={7}
+      totalSteps={8}
       onNext={handleNext}
       onBack={handleBack}
       isNextDisabled={!validateStep(5)}
@@ -707,7 +707,7 @@ export function PropertyForm({ mode, initialData, onSubmit, onCancel }: Property
       title="Legal & Energy"
       subtitle="Final details"
       currentStep={currentStep + 1}
-      totalSteps={7}
+      totalSteps={8}
       onNext={handleNext}
       onBack={handleBack}
     >
@@ -740,7 +740,7 @@ export function PropertyForm({ mode, initialData, onSubmit, onCancel }: Property
       title="Review & Submit"
       subtitle="Check everything looks good"
       currentStep={currentStep + 1}
-      totalSteps={7}
+      totalSteps={8}
       onBack={handleBack}
       onNext={handleSubmit}
       nextLabel={mode === 'create' ? 'Create Listing' : 'Save Changes'}
