@@ -4,6 +4,20 @@ export default {
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
+  safelist: [
+    // Safelist all color variants for dynamic class generation
+    {
+      pattern: /(bg|text|border|from|to)-(primary|secondary|accent|warning|success|danger|neutral)-(50|100|200|300|400|500|600|700|800|900)/,
+      variants: ['hover', 'focus', 'active', 'group-hover'],
+    },
+    // Explicitly safelist gradient classes used in RoleSelectionScreen
+    'from-primary-500', 'to-primary-600', 'from-primary-50', 'to-primary-100',
+    'from-secondary-500', 'to-secondary-600', 'from-secondary-50', 'to-secondary-100',
+    'from-accent-500', 'to-accent-600', 'from-accent-50', 'to-accent-100',
+    'from-warning-500', 'to-warning-600', 'from-warning-50', 'to-warning-100',
+    'from-success-500', 'to-success-600', 'from-success-50', 'to-success-100',
+    'from-danger-500', 'to-danger-600', 'from-danger-50', 'to-danger-100',
+  ],
   theme: {
     extend: {
       colors: {
