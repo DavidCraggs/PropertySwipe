@@ -730,28 +730,31 @@ export const useAppStore = create<AppState>()(
       createProperty: async (propertyData, landlordId) => {
         const { allProperties, availableProperties } = get();
 
-        // Generate unique property ID
-        const newPropertyId = `property-${Date.now()}`;
+        // Generate temporary property ID (will be replaced by Supabase UUID)
+        const tempPropertyId = `property-${Date.now()}`;
 
         // Create complete property object
         const newProperty: Property = {
-          id: newPropertyId,
+          id: tempPropertyId,
           ...propertyData,
           landlordId, // Automatically link to landlord
         };
 
-        console.log(`[CRUD] Creating new rental property ${newPropertyId} for landlord ${landlordId}`);
+        console.log(`[CRUD] Creating new rental property ${tempPropertyId} for landlord ${landlordId}`);
 
         // Save to storage (Supabase if configured, localStorage otherwise)
-        await saveProperty(newProperty);
+        // CRITICAL: Capture the returned property with the Supabase-generated UUID
+        const savedProperty = await saveProperty(newProperty);
+        console.log(`[CRUD] Property saved with UUID: ${savedProperty.id}`);
 
-        // Add to both property lists
+        // Add to both property lists (use savedProperty with correct UUID)
         set({
-          allProperties: [newProperty, ...allProperties],
-          availableProperties: [newProperty, ...availableProperties],
+          allProperties: [savedProperty, ...allProperties],
+          availableProperties: [savedProperty, ...availableProperties],
         });
 
-        return newPropertyId;
+        // Return the Supabase-generated UUID, not the temporary ID
+        return savedProperty.id;
       },
 
       /**
