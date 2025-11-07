@@ -41,27 +41,29 @@ export const useAuthStore = create<AuthStore>()(
 
       // Login action - stores user data and sets authenticated state
       login: async (userType, profile) => {
-        // Save to Supabase (or localStorage if not configured)
+        // Save to Supabase (or localStorage if not configured) and get back the profile with correct UUID
+        let savedProfile = profile;
         try {
           if (userType === 'landlord') {
-            await saveLandlordProfile(profile as LandlordProfile);
-            console.log(`[Auth] Landlord profile saved to storage`);
+            savedProfile = await saveLandlordProfile(profile as LandlordProfile);
+            console.log(`[Auth] Landlord profile saved to storage with ID:`, savedProfile.id);
           } else if (userType === 'renter') {
-            await saveRenterProfile(profile as RenterProfile);
-            console.log(`[Auth] Renter profile saved to storage`);
+            savedProfile = await saveRenterProfile(profile as RenterProfile);
+            console.log(`[Auth] Renter profile saved to storage with ID:`, savedProfile.id);
           } else if (userType === 'estate_agent' || userType === 'management_agency') {
             // TODO: Create saveAgencyProfile function in storage.ts
             console.log(`[Auth] Agency profile login (storage pending)`);
           }
         } catch (error) {
           console.error('[Auth] Failed to save profile to storage:', error);
+          throw error; // Prevent login with invalid data
         }
 
         set({
           isAuthenticated: true,
           userType: userType,
-          currentUser: profile,
-          onboardingStep: profile.isComplete ? 0 : 1,
+          currentUser: savedProfile, // CRITICAL: Use savedProfile not profile
+          onboardingStep: savedProfile.isComplete ? 0 : 1,
         });
       },
 
@@ -85,24 +87,27 @@ export const useAuthStore = create<AuthStore>()(
           ...updates,
         };
 
-        // Save to Supabase (or localStorage if not configured)
+        // Save to Supabase (or localStorage if not configured) and get back the profile with correct UUID
+        let savedProfile = updatedProfile;
         try {
           if (userType === 'landlord') {
-            await saveLandlordProfile(updatedProfile as LandlordProfile);
-            console.log('[Auth] Landlord profile updated');
+            savedProfile = await saveLandlordProfile(updatedProfile as LandlordProfile);
+            console.log('[Auth] Landlord profile saved to storage with ID:', savedProfile.id);
           } else if (userType === 'renter') {
-            await saveRenterProfile(updatedProfile as RenterProfile);
-            console.log('[Auth] Renter profile updated');
+            savedProfile = await saveRenterProfile(updatedProfile as RenterProfile);
+            console.log('[Auth] Renter profile saved to storage with ID:', savedProfile.id);
           } else if (userType === 'estate_agent' || userType === 'management_agency') {
             // TODO: Create saveAgencyProfile function in storage.ts
             console.log('[Auth] Agency profile update (storage pending)');
           }
         } catch (error) {
           console.error('[Auth] Failed to save profile to storage:', error);
+          throw error; // Re-throw to prevent state update with invalid data
         }
 
+        // Update state with the saved profile (includes the UUID from Supabase)
         set({
-          currentUser: updatedProfile,
+          currentUser: savedProfile,
         });
       },
 
