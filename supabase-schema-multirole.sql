@@ -204,6 +204,8 @@ CREATE TABLE properties (
     -- RRA 2025 Compliance
     meets_decent_homes_standard BOOLEAN DEFAULT FALSE,
     awaabs_law_compliant BOOLEAN DEFAULT FALSE,
+    last_safety_inspection_date DATE,
+    prs_property_registration_number TEXT,
     prs_property_registration_status TEXT,
 
     -- Listing Status
