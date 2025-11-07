@@ -193,7 +193,7 @@ CREATE TABLE properties (
     available_from DATE,
     tenancy_type TEXT,
     max_occupants INTEGER,
-    pets_policy TEXT,
+    pets_policy JSONB,
 
     -- Bills
     council_tax_band TEXT,
