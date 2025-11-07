@@ -26,31 +26,75 @@ import type {
 
 export const saveLandlordProfile = async (profile: LandlordProfile): Promise<LandlordProfile> => {
   if (isSupabaseConfigured()) {
-    const { error } = await supabase
-      .from('landlord_profiles')
-      .upsert({
-        id: profile.id,
-        names: profile.names,
-        property_type: profile.propertyType,
-        furnishing_preference: profile.furnishingPreference,
-        preferred_tenant_types: profile.preferredTenantTypes,
-        default_pets_policy: profile.defaultPetsPolicy,
-        prs_registration_number: profile.prsRegistrationNumber,
-        prs_registration_status: profile.prsRegistrationStatus,
-        prs_registration_date: profile.prsRegistrationDate,
-        prs_registration_expiry_date: profile.prsRegistrationExpiryDate,
-        ombudsman_scheme: profile.ombudsmanScheme,
-        ombudsman_membership_number: profile.ombudsmanMembershipNumber,
-        deposit_scheme: profile.depositScheme,
-        estate_agent_link: profile.estateAgentLink,
-        property_id: profile.propertyId,
-        is_complete: profile.isComplete,
-      })
-      .select()
-      .single();
+    const profileData = {
+      names: profile.names,
+      property_type: profile.propertyType,
+      furnishing_preference: profile.furnishingPreference,
+      preferred_tenant_types: profile.preferredTenantTypes,
+      default_pets_policy: profile.defaultPetsPolicy,
+      prs_registration_number: profile.prsRegistrationNumber,
+      prs_registration_status: profile.prsRegistrationStatus,
+      prs_registration_date: profile.prsRegistrationDate,
+      prs_registration_expiry_date: profile.prsRegistrationExpiryDate,
+      ombudsman_scheme: profile.ombudsmanScheme,
+      ombudsman_membership_number: profile.ombudsmanMembershipNumber,
+      deposit_scheme: profile.depositScheme,
+      estate_agent_link: profile.estateAgentLink,
+      property_id: profile.propertyId || null,
+      is_complete: profile.isComplete,
+    };
 
-    if (error) throw error;
-    return profile;
+    // Check if profile has a valid UUID
+    const isValidUUID = profile.id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(profile.id);
+
+    if (isValidUUID) {
+      // Update existing profile
+      console.log('[Storage] Updating landlord profile with data:', JSON.stringify(profileData, null, 2));
+
+      const { data, error } = await supabase
+        .from('landlord_profiles')
+        .update(profileData)
+        .eq('id', profile.id)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('[Storage] Landlord profile update error:', error);
+        console.error('[Storage] Error details:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code,
+        });
+        throw error;
+      }
+
+      console.log('[Storage] Landlord profile updated successfully with ID:', data.id);
+      return { ...profile, id: data.id };
+    } else {
+      // Insert new profile (let Supabase generate UUID)
+      console.log('[Storage] Inserting new landlord profile with data:', JSON.stringify(profileData, null, 2));
+
+      const { data, error } = await supabase
+        .from('landlord_profiles')
+        .insert(profileData)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('[Storage] Landlord profile insert error:', error);
+        console.error('[Storage] Error details:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code,
+        });
+        throw error;
+      }
+
+      console.log('[Storage] Landlord profile created successfully with ID:', data.id);
+      return { ...profile, id: data.id };
+    }
   } else {
     localStorage.setItem(`landlord-profile-${profile.id}`, JSON.stringify(profile));
     return profile;
@@ -118,35 +162,53 @@ export const getVendorProfile = getLandlordProfile as unknown as (id: string) =>
 
 export const saveRenterProfile = async (profile: RenterProfile): Promise<RenterProfile> => {
   if (isSupabaseConfigured()) {
-    const { error } = await supabase
-      .from('renter_profiles')
-      .upsert({
-        id: profile.id,
-        situation: profile.situation,
-        names: profile.names,
-        ages: profile.ages,
-        local_area: profile.localArea,
-        renter_type: profile.renterType,
-        employment_status: profile.employmentStatus,
-        monthly_income: profile.monthlyIncome,
-        has_pets: profile.hasPets,
-        pet_details: profile.petDetails,
-        smoking_status: profile.smokingStatus,
-        has_guarantor: profile.hasGuarantor,
-        preferred_move_in_date: profile.preferredMoveInDate,
-        current_rental_situation: profile.currentRentalSituation,
-        has_rental_history: profile.hasRentalHistory,
-        previous_landlord_reference: profile.previousLandlordReference,
-        receives_housing_benefit: profile.receivesHousingBenefit,
-        receives_universal_credit: profile.receivesUniversalCredit,
-        number_of_children: profile.numberOfChildren,
-        is_complete: profile.isComplete,
-      })
-      .select()
-      .single();
+    const profileData = {
+      situation: profile.situation,
+      names: profile.names,
+      ages: profile.ages,
+      local_area: profile.localArea,
+      renter_type: profile.renterType,
+      employment_status: profile.employmentStatus,
+      monthly_income: profile.monthlyIncome,
+      has_pets: profile.hasPets,
+      pet_details: profile.petDetails,
+      smoking_status: profile.smokingStatus,
+      has_guarantor: profile.hasGuarantor,
+      preferred_move_in_date: profile.preferredMoveInDate,
+      current_rental_situation: profile.currentRentalSituation,
+      has_rental_history: profile.hasRentalHistory,
+      previous_landlord_reference: profile.previousLandlordReference,
+      receives_housing_benefit: profile.receivesHousingBenefit,
+      receives_universal_credit: profile.receivesUniversalCredit,
+      number_of_children: profile.numberOfChildren,
+      is_complete: profile.isComplete,
+    };
 
-    if (error) throw error;
-    return profile;
+    // Check if profile has a valid UUID
+    const isValidUUID = profile.id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(profile.id);
+
+    if (isValidUUID) {
+      // Update existing profile
+      const { data, error } = await supabase
+        .from('renter_profiles')
+        .update(profileData)
+        .eq('id', profile.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return { ...profile, id: data.id };
+    } else {
+      // Insert new profile (let Supabase generate UUID)
+      const { data, error } = await supabase
+        .from('renter_profiles')
+        .insert(profileData)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return { ...profile, id: data.id };
+    }
   } else {
     localStorage.setItem(`renter-profile-${profile.id}`, JSON.stringify(profile));
     return profile;
@@ -217,59 +279,100 @@ export const getBuyerProfile = getRenterProfile as unknown as (id: string) => Pr
 
 export const saveProperty = async (property: Property): Promise<Property> => {
   if (isSupabaseConfigured()) {
-    const { error } = await supabase
-      .from('properties')
-      .upsert({
-        id: property.id,
-        landlord_id: property.landlordId,
-        street: property.address.street,
-        city: property.address.city,
-        postcode: property.address.postcode,
-        council: property.address.council,
+    const propertyData = {
+      landlord_id: property.landlordId || null, // NULL instead of empty string
+      street: property.address.street,
+      city: property.address.city,
+      postcode: property.address.postcode,
+      council: property.address.council,
 
-        // Rental pricing (not purchase price)
-        rent_pcm: property.rentPcm,
-        deposit: property.deposit,
+      // Rental pricing (not purchase price)
+      rent_pcm: property.rentPcm,
+      deposit: property.deposit,
 
-        bedrooms: property.bedrooms,
-        bathrooms: property.bathrooms,
-        property_type: property.propertyType,
-        year_built: property.yearBuilt,
-        description: property.description,
-        epc_rating: property.epcRating,
-        images: property.images,
-        features: property.features,
+      bedrooms: property.bedrooms,
+      bathrooms: property.bathrooms,
+      property_type: property.propertyType,
+      year_built: property.yearBuilt,
+      description: property.description,
+      epc_rating: property.epcRating,
+      images: property.images,
+      features: property.features,
 
-        // Rental-specific fields
-        furnishing: property.furnishing,
-        available_from: property.availableFrom,
-        tenancy_type: property.tenancyType || 'Periodic', // RRA 2025
-        max_occupants: property.maxOccupants,
-        pets_policy: property.petsPolicy,
+      // Rental-specific fields
+      furnishing: property.furnishing,
+      available_from: property.availableFrom,
+      tenancy_type: property.tenancyType || 'Periodic', // RRA 2025
+      max_occupants: property.maxOccupants,
+      pets_policy: property.petsPolicy,
 
-        // Bills
-        council_tax_band: property.bills?.councilTaxBand,
-        gas_electric_included: property.bills?.gasElectricIncluded || false,
-        water_included: property.bills?.waterIncluded || false,
-        internet_included: property.bills?.internetIncluded || false,
+      // Bills
+      council_tax_band: property.bills?.councilTaxBand,
+      gas_electric_included: property.bills?.gasElectricIncluded || false,
+      water_included: property.bills?.waterIncluded || false,
+      internet_included: property.bills?.internetIncluded || false,
 
-        // RRA 2025 Compliance
-        meets_decent_homes_standard: property.meetsDecentHomesStandard,
-        awaabs_law_compliant: property.awaabsLawCompliant,
-        last_safety_inspection_date: property.lastSafetyInspectionDate,
-        prs_property_registration_number: property.prsPropertyRegistrationNumber,
-        prs_property_registration_status: property.prsPropertyRegistrationStatus,
+      // RRA 2025 Compliance
+      meets_decent_homes_standard: property.meetsDecentHomesStandard,
+      awaabs_law_compliant: property.awaabsLawCompliant,
+      last_safety_inspection_date: property.lastSafetyInspectionDate,
+      prs_property_registration_number: property.prsPropertyRegistrationNumber,
+      prs_property_registration_status: property.prsPropertyRegistrationStatus,
 
-        is_available: property.isAvailable,
-        listing_date: property.listingDate,
-        preferred_minimum_stay: property.preferredMinimumStay,
-        accepts_short_term_tenants: property.acceptsShortTermTenants,
-      })
-      .select()
-      .single();
+      is_available: property.isAvailable,
+      listing_date: property.listingDate,
+      preferred_minimum_stay: property.preferredMinimumStay,
+      accepts_short_term_tenants: property.acceptsShortTermTenants,
+    };
 
-    if (error) throw error;
-    return property;
+    // Check if property has a valid UUID (for updates) or needs to be inserted
+    const isValidUUID = property.id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(property.id);
+
+    if (isValidUUID) {
+      // Update existing property
+      const { data, error } = await supabase
+        .from('properties')
+        .update(propertyData)
+        .eq('id', property.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      return {
+        ...property,
+        id: data.id,
+        landlordId: data.landlord_id || property.landlordId,
+      };
+    } else {
+      // Insert new property (let Supabase generate UUID)
+      console.log('[Storage] Inserting new property with data:', JSON.stringify(propertyData, null, 2));
+
+      const { data, error } = await supabase
+        .from('properties')
+        .insert(propertyData)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('[Storage] Supabase insert error:', error);
+        console.error('[Storage] Error details:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code,
+        });
+        throw error;
+      }
+
+      console.log('[Storage] Property created successfully with ID:', data.id);
+
+      return {
+        ...property,
+        id: data.id,
+        landlordId: data.landlord_id || property.landlordId,
+      };
+    }
   } else {
     const allProperties = await getAllProperties();
     const index = allProperties.findIndex(p => p.id === property.id);
@@ -395,33 +498,51 @@ export const deleteProperty = async (id: string): Promise<void> => {
 
 export const saveMatch = async (match: Match): Promise<Match> => {
   if (isSupabaseConfigured()) {
-    const { error } = await supabase
-      .from('matches')
-      .upsert({
-        id: match.id,
-        property_id: match.propertyId,
-        landlord_id: match.landlordId,
-        renter_id: match.renterId,
-        renter_name: match.renterName,
-        renter_profile: match.renterProfile,
-        messages: match.messages,
-        last_message_at: match.lastMessageAt,
-        unread_count: match.unreadCount,
-        has_viewing_scheduled: match.hasViewingScheduled,
-        confirmed_viewing_date: match.confirmedViewingDate,
-        viewing_preference: match.viewingPreference,
-        tenancy_start_date: match.tenancyStartDate,
-        can_rate: match.canRate,
-        has_landlord_rated: match.hasLandlordRated,
-        has_renter_rated: match.hasRenterRated,
-        landlord_rating_id: match.landlordRatingId,
-        renter_rating_id: match.renterRatingId,
-      })
-      .select()
-      .single();
+    const matchData = {
+      property_id: match.propertyId,
+      landlord_id: match.landlordId,
+      renter_id: match.renterId,
+      renter_name: match.renterName,
+      renter_profile: match.renterProfile,
+      messages: match.messages,
+      last_message_at: match.lastMessageAt,
+      unread_count: match.unreadCount,
+      has_viewing_scheduled: match.hasViewingScheduled,
+      confirmed_viewing_date: match.confirmedViewingDate,
+      viewing_preference: match.viewingPreference,
+      tenancy_start_date: match.tenancyStartDate,
+      can_rate: match.canRate,
+      has_landlord_rated: match.hasLandlordRated,
+      has_renter_rated: match.hasRenterRated,
+      landlord_rating_id: match.landlordRatingId,
+      renter_rating_id: match.renterRatingId,
+    };
 
-    if (error) throw error;
-    return match;
+    // Check if match has a valid UUID
+    const isValidUUID = match.id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(match.id);
+
+    if (isValidUUID) {
+      // Update existing match
+      const { data, error } = await supabase
+        .from('matches')
+        .update(matchData)
+        .eq('id', match.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return { ...match, id: data.id };
+    } else {
+      // Insert new match (let Supabase generate UUID)
+      const { data, error } = await supabase
+        .from('matches')
+        .insert(matchData)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return { ...match, id: data.id };
+    }
   } else {
     const allMatches = await getAllMatches();
     const index = allMatches.findIndex(m => m.id === match.id);
