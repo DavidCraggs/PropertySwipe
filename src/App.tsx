@@ -126,7 +126,14 @@ function App() {
         return <LandlordOnboarding onComplete={handleOnboardingComplete} />;
 
       case 'agency-onboarding':
-        return <AgencyOnboarding onComplete={handleOnboardingComplete} />;
+        return (
+          <AgencyOnboarding
+            onComplete={handleOnboardingComplete}
+            initialAgencyType={
+              selectedRole === 'estate_agent' ? 'estate_agent' : 'management_agency'
+            }
+          />
+        );
 
       case 'app':
         return (

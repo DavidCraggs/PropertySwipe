@@ -6,18 +6,19 @@ import { useAuthStore } from '../hooks/useAuthStore';
 
 interface AgencyOnboardingProps {
   onComplete: () => void;
+  initialAgencyType?: AgencyType;
 }
 
 /**
  * Phase 5: Simplified single-page onboarding for estate agents and management agencies
  * Collects company info, service areas, SLA configuration, and compliance details
  */
-export function AgencyOnboarding({ onComplete }: AgencyOnboardingProps) {
+export function AgencyOnboarding({ onComplete, initialAgencyType = 'management_agency' }: AgencyOnboardingProps) {
   const { login } = useAuthStore();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [formData, setFormData] = useState({
-    agencyType: 'management_agency' as AgencyType,
+    agencyType: initialAgencyType,
     companyName: '',
     registrationNumber: '',
     primaryContactName: '',
