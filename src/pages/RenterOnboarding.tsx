@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { AnimatePresence } from 'framer-motion';
-import { User, Users, Baby, MapPin, Briefcase, Home, DollarSign, Calendar, Check } from 'lucide-react';
+import { User, Users, Baby, MapPin, Briefcase, Home, PoundSterling, Calendar, Check } from 'lucide-react';
 import { FormStep } from '../components/molecules/FormStep';
 import { RadioCardGroup } from '../components/molecules/RadioCardGroup';
 import { FormField } from '../components/molecules/FormField';
@@ -419,7 +419,7 @@ export function RenterOnboarding({ onComplete }: RenterOnboardingProps) {
             {
               value: 'Benefits',
               label: 'Benefits',
-              icon: DollarSign,
+              icon: PoundSterling,
             },
             {
               value: 'Other',
@@ -437,7 +437,7 @@ export function RenterOnboarding({ onComplete }: RenterOnboardingProps) {
           onChange={(e) => updateField('monthlyIncome', e.target.value)}
           error={errors.monthlyIncome}
           isRequired
-          icon={<DollarSign className="w-5 h-5" />}
+          icon={<PoundSterling className="w-5 h-5" />}
           helperText="Total monthly income before tax (combined if multiple people)"
         />
 

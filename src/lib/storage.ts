@@ -15,6 +15,8 @@ import type {
   EvictionNotice,
   HazardReport,
   Dispute,
+  AgencyLinkInvitation,
+  AgencyPropertyLink,
   // Legacy aliases for backward compatibility
   VendorProfile,
   BuyerProfile,
@@ -893,5 +895,547 @@ export const saveDispute = async (dispute: Dispute): Promise<Dispute> => {
   } else {
     localStorage.setItem(`dispute-${dispute.id}`, JSON.stringify(dispute));
     return dispute;
+  }
+};
+
+// =====================================================
+// AGENCY LINKING SYSTEM
+// =====================================================
+
+/**
+ * Create a new agency link invitation
+ * Used when landlords invite agencies or agencies invite landlords
+ */
+export const createAgencyInvitation = async (
+  invitation: Omit<AgencyLinkInvitation, 'id' | 'createdAt' | 'expiresAt'>
+): Promise<AgencyLinkInvitation> => {
+  if (isSupabaseConfigured()) {
+    console.log('[Storage] Creating agency invitation:', invitation);
+
+    const invitationData = {
+      landlord_id: invitation.landlordId,
+      agency_id: invitation.agencyId,
+      property_id: invitation.propertyId || null,
+      invitation_type: invitation.invitationType,
+      initiated_by: invitation.initiatedBy,
+      status: invitation.status || 'pending',
+      proposed_commission_rate: invitation.proposedCommissionRate || null,
+      proposed_contract_length_months: invitation.proposedContractLengthMonths || null,
+      message: invitation.message || null,
+      response_message: invitation.responseMessage || null,
+      responded_at: invitation.respondedAt || null,
+    };
+
+    const { data, error } = await supabase
+      .from('agency_link_invitations')
+      .insert(invitationData)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('[Storage] Agency invitation insert error:', error);
+      throw error;
+    }
+
+    console.log('[Storage] Agency invitation created successfully with ID:', data.id);
+
+    return {
+      id: data.id,
+      landlordId: data.landlord_id,
+      agencyId: data.agency_id,
+      propertyId: data.property_id,
+      invitationType: data.invitation_type,
+      initiatedBy: data.initiated_by,
+      status: data.status,
+      proposedCommissionRate: data.proposed_commission_rate,
+      proposedContractLengthMonths: data.proposed_contract_length_months,
+      message: data.message,
+      createdAt: new Date(data.created_at),
+      expiresAt: new Date(data.expires_at),
+      respondedAt: data.responded_at ? new Date(data.responded_at) : undefined,
+      responseMessage: data.response_message,
+    };
+  } else {
+    // localStorage fallback
+    const id = crypto.randomUUID();
+    const newInvitation: AgencyLinkInvitation = {
+      ...invitation,
+      id,
+      createdAt: new Date(),
+      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+    };
+    const key = `agency-invitations`;
+    const stored = localStorage.getItem(key);
+    const invitations = stored ? JSON.parse(stored) : [];
+    invitations.push(newInvitation);
+    localStorage.setItem(key, JSON.stringify(invitations));
+    return newInvitation;
+  }
+};
+
+/**
+ * Get all agency invitations for a landlord
+ */
+export const getAgencyInvitationsForLandlord = async (
+  landlordId: string
+): Promise<AgencyLinkInvitation[]> => {
+  if (isSupabaseConfigured()) {
+    const { data, error } = await supabase
+      .from('agency_link_invitations')
+      .select('*')
+      .eq('landlord_id', landlordId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('[Storage] Error fetching landlord invitations:', error);
+      throw error;
+    }
+
+    return (data || []).map(d => ({
+      id: d.id,
+      landlordId: d.landlord_id,
+      agencyId: d.agency_id,
+      propertyId: d.property_id,
+      invitationType: d.invitation_type,
+      initiatedBy: d.initiated_by,
+      status: d.status,
+      proposedCommissionRate: d.proposed_commission_rate,
+      proposedContractLengthMonths: d.proposed_contract_length_months,
+      message: d.message,
+      createdAt: new Date(d.created_at),
+      expiresAt: new Date(d.expires_at),
+      respondedAt: d.responded_at ? new Date(d.responded_at) : undefined,
+      responseMessage: d.response_message,
+    }));
+  } else {
+    const stored = localStorage.getItem('agency-invitations');
+    const invitations = stored ? JSON.parse(stored) : [];
+    return invitations.filter((inv: AgencyLinkInvitation) => inv.landlordId === landlordId);
+  }
+};
+
+/**
+ * Get all agency invitations for an agency
+ */
+export const getAgencyInvitationsForAgency = async (
+  agencyId: string
+): Promise<AgencyLinkInvitation[]> => {
+  if (isSupabaseConfigured()) {
+    const { data, error } = await supabase
+      .from('agency_link_invitations')
+      .select('*')
+      .eq('agency_id', agencyId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('[Storage] Error fetching agency invitations:', error);
+      throw error;
+    }
+
+    return (data || []).map(d => ({
+      id: d.id,
+      landlordId: d.landlord_id,
+      agencyId: d.agency_id,
+      propertyId: d.property_id,
+      invitationType: d.invitation_type,
+      initiatedBy: d.initiated_by,
+      status: d.status,
+      proposedCommissionRate: d.proposed_commission_rate,
+      proposedContractLengthMonths: d.proposed_contract_length_months,
+      message: d.message,
+      createdAt: new Date(d.created_at),
+      expiresAt: new Date(d.expires_at),
+      respondedAt: d.responded_at ? new Date(d.responded_at) : undefined,
+      responseMessage: d.response_message,
+    }));
+  } else {
+    const stored = localStorage.getItem('agency-invitations');
+    const invitations = stored ? JSON.parse(stored) : [];
+    return invitations.filter((inv: AgencyLinkInvitation) => inv.agencyId === agencyId);
+  }
+};
+
+/**
+ * Update an agency invitation (accept, decline, cancel, expire)
+ */
+export const updateAgencyInvitation = async (
+  invitationId: string,
+  updates: Partial<Pick<AgencyLinkInvitation, 'status' | 'responseMessage' | 'respondedAt'>>
+): Promise<AgencyLinkInvitation> => {
+  if (isSupabaseConfigured()) {
+    console.log('[Storage] Updating agency invitation:', invitationId, updates);
+
+    const updateData: Record<string, any> = {};
+    if (updates.status) updateData.status = updates.status;
+    if (updates.responseMessage) updateData.response_message = updates.responseMessage;
+    if (updates.respondedAt) updateData.responded_at = updates.respondedAt;
+
+    const { data, error } = await supabase
+      .from('agency_link_invitations')
+      .update(updateData)
+      .eq('id', invitationId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('[Storage] Agency invitation update error:', error);
+      throw error;
+    }
+
+    console.log('[Storage] Agency invitation updated successfully');
+
+    return {
+      id: data.id,
+      landlordId: data.landlord_id,
+      agencyId: data.agency_id,
+      propertyId: data.property_id,
+      invitationType: data.invitation_type,
+      initiatedBy: data.initiated_by,
+      status: data.status,
+      proposedCommissionRate: data.proposed_commission_rate,
+      proposedContractLengthMonths: data.proposed_contract_length_months,
+      message: data.message,
+      createdAt: new Date(data.created_at),
+      expiresAt: new Date(data.expires_at),
+      respondedAt: data.responded_at ? new Date(data.responded_at) : undefined,
+      responseMessage: data.response_message,
+    };
+  } else {
+    const stored = localStorage.getItem('agency-invitations');
+    const invitations: AgencyLinkInvitation[] = stored ? JSON.parse(stored) : [];
+    const index = invitations.findIndex(inv => inv.id === invitationId);
+    if (index >= 0) {
+      invitations[index] = { ...invitations[index], ...updates };
+      localStorage.setItem('agency-invitations', JSON.stringify(invitations));
+      return invitations[index];
+    }
+    throw new Error('Invitation not found');
+  }
+};
+
+/**
+ * Delete an agency invitation
+ */
+export const deleteAgencyInvitation = async (invitationId: string): Promise<void> => {
+  if (isSupabaseConfigured()) {
+    const { error } = await supabase
+      .from('agency_link_invitations')
+      .delete()
+      .eq('id', invitationId);
+
+    if (error) {
+      console.error('[Storage] Agency invitation delete error:', error);
+      throw error;
+    }
+
+    console.log('[Storage] Agency invitation deleted successfully');
+  } else {
+    const stored = localStorage.getItem('agency-invitations');
+    const invitations: AgencyLinkInvitation[] = stored ? JSON.parse(stored) : [];
+    const filtered = invitations.filter(inv => inv.id !== invitationId);
+    localStorage.setItem('agency-invitations', JSON.stringify(filtered));
+  }
+};
+
+/**
+ * Create a new agency property link (active relationship)
+ * Called after invitation is accepted
+ */
+export const createAgencyPropertyLink = async (
+  link: Omit<AgencyPropertyLink, 'id' | 'createdAt' | 'updatedAt' | 'totalRentCollected' | 'totalCommissionEarned'>
+): Promise<AgencyPropertyLink> => {
+  if (isSupabaseConfigured()) {
+    console.log('[Storage] Creating agency property link:', link);
+
+    const linkData = {
+      landlord_id: link.landlordId,
+      agency_id: link.agencyId,
+      property_id: link.propertyId,
+      link_type: link.linkType,
+      commission_rate: link.commissionRate,
+      contract_start_date: link.contractStartDate,
+      contract_end_date: link.contractEndDate || null,
+      is_active: link.isActive !== undefined ? link.isActive : true,
+      termination_reason: link.terminationReason || null,
+      terminated_at: link.terminatedAt || null,
+    };
+
+    const { data, error } = await supabase
+      .from('agency_property_links')
+      .insert(linkData)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('[Storage] Agency property link insert error:', error);
+      throw error;
+    }
+
+    console.log('[Storage] Agency property link created successfully with ID:', data.id);
+
+    return {
+      id: data.id,
+      landlordId: data.landlord_id,
+      agencyId: data.agency_id,
+      propertyId: data.property_id,
+      linkType: data.link_type,
+      commissionRate: data.commission_rate,
+      contractStartDate: new Date(data.contract_start_date),
+      contractEndDate: data.contract_end_date ? new Date(data.contract_end_date) : undefined,
+      isActive: data.is_active,
+      terminationReason: data.termination_reason,
+      terminatedAt: data.terminated_at ? new Date(data.terminated_at) : undefined,
+      createdAt: new Date(data.created_at),
+      updatedAt: new Date(data.updated_at),
+      totalRentCollected: data.total_rent_collected || 0,
+      totalCommissionEarned: data.total_commission_earned || 0,
+    };
+  } else {
+    // localStorage fallback
+    const id = crypto.randomUUID();
+    const newLink: AgencyPropertyLink = {
+      ...link,
+      id,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      totalRentCollected: 0,
+      totalCommissionEarned: 0,
+      isActive: link.isActive !== undefined ? link.isActive : true,
+    };
+    const key = `agency-property-links`;
+    const stored = localStorage.getItem(key);
+    const links = stored ? JSON.parse(stored) : [];
+    links.push(newLink);
+    localStorage.setItem(key, JSON.stringify(links));
+    return newLink;
+  }
+};
+
+/**
+ * Get all agency property links for a landlord
+ */
+export const getAgencyLinksForLandlord = async (
+  landlordId: string
+): Promise<AgencyPropertyLink[]> => {
+  if (isSupabaseConfigured()) {
+    const { data, error } = await supabase
+      .from('agency_property_links')
+      .select('*')
+      .eq('landlord_id', landlordId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('[Storage] Error fetching landlord links:', error);
+      throw error;
+    }
+
+    return (data || []).map(d => ({
+      id: d.id,
+      landlordId: d.landlord_id,
+      agencyId: d.agency_id,
+      propertyId: d.property_id,
+      linkType: d.link_type,
+      commissionRate: d.commission_rate,
+      contractStartDate: new Date(d.contract_start_date),
+      contractEndDate: d.contract_end_date ? new Date(d.contract_end_date) : undefined,
+      isActive: d.is_active,
+      terminationReason: d.termination_reason,
+      terminatedAt: d.terminated_at ? new Date(d.terminated_at) : undefined,
+      createdAt: new Date(d.created_at),
+      updatedAt: new Date(d.updated_at),
+      totalRentCollected: d.total_rent_collected || 0,
+      totalCommissionEarned: d.total_commission_earned || 0,
+    }));
+  } else {
+    const stored = localStorage.getItem('agency-property-links');
+    const links = stored ? JSON.parse(stored) : [];
+    return links.filter((link: AgencyPropertyLink) => link.landlordId === landlordId);
+  }
+};
+
+/**
+ * Get all agency property links for an agency
+ */
+export const getAgencyLinksForAgency = async (
+  agencyId: string
+): Promise<AgencyPropertyLink[]> => {
+  if (isSupabaseConfigured()) {
+    const { data, error } = await supabase
+      .from('agency_property_links')
+      .select('*')
+      .eq('agency_id', agencyId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('[Storage] Error fetching agency links:', error);
+      throw error;
+    }
+
+    return (data || []).map(d => ({
+      id: d.id,
+      landlordId: d.landlord_id,
+      agencyId: d.agency_id,
+      propertyId: d.property_id,
+      linkType: d.link_type,
+      commissionRate: d.commission_rate,
+      contractStartDate: new Date(d.contract_start_date),
+      contractEndDate: d.contract_end_date ? new Date(d.contract_end_date) : undefined,
+      isActive: d.is_active,
+      terminationReason: d.termination_reason,
+      terminatedAt: d.terminated_at ? new Date(d.terminated_at) : undefined,
+      createdAt: new Date(d.created_at),
+      updatedAt: new Date(d.updated_at),
+      totalRentCollected: d.total_rent_collected || 0,
+      totalCommissionEarned: d.total_commission_earned || 0,
+    }));
+  } else {
+    const stored = localStorage.getItem('agency-property-links');
+    const links = stored ? JSON.parse(stored) : [];
+    return links.filter((link: AgencyPropertyLink) => link.agencyId === agencyId);
+  }
+};
+
+/**
+ * Get agency links for a specific property
+ */
+export const getAgencyLinksForProperty = async (
+  propertyId: string
+): Promise<AgencyPropertyLink[]> => {
+  if (isSupabaseConfigured()) {
+    const { data, error } = await supabase
+      .from('agency_property_links')
+      .select('*')
+      .eq('property_id', propertyId)
+      .eq('is_active', true);
+
+    if (error) {
+      console.error('[Storage] Error fetching property links:', error);
+      throw error;
+    }
+
+    return (data || []).map(d => ({
+      id: d.id,
+      landlordId: d.landlord_id,
+      agencyId: d.agency_id,
+      propertyId: d.property_id,
+      linkType: d.link_type,
+      commissionRate: d.commission_rate,
+      contractStartDate: new Date(d.contract_start_date),
+      contractEndDate: d.contract_end_date ? new Date(d.contract_end_date) : undefined,
+      isActive: d.is_active,
+      terminationReason: d.termination_reason,
+      terminatedAt: d.terminated_at ? new Date(d.terminated_at) : undefined,
+      createdAt: new Date(d.created_at),
+      updatedAt: new Date(d.updated_at),
+      totalRentCollected: d.total_rent_collected || 0,
+      totalCommissionEarned: d.total_commission_earned || 0,
+    }));
+  } else {
+    const stored = localStorage.getItem('agency-property-links');
+    const links = stored ? JSON.parse(stored) : [];
+    return links.filter(
+      (link: AgencyPropertyLink) => link.propertyId === propertyId && link.isActive
+    );
+  }
+};
+
+/**
+ * Update an agency property link
+ */
+export const updateAgencyPropertyLink = async (
+  linkId: string,
+  updates: Partial<AgencyPropertyLink>
+): Promise<AgencyPropertyLink> => {
+  if (isSupabaseConfigured()) {
+    console.log('[Storage] Updating agency property link:', linkId, updates);
+
+    const updateData: Record<string, any> = {};
+    if (updates.commissionRate !== undefined) updateData.commission_rate = updates.commissionRate;
+    if (updates.contractEndDate !== undefined) updateData.contract_end_date = updates.contractEndDate;
+    if (updates.isActive !== undefined) updateData.is_active = updates.isActive;
+    if (updates.terminationReason) updateData.termination_reason = updates.terminationReason;
+    if (updates.terminatedAt) updateData.terminated_at = updates.terminatedAt;
+    if (updates.totalRentCollected !== undefined) updateData.total_rent_collected = updates.totalRentCollected;
+    if (updates.totalCommissionEarned !== undefined) updateData.total_commission_earned = updates.totalCommissionEarned;
+
+    const { data, error } = await supabase
+      .from('agency_property_links')
+      .update(updateData)
+      .eq('id', linkId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('[Storage] Agency property link update error:', error);
+      throw error;
+    }
+
+    console.log('[Storage] Agency property link updated successfully');
+
+    return {
+      id: data.id,
+      landlordId: data.landlord_id,
+      agencyId: data.agency_id,
+      propertyId: data.property_id,
+      linkType: data.link_type,
+      commissionRate: data.commission_rate,
+      contractStartDate: new Date(data.contract_start_date),
+      contractEndDate: data.contract_end_date ? new Date(data.contract_end_date) : undefined,
+      isActive: data.is_active,
+      terminationReason: data.termination_reason,
+      terminatedAt: data.terminated_at ? new Date(data.terminated_at) : undefined,
+      createdAt: new Date(data.created_at),
+      updatedAt: new Date(data.updated_at),
+      totalRentCollected: data.total_rent_collected || 0,
+      totalCommissionEarned: data.total_commission_earned || 0,
+    };
+  } else {
+    const stored = localStorage.getItem('agency-property-links');
+    const links: AgencyPropertyLink[] = stored ? JSON.parse(stored) : [];
+    const index = links.findIndex(link => link.id === linkId);
+    if (index >= 0) {
+      links[index] = { ...links[index], ...updates, updatedAt: new Date() };
+      localStorage.setItem('agency-property-links', JSON.stringify(links));
+      return links[index];
+    }
+    throw new Error('Link not found');
+  }
+};
+
+/**
+ * Terminate an agency property link (soft delete)
+ */
+export const terminateAgencyPropertyLink = async (
+  linkId: string,
+  terminationReason: string
+): Promise<AgencyPropertyLink> => {
+  return updateAgencyPropertyLink(linkId, {
+    isActive: false,
+    terminationReason,
+    terminatedAt: new Date(),
+  });
+};
+
+/**
+ * Delete an agency property link (hard delete - use with caution)
+ */
+export const deleteAgencyPropertyLink = async (linkId: string): Promise<void> => {
+  if (isSupabaseConfigured()) {
+    const { error } = await supabase
+      .from('agency_property_links')
+      .delete()
+      .eq('id', linkId);
+
+    if (error) {
+      console.error('[Storage] Agency property link delete error:', error);
+      throw error;
+    }
+
+    console.log('[Storage] Agency property link deleted successfully');
+  } else {
+    const stored = localStorage.getItem('agency-property-links');
+    const links: AgencyPropertyLink[] = stored ? JSON.parse(stored) : [];
+    const filtered = links.filter(link => link.id !== linkId);
+    localStorage.setItem('agency-property-links', JSON.stringify(filtered));
   }
 };

@@ -15,13 +15,16 @@ DROP TABLE IF EXISTS email_notifications CASCADE;
 DROP TABLE IF EXISTS ratings CASCADE;
 DROP TABLE IF EXISTS issues CASCADE;
 DROP TABLE IF EXISTS matches CASCADE;
+DROP TABLE IF EXISTS agency_property_links CASCADE;
+DROP TABLE IF EXISTS agency_link_invitations CASCADE;
 DROP TABLE IF EXISTS properties CASCADE;
 DROP TABLE IF EXISTS agency_profiles CASCADE;
 DROP TABLE IF EXISTS landlord_profiles CASCADE;
 DROP TABLE IF EXISTS renter_profiles CASCADE;
 
--- Drop function if it exists
+-- Drop functions if they exist
 DROP FUNCTION IF EXISTS update_updated_at_column() CASCADE;
+DROP FUNCTION IF EXISTS expire_old_invitations() CASCADE;
 
 -- =====================================================
 -- RENTER PROFILES TABLE (Extended for Multi-Role)
@@ -87,17 +90,19 @@ CREATE TABLE landlord_profiles (
     names TEXT NOT NULL,
     property_type TEXT NOT NULL,
     preferred_tenant_types TEXT[],
-    accepts_pets TEXT NOT NULL CHECK (accepts_pets IN ('yes', 'no', 'negotiable')),
-    furnishing_provided TEXT NOT NULL,
-    property_listing_link TEXT,
+    furnishing_preference TEXT NOT NULL,
+    default_pets_policy JSONB NOT NULL,
+    estate_agent_link TEXT,
     property_id UUID,
 
     -- RRA 2025 Compliance
-    prs_registration_number TEXT NOT NULL,
-    ombudsman_scheme TEXT NOT NULL,
-    has_valid_epc BOOLEAN DEFAULT FALSE,
-    has_valid_gas_safety BOOLEAN DEFAULT FALSE,
-    has_valid_eicr BOOLEAN DEFAULT FALSE,
+    prs_registration_number TEXT,
+    prs_registration_status TEXT,
+    prs_registration_date DATE,
+    prs_registration_expiry_date DATE,
+    ombudsman_scheme TEXT,
+    ombudsman_membership_number TEXT,
+    deposit_scheme TEXT,
 
     -- Metadata
     created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -379,6 +384,75 @@ CREATE TABLE ratings (
 );
 
 -- =====================================================
+-- AGENCY LINK INVITATIONS TABLE (NEW - Property Linking System)
+-- =====================================================
+CREATE TABLE agency_link_invitations (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+
+    -- Parties involved
+    landlord_id UUID NOT NULL REFERENCES landlord_profiles(id) ON DELETE CASCADE,
+    agency_id UUID NOT NULL REFERENCES agency_profiles(id) ON DELETE CASCADE,
+    property_id UUID REFERENCES properties(id) ON DELETE CASCADE, -- NULL = all properties
+
+    -- Invitation details
+    invitation_type TEXT NOT NULL CHECK (invitation_type IN ('estate_agent', 'management_agency')),
+    initiated_by TEXT NOT NULL CHECK (initiated_by IN ('landlord', 'agency')),
+    status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'accepted', 'declined', 'expired', 'cancelled')),
+
+    -- Terms
+    proposed_commission_rate DECIMAL(5,2), -- e.g., 10.00 = 10%
+    proposed_contract_length_months INTEGER, -- e.g., 12 months
+    message TEXT, -- Optional message from sender
+
+    -- Timestamps
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    expires_at TIMESTAMPTZ NOT NULL DEFAULT (NOW() + INTERVAL '30 days'),
+    responded_at TIMESTAMPTZ,
+
+    -- Response
+    response_message TEXT,
+
+    -- Prevent duplicate invitations for same landlord-agency-property-type combination
+    UNIQUE(landlord_id, agency_id, property_id, invitation_type)
+);
+
+-- =====================================================
+-- AGENCY PROPERTY LINKS TABLE (NEW - Property Linking System)
+-- =====================================================
+CREATE TABLE agency_property_links (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+
+    -- Relationships
+    landlord_id UUID NOT NULL REFERENCES landlord_profiles(id) ON DELETE CASCADE,
+    agency_id UUID NOT NULL REFERENCES agency_profiles(id) ON DELETE CASCADE,
+    property_id UUID NOT NULL REFERENCES properties(id) ON DELETE CASCADE,
+
+    -- Link type
+    link_type TEXT NOT NULL CHECK (link_type IN ('estate_agent', 'management_agency')),
+
+    -- Contract terms
+    commission_rate DECIMAL(5,2) NOT NULL, -- e.g., 10.00 = 10%
+    contract_start_date DATE NOT NULL DEFAULT CURRENT_DATE,
+    contract_end_date DATE, -- NULL = ongoing/periodic
+
+    -- Status
+    is_active BOOLEAN DEFAULT TRUE,
+    termination_reason TEXT,
+    terminated_at TIMESTAMPTZ,
+
+    -- Metadata
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+
+    -- Performance tracking
+    total_rent_collected DECIMAL(12,2) DEFAULT 0,
+    total_commission_earned DECIMAL(12,2) DEFAULT 0,
+
+    -- Enforce one estate agent + one management agency per property
+    UNIQUE(property_id, link_type)
+);
+
+-- =====================================================
 -- INDEXES FOR PERFORMANCE
 -- =====================================================
 
@@ -427,6 +501,21 @@ CREATE INDEX idx_email_issue ON email_notifications(issue_id) WHERE issue_id IS 
 CREATE INDEX idx_rating_match ON ratings(match_id);
 CREATE INDEX idx_rating_rated_user ON ratings(rated_user_id, rated_user_type);
 
+-- Agency Link Invitations
+CREATE INDEX idx_invitation_landlord ON agency_link_invitations(landlord_id);
+CREATE INDEX idx_invitation_agency ON agency_link_invitations(agency_id);
+CREATE INDEX idx_invitation_property ON agency_link_invitations(property_id) WHERE property_id IS NOT NULL;
+CREATE INDEX idx_invitation_status ON agency_link_invitations(status);
+CREATE INDEX idx_invitation_expires ON agency_link_invitations(expires_at) WHERE status = 'pending';
+CREATE INDEX idx_invitation_type ON agency_link_invitations(invitation_type);
+
+-- Agency Property Links
+CREATE INDEX idx_link_landlord ON agency_property_links(landlord_id);
+CREATE INDEX idx_link_agency ON agency_property_links(agency_id);
+CREATE INDEX idx_link_property ON agency_property_links(property_id);
+CREATE INDEX idx_link_type ON agency_property_links(link_type);
+CREATE INDEX idx_link_active ON agency_property_links(is_active) WHERE is_active = TRUE;
+
 -- =====================================================
 -- ROW LEVEL SECURITY (RLS) POLICIES
 -- =====================================================
@@ -440,6 +529,8 @@ ALTER TABLE matches ENABLE ROW LEVEL SECURITY;
 ALTER TABLE issues ENABLE ROW LEVEL SECURITY;
 ALTER TABLE email_notifications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE ratings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE agency_link_invitations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE agency_property_links ENABLE ROW LEVEL SECURITY;
 
 -- Permissive policies for development (replace with proper auth policies in production)
 CREATE POLICY "Allow all for now" ON renter_profiles FOR ALL USING (true);
@@ -450,6 +541,8 @@ CREATE POLICY "Allow all for now" ON matches FOR ALL USING (true);
 CREATE POLICY "Allow all for now" ON issues FOR ALL USING (true);
 CREATE POLICY "Allow all for now" ON email_notifications FOR ALL USING (true);
 CREATE POLICY "Allow all for now" ON ratings FOR ALL USING (true);
+CREATE POLICY "Allow all for now" ON agency_link_invitations FOR ALL USING (true);
+CREATE POLICY "Allow all for now" ON agency_property_links FOR ALL USING (true);
 
 -- =====================================================
 -- TRIGGERS FOR UPDATED_AT
@@ -471,13 +564,35 @@ CREATE TRIGGER update_properties_updated_at BEFORE UPDATE ON properties
 CREATE TRIGGER update_issues_updated_at BEFORE UPDATE ON issues
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+CREATE TRIGGER update_agency_links_updated_at BEFORE UPDATE ON agency_property_links
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- =====================================================
+-- INVITATION EXPIRATION FUNCTION
+-- =====================================================
+
+-- Function to expire old invitations
+CREATE OR REPLACE FUNCTION expire_old_invitations()
+RETURNS void AS $$
+BEGIN
+    UPDATE agency_link_invitations
+    SET status = 'expired'
+    WHERE status = 'pending'
+    AND expires_at < NOW();
+END;
+$$ LANGUAGE plpgsql;
+
+-- Note: In production, use pg_cron or external scheduler to run this daily:
+-- SELECT cron.schedule('expire-invitations', '0 0 * * *', 'SELECT expire_old_invitations()');
+
 -- =====================================================
 -- SUCCESS MESSAGE
 -- =====================================================
 DO $$
 BEGIN
     RAISE NOTICE '✅ PropertySwipe Multi-Role Schema Created Successfully!';
-    RAISE NOTICE '📊 Tables created: 8 (renter_profiles, landlord_profiles, agency_profiles, properties, matches, issues, email_notifications, ratings)';
+    RAISE NOTICE '📊 Tables created: 10 (renter_profiles, landlord_profiles, agency_profiles, properties, matches, issues, email_notifications, ratings, agency_link_invitations, agency_property_links)';
+    RAISE NOTICE '🔗 Agency linking system enabled with bidirectional invitations';
     RAISE NOTICE '🔒 RLS enabled with permissive policies for development';
     RAISE NOTICE '⚡ Performance indexes created';
     RAISE NOTICE '🚀 Ready for deployment!';

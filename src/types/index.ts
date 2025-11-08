@@ -799,6 +799,98 @@ export interface Location {
 }
 
 // =====================================================
+// AGENCY LINKING SYSTEM (Landlord <-> Agency Relationships)
+// =====================================================
+
+/**
+ * Type of agency relationship being invited or linked
+ * - estate_agent: Marketing and tenant acquisition
+ * - management_agency: Ongoing property and tenancy management
+ */
+export type InvitationType = 'estate_agent' | 'management_agency';
+
+/**
+ * Link type for active agency relationships (same as InvitationType)
+ */
+export type LinkType = 'estate_agent' | 'management_agency';
+
+/**
+ * Status of an agency link invitation
+ * - pending: Invitation sent, awaiting response
+ * - accepted: Invitation accepted, link created
+ * - declined: Invitation declined by recipient
+ * - expired: Invitation expired after 30 days
+ * - cancelled: Invitation cancelled by initiator
+ */
+export type InvitationStatus = 'pending' | 'accepted' | 'declined' | 'expired' | 'cancelled';
+
+/**
+ * Who initiated the agency link invitation
+ * - landlord: Landlord invited agency to manage property
+ * - agency: Agency invited landlord to link their property
+ */
+export type InvitationInitiator = 'landlord' | 'agency';
+
+/**
+ * Agency Link Invitation
+ * Represents a bidirectional invitation between landlords and agencies
+ * to establish property management or marketing relationships.
+ */
+export interface AgencyLinkInvitation {
+  id: string;
+  landlordId: string;
+  agencyId: string;
+  propertyId?: string; // Optional: null means "all properties" invitation
+
+  invitationType: InvitationType;
+  initiatedBy: InvitationInitiator;
+  status: InvitationStatus;
+
+  // Proposal terms
+  proposedCommissionRate?: number; // Percentage (e.g., 10 = 10%)
+  proposedContractLengthMonths?: number; // e.g., 12 months
+  message?: string; // Optional message from initiator
+
+  // Timestamps
+  createdAt: Date;
+  expiresAt: Date; // Auto-expires after 30 days
+  respondedAt?: Date; // When invitation was accepted/declined
+  responseMessage?: string; // Optional response message
+}
+
+/**
+ * Agency Property Link
+ * Represents an active relationship between a landlord, agency, and property.
+ * Tracks commission, contract dates, and performance metrics.
+ */
+export interface AgencyPropertyLink {
+  id: string;
+  landlordId: string;
+  agencyId: string;
+  propertyId: string;
+
+  linkType: LinkType;
+  commissionRate: number; // Agreed percentage (e.g., 10 = 10%)
+
+  // Contract dates
+  contractStartDate: Date;
+  contractEndDate?: Date; // Optional end date
+
+  // Status tracking
+  isActive: boolean; // Soft delete: false means link terminated
+  terminationReason?: string; // Why link was terminated
+  terminatedAt?: Date; // When link was terminated
+
+  // Timestamps
+  createdAt: Date;
+  updatedAt: Date;
+
+  // Performance metrics
+  totalRentCollected: number; // Total rent collected through this link
+  totalCommissionEarned: number; // Total commission earned by agency
+}
+
+// =====================================================
 // LEGACY TYPES (For Migration - Will be removed)
 // =====================================================
 

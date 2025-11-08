@@ -9,6 +9,9 @@ import type {
   ViewingPreference,
   ViewingTimeSlot,
   Rating,
+  AgencyLinkInvitation,
+  AgencyPropertyLink,
+  InvitationType,
 } from '../types';
 import { mockProperties } from '../data/mockProperties';
 import {
@@ -25,6 +28,17 @@ import {
   deleteProperty as deletePropertyFromStorage,
   saveRating,
   getRatingsForUser,
+  // Agency linking functions
+  createAgencyInvitation,
+  getAgencyInvitationsForLandlord,
+  getAgencyInvitationsForAgency,
+  updateAgencyInvitation,
+  deleteAgencyInvitation,
+  createAgencyPropertyLink,
+  getAgencyLinksForLandlord,
+  getAgencyLinksForAgency,
+  getAgencyLinksForProperty,
+  terminateAgencyPropertyLink,
 } from '../lib/storage';
 
 interface AppState {
@@ -101,6 +115,26 @@ interface AppState {
   updateProperty: (propertyId: string, updates: Partial<Property>) => Promise<void>;
   deleteProperty: (propertyId: string) => Promise<void>;
   unlinkProperty: (propertyId: string, landlordId: string) => void;
+
+  // Agency Linking System
+  inviteAgency: (
+    landlordId: string,
+    agencyId: string,
+    invitationType: InvitationType,
+    propertyId?: string,
+    proposedCommissionRate?: number,
+    proposedContractLengthMonths?: number,
+    message?: string
+  ) => Promise<AgencyLinkInvitation>;
+  acceptAgencyInvitation: (invitationId: string, responseMessage?: string) => Promise<void>;
+  declineAgencyInvitation: (invitationId: string, responseMessage?: string) => Promise<void>;
+  cancelAgencyInvitation: (invitationId: string) => Promise<void>;
+  getLandlordInvitations: (landlordId: string) => Promise<AgencyLinkInvitation[]>;
+  getAgencyInvitations: (agencyId: string) => Promise<AgencyLinkInvitation[]>;
+  getLandlordLinks: (landlordId: string) => Promise<AgencyPropertyLink[]>;
+  getAgencyLinks: (agencyId: string) => Promise<AgencyPropertyLink[]>;
+  getPropertyLinks: (propertyId: string) => Promise<AgencyPropertyLink[]>;
+  terminateAgencyLink: (linkId: string, reason: string) => Promise<void>;
 
   // Stats
   getStats: () => {
@@ -890,6 +924,159 @@ export const useAppStore = create<AppState>()(
         console.log(
           `[CRUD] Property unlinked. ${affectedMatches.length} existing matches will remain visible to renters.`
         );
+      },
+
+      // =====================================================
+      // AGENCY LINKING SYSTEM
+      // =====================================================
+
+      /**
+       * Create an invitation for an agency to manage properties
+       * Used by landlords to invite estate agents or management agencies
+       */
+      inviteAgency: async (
+        landlordId,
+        agencyId,
+        invitationType,
+        propertyId,
+        proposedCommissionRate,
+        proposedContractLengthMonths,
+        message
+      ) => {
+        console.log('[AgencyLink] Creating agency invitation:', {
+          landlordId,
+          agencyId,
+          invitationType,
+          propertyId,
+        });
+
+        const invitation = await createAgencyInvitation({
+          landlordId,
+          agencyId,
+          propertyId,
+          invitationType,
+          initiatedBy: 'landlord',
+          status: 'pending',
+          proposedCommissionRate,
+          proposedContractLengthMonths,
+          message,
+        });
+
+        console.log('[AgencyLink] Agency invitation created successfully:', invitation.id);
+        return invitation;
+      },
+
+      /**
+       * Accept an agency invitation and create the property link
+       */
+      acceptAgencyInvitation: async (invitationId, responseMessage) => {
+        console.log('[AgencyLink] Accepting invitation:', invitationId);
+
+        // Update invitation status
+        const invitation = await updateAgencyInvitation(invitationId, {
+          status: 'accepted',
+          responseMessage,
+          respondedAt: new Date(),
+        });
+
+        // Create the agency property link
+        await createAgencyPropertyLink({
+          landlordId: invitation.landlordId,
+          agencyId: invitation.agencyId,
+          propertyId: invitation.propertyId || '', // Handle "all properties" case
+          linkType: invitation.invitationType,
+          commissionRate: invitation.proposedCommissionRate || 10,
+          contractStartDate: new Date(),
+          contractEndDate: invitation.proposedContractLengthMonths
+            ? new Date(Date.now() + invitation.proposedContractLengthMonths * 30 * 24 * 60 * 60 * 1000)
+            : undefined,
+          isActive: true,
+        });
+
+        console.log('[AgencyLink] Invitation accepted and link created');
+      },
+
+      /**
+       * Decline an agency invitation
+       */
+      declineAgencyInvitation: async (invitationId, responseMessage) => {
+        console.log('[AgencyLink] Declining invitation:', invitationId);
+
+        await updateAgencyInvitation(invitationId, {
+          status: 'declined',
+          responseMessage,
+          respondedAt: new Date(),
+        });
+
+        console.log('[AgencyLink] Invitation declined');
+      },
+
+      /**
+       * Cancel an agency invitation (by the initiator)
+       */
+      cancelAgencyInvitation: async (invitationId) => {
+        console.log('[AgencyLink] Cancelling invitation:', invitationId);
+        await deleteAgencyInvitation(invitationId);
+        console.log('[AgencyLink] Invitation cancelled');
+      },
+
+      /**
+       * Get all invitations for a landlord
+       */
+      getLandlordInvitations: async (landlordId) => {
+        console.log('[AgencyLink] Fetching invitations for landlord:', landlordId);
+        const invitations = await getAgencyInvitationsForLandlord(landlordId);
+        console.log('[AgencyLink] Found', invitations.length, 'invitations');
+        return invitations;
+      },
+
+      /**
+       * Get all invitations for an agency
+       */
+      getAgencyInvitations: async (agencyId) => {
+        console.log('[AgencyLink] Fetching invitations for agency:', agencyId);
+        const invitations = await getAgencyInvitationsForAgency(agencyId);
+        console.log('[AgencyLink] Found', invitations.length, 'invitations');
+        return invitations;
+      },
+
+      /**
+       * Get all active links for a landlord
+       */
+      getLandlordLinks: async (landlordId) => {
+        console.log('[AgencyLink] Fetching links for landlord:', landlordId);
+        const links = await getAgencyLinksForLandlord(landlordId);
+        console.log('[AgencyLink] Found', links.length, 'links');
+        return links;
+      },
+
+      /**
+       * Get all active links for an agency
+       */
+      getAgencyLinks: async (agencyId) => {
+        console.log('[AgencyLink] Fetching links for agency:', agencyId);
+        const links = await getAgencyLinksForAgency(agencyId);
+        console.log('[AgencyLink] Found', links.length, 'links');
+        return links;
+      },
+
+      /**
+       * Get all active links for a specific property
+       */
+      getPropertyLinks: async (propertyId) => {
+        console.log('[AgencyLink] Fetching links for property:', propertyId);
+        const links = await getAgencyLinksForProperty(propertyId);
+        console.log('[AgencyLink] Found', links.length, 'links');
+        return links;
+      },
+
+      /**
+       * Terminate an agency property link
+       */
+      terminateAgencyLink: async (linkId, reason) => {
+        console.log('[AgencyLink] Terminating link:', linkId, 'Reason:', reason);
+        await terminateAgencyPropertyLink(linkId, reason);
+        console.log('[AgencyLink] Link terminated');
       },
 
       // Reset entire app to initial state

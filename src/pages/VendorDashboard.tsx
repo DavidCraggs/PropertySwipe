@@ -7,6 +7,7 @@ import { ViewingScheduler } from '../components/organisms/ViewingScheduler';
 import { PropertyLinker } from '../components/organisms/PropertyLinker';
 import { PropertyForm } from '../components/organisms/PropertyForm';
 import { PropertyImage } from '../components/atoms/PropertyImage';
+import { AgencyLinkManager } from '../components/organisms/AgencyLinkManager';
 import { useToastStore } from '../components/organisms/Toast';
 
 /**
@@ -302,6 +303,16 @@ export function VendorDashboard() {
             </div>
           )}
         </div>
+
+        {/* Agency Relationships Section */}
+        {landlordProfile?.id && landlordProperty && (
+          <div>
+            <AgencyLinkManager
+              landlordId={landlordProfile.id}
+              properties={landlordProperty ? [landlordProperty] : []}
+            />
+          </div>
+        )}
 
         {/* Tips Card */}
         <div className="bg-primary-50 border border-primary-200 rounded-2xl p-6">

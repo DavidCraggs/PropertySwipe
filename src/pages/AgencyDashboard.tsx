@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Building2, Users, AlertTriangle, CheckCircle2, Clock, TrendingUp, Home, MessageSquare } from 'lucide-react';
 import { useAuthStore } from '../hooks/useAuthStore';
 import type { AgencyProfile, Issue, Property, Match } from '../types';
+import { AgencyLandlordManager } from '../components/organisms/AgencyLandlordManager';
 
 /**
  * Phase 6: Dashboard for estate agents and management agencies
@@ -9,7 +10,7 @@ import type { AgencyProfile, Issue, Property, Match } from '../types';
  */
 export function AgencyDashboard() {
   const { currentUser, userType } = useAuthStore();
-  const [activeTab, setActiveTab] = useState<'overview' | 'properties' | 'tenancies' | 'issues'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'landlords' | 'properties' | 'tenancies' | 'issues'>('overview');
 
   // Type guard
   if (userType !== 'estate_agent' && userType !== 'management_agency') {
@@ -57,6 +58,7 @@ export function AgencyDashboard() {
           <div className="flex gap-6">
             {[
               { id: 'overview', label: 'Overview' },
+              { id: 'landlords', label: 'Landlords' },
               { id: 'properties', label: 'Properties' },
               { id: 'tenancies', label: 'Tenancies' },
               { id: 'issues', label: 'Issues' },
@@ -107,6 +109,13 @@ export function AgencyDashboard() {
               <AgencyIssuesDashboard limit={5} />
             </div>
           </div>
+        )}
+
+        {activeTab === 'landlords' && (
+          <AgencyLandlordManager
+            agencyId={agencyProfile.id}
+            agencyType={agencyProfile.agencyType}
+          />
         )}
 
         {activeTab === 'properties' && (

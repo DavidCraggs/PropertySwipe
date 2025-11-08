@@ -116,3 +116,148 @@ export function isValidEmail(email: string): boolean {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return emailRegex.test(email);
 }
+
+// =====================================================
+// AGENCY LINKING VALIDATION
+// =====================================================
+
+/**
+ * Validate commission rate (must be between 0 and 100)
+ */
+export function isValidCommissionRate(rate: number): boolean {
+  return !isNaN(rate) && rate >= 0 && rate <= 100;
+}
+
+/**
+ * Validate contract length in months (must be positive, typically 1-60 months)
+ */
+export function isValidContractLength(months: number, maxMonths = 60): boolean {
+  return !isNaN(months) && months >= 1 && months <= maxMonths;
+}
+
+/**
+ * Check if an invitation has expired
+ */
+export function isInvitationExpired(expiresAt: Date): boolean {
+  return new Date() > expiresAt;
+}
+
+/**
+ * Check if an invitation is still pending (not expired, not responded to)
+ */
+export function isInvitationPending(status: string, expiresAt: Date): boolean {
+  return status === 'pending' && !isInvitationExpired(expiresAt);
+}
+
+/**
+ * Validate that a property can have an agency link
+ * (e.g., property must exist, landlord must own it, etc.)
+ */
+export function canPropertyHaveAgencyLink(
+  propertyId: string | undefined,
+  landlordId: string,
+  propertyLandlordId: string
+): boolean {
+  // Property must exist and belong to the landlord
+  return !!propertyId && landlordId === propertyLandlordId;
+}
+
+/**
+ * Check if a property already has an active link of a specific type
+ * Used to prevent duplicate estate agent or management agency links
+ */
+export function hasActiveLink(
+  existingLinks: Array<{ linkType: string; isActive: boolean }>,
+  linkType: 'estate_agent' | 'management_agency'
+): boolean {
+  return existingLinks.some(link => link.linkType === linkType && link.isActive);
+}
+
+/**
+ * Validate agency invitation data before creating
+ */
+export function validateAgencyInvitation(invitation: {
+  landlordId: string;
+  agencyId: string;
+  proposedCommissionRate?: number;
+  proposedContractLengthMonths?: number;
+}): { isValid: boolean; errors: string[] } {
+  const errors: string[] = [];
+
+  // Validate landlord and agency IDs
+  if (!invitation.landlordId || invitation.landlordId.trim() === '') {
+    errors.push('Landlord ID is required');
+  }
+  if (!invitation.agencyId || invitation.agencyId.trim() === '') {
+    errors.push('Agency ID is required');
+  }
+
+  // Validate proposed commission rate (if provided)
+  if (
+    invitation.proposedCommissionRate !== undefined &&
+    !isValidCommissionRate(invitation.proposedCommissionRate)
+  ) {
+    errors.push('Commission rate must be between 0 and 100');
+  }
+
+  // Validate proposed contract length (if provided)
+  if (
+    invitation.proposedContractLengthMonths !== undefined &&
+    !isValidContractLength(invitation.proposedContractLengthMonths)
+  ) {
+    errors.push('Contract length must be between 1 and 60 months');
+  }
+
+  return {
+    isValid: errors.length === 0,
+    errors,
+  };
+}
+
+/**
+ * Validate agency property link data before creating
+ */
+export function validateAgencyPropertyLink(link: {
+  landlordId: string;
+  agencyId: string;
+  propertyId: string;
+  commissionRate: number;
+  contractStartDate: Date;
+  contractEndDate?: Date;
+}): { isValid: boolean; errors: string[] } {
+  const errors: string[] = [];
+
+  // Validate IDs
+  if (!link.landlordId || link.landlordId.trim() === '') {
+    errors.push('Landlord ID is required');
+  }
+  if (!link.agencyId || link.agencyId.trim() === '') {
+    errors.push('Agency ID is required');
+  }
+  if (!link.propertyId || link.propertyId.trim() === '') {
+    errors.push('Property ID is required');
+  }
+
+  // Validate commission rate (required)
+  if (!isValidCommissionRate(link.commissionRate)) {
+    errors.push('Commission rate must be between 0 and 100');
+  }
+
+  // Validate dates
+  if (!(link.contractStartDate instanceof Date) || isNaN(link.contractStartDate.getTime())) {
+    errors.push('Valid contract start date is required');
+  }
+
+  if (link.contractEndDate) {
+    if (!(link.contractEndDate instanceof Date) || isNaN(link.contractEndDate.getTime())) {
+      errors.push('Contract end date must be a valid date');
+    } else if (link.contractEndDate <= link.contractStartDate) {
+      errors.push('Contract end date must be after start date');
+    }
+  }
+
+  return {
+    isValid: errors.length === 0,
+    errors,
+  };
+}

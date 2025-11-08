@@ -1,4 +1,6 @@
 {
+  "includeCoAuthoredBy": false,
+  "gitAttribution": false,
   "permissions": {
     "allow": [
       "Bash(if [ -f \".prettierrc\" ])",
@@ -31,8 +33,10 @@
       "Bash(git commit -m \"$(cat <<''EOF''\nAdd estate agent and management agency role selection\n\n- Extended RoleSelectionScreen with 4 role cards (Renter, Landlord, Estate Agent, Management Agency)\n- Added Building2 and Briefcase icons from lucide-react\n- Updated App.tsx routing to handle agency-onboarding route\n- Added AgencyOnboarding and AgencyDashboard imports\n- Updated handleSelectRole and handleOnboardingComplete for agency users\n- Agency users now routed to AgencyDashboard instead of LandlordDashboard\n- Updated toast messages for agency onboarding completion\n- Grid layout supports 2x2 card display\n\nGenerated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
       "Bash(git push)",
       "Bash(git commit:*)"
+      
     ],
     "deny": [],
     "ask": []
   }
 }
+
