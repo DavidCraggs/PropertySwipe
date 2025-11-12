@@ -199,6 +199,8 @@ export function VendorOnboarding({ onComplete }: VendorOnboardingProps) {
 
     const profile: LandlordProfile = {
       id: landlordId,
+      email: '', // DEPRECATED: VendorOnboarding is deprecated, use LandlordOnboarding instead
+      passwordHash: '', // DEPRECATED: VendorOnboarding is deprecated, use LandlordOnboarding instead
       names: formData.names.trim(),
       propertyType: formData.propertyType,
       furnishingPreference: formData.furnishingPreference,
@@ -219,7 +221,7 @@ export function VendorOnboarding({ onComplete }: VendorOnboardingProps) {
       estateAgentLink: formattedLink,
       propertyId: linkedPropertyId, // Set if auto-linked
       createdAt: new Date(),
-      isComplete: true,
+      onboardingComplete: true,
     };
 
     await login('landlord', profile);

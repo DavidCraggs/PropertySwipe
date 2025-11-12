@@ -11,11 +11,13 @@ import type {
 import {
   saveLandlordProfile,
   saveRenterProfile,
+  saveAgencyProfile,
 } from '../lib/storage';
 
 interface AuthStore extends AuthState {
   // Actions
   login: (userType: UserType, profile: LandlordProfile | RenterProfile | AgencyProfile) => Promise<void>;
+  loginWithPassword: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
   updateProfile: (updates: Partial<LandlordProfile | RenterProfile | AgencyProfile>) => Promise<void>;
   setOnboardingStep: (step: number) => void;
@@ -51,8 +53,8 @@ export const useAuthStore = create<AuthStore>()(
             savedProfile = await saveRenterProfile(profile as RenterProfile);
             console.log(`[Auth] Renter profile saved to storage with ID:`, savedProfile.id);
           } else if (userType === 'estate_agent' || userType === 'management_agency') {
-            // TODO: Create saveAgencyProfile function in storage.ts
-            console.log(`[Auth] Agency profile login (storage pending)`);
+            savedProfile = await saveAgencyProfile(profile as AgencyProfile);
+            console.log(`[Auth] Agency profile saved to storage with ID:`, savedProfile.id);
           }
         } catch (error) {
           console.error('[Auth] Failed to save profile to storage:', error);
@@ -63,8 +65,77 @@ export const useAuthStore = create<AuthStore>()(
           isAuthenticated: true,
           userType: userType,
           currentUser: savedProfile, // CRITICAL: Use savedProfile not profile
-          onboardingStep: savedProfile.isComplete ? 0 : 1,
+          onboardingStep: savedProfile.onboardingComplete ? 0 : 1,
         });
+      },
+
+      // Login with password - finds user by email and verifies password
+      loginWithPassword: async (email, password) => {
+        try {
+          // Import password verification here to avoid circular dependency
+          const { verifyPassword } = await import('../utils/validation');
+
+          // Try to find user in each collection
+          const allProfiles: Array<LandlordProfile | RenterProfile | AgencyProfile> = [];
+
+          // Get all profiles from localStorage (in production this would query Supabase)
+          const landlordProfilesJson = localStorage.getItem('get-on-landlord-profiles');
+          const renterProfilesJson = localStorage.getItem('get-on-renter-profiles');
+          const agencyProfilesJson = localStorage.getItem('get-on-agency-profiles');
+
+          if (landlordProfilesJson) {
+            const landlordProfiles: LandlordProfile[] = JSON.parse(landlordProfilesJson);
+            allProfiles.push(...landlordProfiles);
+          }
+          if (renterProfilesJson) {
+            const renterProfiles: RenterProfile[] = JSON.parse(renterProfilesJson);
+            allProfiles.push(...renterProfiles);
+          }
+          if (agencyProfilesJson) {
+            const agencyProfiles: AgencyProfile[] = JSON.parse(agencyProfilesJson);
+            allProfiles.push(...agencyProfiles);
+          }
+
+          // Find user by email
+          const user = allProfiles.find(p => p.email.toLowerCase() === email.toLowerCase());
+
+          if (!user) {
+            console.log('[Auth] No user found with email:', email);
+            return false;
+          }
+
+          // Verify password
+          const isValid = await verifyPassword(password, user.passwordHash);
+
+          if (!isValid) {
+            console.log('[Auth] Invalid password for:', email);
+            return false;
+          }
+
+          // Determine user type
+          let userType: UserType;
+          if ('situation' in user) {
+            userType = 'renter';
+          } else if ('agencyType' in user) {
+            userType = user.agencyType;
+          } else {
+            userType = 'landlord';
+          }
+
+          // Set authenticated state
+          set({
+            isAuthenticated: true,
+            userType,
+            currentUser: user,
+            onboardingStep: user.onboardingComplete ? 0 : 1,
+          });
+
+          console.log('[Auth] Login successful for:', email);
+          return true;
+        } catch (error) {
+          console.error('[Auth] Login error:', error);
+          return false;
+        }
       },
 
       // Logout action - clears all auth data
@@ -97,8 +168,8 @@ export const useAuthStore = create<AuthStore>()(
             savedProfile = await saveRenterProfile(updatedProfile as RenterProfile);
             console.log('[Auth] Renter profile saved to storage with ID:', savedProfile.id);
           } else if (userType === 'estate_agent' || userType === 'management_agency') {
-            // TODO: Create saveAgencyProfile function in storage.ts
-            console.log('[Auth] Agency profile update (storage pending)');
+            savedProfile = await saveAgencyProfile(updatedProfile as AgencyProfile);
+            console.log('[Auth] Agency profile saved to storage with ID:', savedProfile.id);
           }
         } catch (error) {
           console.error('[Auth] Failed to save profile to storage:', error);
@@ -124,7 +195,7 @@ export const useAuthStore = create<AuthStore>()(
         set({
           currentUser: {
             ...currentUser,
-            isComplete: true,
+            onboardingComplete: true,
           },
           onboardingStep: 0,
         });
@@ -162,7 +233,7 @@ export const getCurrentUserType = (): UserType | null => {
  */
 export const isOnboardingComplete = (): boolean => {
   const state = useAuthStore.getState();
-  return state.currentUser?.isComplete ?? false;
+  return state.currentUser?.onboardingComplete ?? false;
 };
 
 /**

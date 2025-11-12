@@ -115,6 +115,8 @@ export function RenterOnboarding({ onComplete }: RenterOnboardingProps) {
 
     const profile: RenterProfile = {
       id: `renter-${Date.now()}`,
+      email: '', // DEPRECATED: BuyerOnboarding is deprecated, use RenterOnboarding instead
+      passwordHash: '', // DEPRECATED: BuyerOnboarding is deprecated, use RenterOnboarding instead
       status: 'prospective', // New renters start as prospective
       situation: formData.situation,
       names: formData.names.trim(),
@@ -133,7 +135,7 @@ export function RenterOnboarding({ onComplete }: RenterOnboardingProps) {
       previousLandlordReference: false,
       receivesHousingBenefit: false,
       createdAt: new Date(),
-      isComplete: true,
+      onboardingComplete: true,
     };
 
     await login('renter', profile);

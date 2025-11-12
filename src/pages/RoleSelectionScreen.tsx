@@ -4,6 +4,7 @@ import type { UserType } from '../types';
 
 interface RoleSelectionScreenProps {
   onSelectRole: (role: UserType) => void;
+  onLogin: () => void;
   onBack: () => void;
 }
 
@@ -12,7 +13,7 @@ interface RoleSelectionScreenProps {
  * Supports: Renter, Landlord, Estate Agent, Management Agency
  * Clean, centered layout with large tappable cards
  */
-export function RoleSelectionScreen({ onSelectRole, onBack }: RoleSelectionScreenProps) {
+export function RoleSelectionScreen({ onSelectRole, onLogin, onBack }: RoleSelectionScreenProps) {
   const roles = [
     {
       type: 'renter' as UserType,
@@ -149,6 +150,24 @@ export function RoleSelectionScreen({ onSelectRole, onBack }: RoleSelectionScree
           >
             Don't worry, you can change this later
           </motion.p>
+
+          {/* Login Link */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.7 }}
+            className="text-center mt-6"
+          >
+            <p className="text-sm text-neutral-600">
+              Already have an account?{' '}
+              <button
+                onClick={onLogin}
+                className="text-primary-600 font-medium hover:text-primary-700 transition-colors underline"
+              >
+                Sign in
+              </button>
+            </p>
+          </motion.div>
         </div>
       </main>
     </div>

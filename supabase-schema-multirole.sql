@@ -32,6 +32,10 @@ DROP FUNCTION IF EXISTS expire_old_invitations() CASCADE;
 CREATE TABLE renter_profiles (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
 
+    -- Authentication
+    email TEXT NOT NULL UNIQUE,
+    password_hash TEXT NOT NULL,
+
     -- Renter Lifecycle (Phase 1)
     status TEXT NOT NULL DEFAULT 'prospective' CHECK (status IN ('prospective', 'current', 'former')),
     current_tenancy_id UUID,
@@ -77,6 +81,10 @@ CREATE TABLE renter_profiles (
 CREATE TABLE landlord_profiles (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
 
+    -- Authentication
+    email TEXT NOT NULL UNIQUE,
+    password_hash TEXT NOT NULL,
+
     -- Agency Relationships (Phase 1)
     management_agency_id UUID,
     estate_agent_id UUID,
@@ -115,6 +123,10 @@ CREATE TABLE landlord_profiles (
 CREATE TABLE agency_profiles (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
 
+    -- Authentication
+    email TEXT NOT NULL UNIQUE,
+    password_hash TEXT NOT NULL,
+
     -- Basic Info
     agency_type TEXT NOT NULL CHECK (agency_type IN ('estate_agent', 'management_agency')),
     company_name TEXT NOT NULL,
@@ -123,7 +135,6 @@ CREATE TABLE agency_profiles (
 
     -- Contact
     primary_contact_name TEXT NOT NULL,
-    email TEXT NOT NULL,
     phone TEXT NOT NULL,
     address_street TEXT NOT NULL,
     address_city TEXT NOT NULL,

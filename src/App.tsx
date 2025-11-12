@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { WelcomeScreen } from './pages/WelcomeScreen';
 import { RoleSelectionScreen } from './pages/RoleSelectionScreen';
+import { LoginPage } from './pages/LoginPage';
 import { RenterOnboarding } from './pages/RenterOnboarding';
 import { LandlordOnboarding } from './pages/LandlordOnboarding';
 import { AgencyOnboarding } from './pages/AgencyOnboarding';
@@ -16,7 +17,7 @@ import { useAuthStore } from './hooks/useAuthStore';
 import { useAppStore } from './hooks/useAppStore';
 import type { UserType } from './types';
 
-type Route = 'welcome' | 'role-select' | 'renter-onboarding' | 'landlord-onboarding' | 'agency-onboarding' | 'app';
+type Route = 'welcome' | 'role-select' | 'login' | 'renter-onboarding' | 'landlord-onboarding' | 'agency-onboarding' | 'app';
 type AppPage = 'swipe' | 'matches' | 'profile';
 
 /**
@@ -45,9 +46,9 @@ function App() {
 
   // Handle initial routing based on auth state
   useEffect(() => {
-    if (isAuthenticated && currentUser?.isComplete) {
+    if (isAuthenticated && currentUser?.onboardingComplete) {
       setCurrentRoute('app');
-    } else if (isAuthenticated && !currentUser?.isComplete) {
+    } else if (isAuthenticated && !currentUser?.onboardingComplete) {
       // Route to appropriate onboarding based on user type
       let route: Route = 'renter-onboarding';
       if (userType === 'renter') {
@@ -115,7 +116,16 @@ function App() {
         return (
           <RoleSelectionScreen
             onSelectRole={handleSelectRole}
+            onLogin={() => setCurrentRoute('login')}
             onBack={() => setCurrentRoute('welcome')}
+          />
+        );
+
+      case 'login':
+        return (
+          <LoginPage
+            onBack={() => setCurrentRoute('role-select')}
+            onLoginSuccess={() => setCurrentRoute('app')}
           />
         );
 

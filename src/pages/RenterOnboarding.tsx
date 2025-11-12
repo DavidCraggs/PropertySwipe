@@ -4,8 +4,10 @@ import { User, Users, Baby, MapPin, Briefcase, Home, PoundSterling, Calendar, Ch
 import { FormStep } from '../components/molecules/FormStep';
 import { RadioCardGroup } from '../components/molecules/RadioCardGroup';
 import { FormField } from '../components/molecules/FormField';
+import { PasswordInput } from '../components/molecules/PasswordInput';
 import type { RenterProfile, RenterSituation, LocalArea, RenterType, EmploymentStatus, FurnishingType } from '../types';
 import { useAuthStore } from '../hooks/useAuthStore';
+import { validatePassword, hashPassword } from '../utils/validation';
 
 interface RenterOnboardingProps {
   onComplete: () => void;
@@ -32,6 +34,11 @@ export function RenterOnboarding({ onComplete }: RenterOnboardingProps) {
   const { login } = useAuthStore();
   const [currentStep, setCurrentStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Email and password state (separate from formData for security)
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [passwordError, setPasswordError] = useState('');
 
   const [formData, setFormData] = useState<RenterFormData>({
     situation: 'Single',
@@ -77,6 +84,22 @@ export function RenterOnboarding({ onComplete }: RenterOnboardingProps) {
     const newErrors: Partial<Record<keyof RenterFormData, string>> = {};
 
     if (step === 0) {
+      // Validate email
+      if (!email || !email.includes('@')) {
+        alert('Please enter a valid email address');
+        return false;
+      }
+
+      // Validate password
+      const passwordValidation = validatePassword(password);
+      if (!passwordValidation.isValid) {
+        setPasswordError(passwordValidation.errors[0]); // Show first error
+        return false;
+      }
+      setPasswordError(''); // Clear any previous errors
+
+      // Continue with existing validations
+
       if (!formData.names.trim()) {
         newErrors.names = 'Please enter your name(s)';
       } else if (formData.names.trim().length < 2) {
@@ -147,37 +170,48 @@ export function RenterOnboarding({ onComplete }: RenterOnboardingProps) {
   const handleSubmit = async () => {
     setIsSubmitting(true);
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    try {
+      // Hash password before creating profile
+      const passwordHash = await hashPassword(password);
 
-    const profile: RenterProfile = {
-      id: `renter-${Date.now()}`,
-      status: 'prospective', // New renters start as prospective
-      situation: formData.situation,
-      names: formData.names.trim(),
-      ages: formData.ages.trim(),
-      localArea: formData.localArea,
-      renterType: formData.renterType,
-      employmentStatus: formData.employmentStatus,
-      monthlyIncome: parseFloat(formData.monthlyIncome.replace(/[^0-9.]/g, '')),
-      hasPets: formData.hasPets === 'yes',
-      smokingStatus: 'Non-Smoker' as const,
-      hasGuarantor: false,
-      receivesUniversalCredit: false,
-      numberOfChildren: 0,
-      currentRentalSituation: 'Currently Renting',
-      hasRentalHistory: true,
-      previousLandlordReference: false,
-      receivesHousingBenefit: false,
-      createdAt: new Date(),
-      isComplete: true,
-    };
+      // Simulate API call
+      await new Promise((resolve) => setTimeout(resolve, 1500));
 
-    await login('renter', profile);
-    localStorage.removeItem('renter-onboarding-draft');
+      const profile: RenterProfile = {
+        id: '', // Will be set by Supabase
+        email: email.toLowerCase().trim(),
+        passwordHash,
+        status: 'prospective', // New renters start as prospective
+        situation: formData.situation,
+        names: formData.names.trim(),
+        ages: formData.ages.trim(),
+        localArea: formData.localArea,
+        renterType: formData.renterType,
+        employmentStatus: formData.employmentStatus,
+        monthlyIncome: parseFloat(formData.monthlyIncome.replace(/[^0-9.]/g, '')),
+        hasPets: formData.hasPets === 'yes',
+        smokingStatus: 'Non-Smoker' as const,
+        hasGuarantor: false,
+        receivesUniversalCredit: false,
+        numberOfChildren: 0,
+        currentRentalSituation: 'Currently Renting',
+        hasRentalHistory: true,
+        previousLandlordReference: false,
+        receivesHousingBenefit: false,
+        createdAt: new Date(),
+        onboardingComplete: true,
+      };
 
-    setIsSubmitting(false);
-    onComplete();
+      await login('renter', profile);
+      localStorage.removeItem('renter-onboarding-draft');
+
+      setIsSubmitting(false);
+      onComplete();
+    } catch (error) {
+      console.error('[RenterOnboarding] Error creating profile:', error);
+      alert('Failed to create account. Please try again.');
+      setIsSubmitting(false);
+    }
   };
 
   const getNamePlaceholder = () => {
@@ -243,7 +277,7 @@ export function RenterOnboarding({ onComplete }: RenterOnboardingProps) {
       currentStep={0}
       totalSteps={6}
       onNext={handleNext}
-      isNextDisabled={!formData.names || !formData.ages}
+      isNextDisabled={!email || !password || !formData.names || !formData.ages}
     >
       <div className="space-y-6">
         <RadioCardGroup
@@ -274,6 +308,26 @@ export function RenterOnboarding({ onComplete }: RenterOnboardingProps) {
               description: 'House/flat share',
             },
           ]}
+        />
+
+        <FormField
+          id="email"
+          label="Email Address"
+          type="email"
+          placeholder="your@email.com"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          isRequired
+          helperText="We'll use this for your account login"
+        />
+
+        <PasswordInput
+          value={password}
+          onChange={setPassword}
+          label="Create Password"
+          showStrengthIndicator={true}
+          showRequirements={true}
+          error={passwordError}
         />
 
         <FormField

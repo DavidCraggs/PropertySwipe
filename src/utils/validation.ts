@@ -2,6 +2,120 @@
  * Validation utilities for forms and data
  */
 
+// Password validation
+export function validatePassword(password: string | null | undefined): { isValid: boolean; errors: string[] } {
+  const errors: string[] = [];
+
+  // Handle null/undefined
+  if (password === null || password === undefined) {
+    errors.push('Password is required');
+    return { isValid: false, errors };
+  }
+
+  // Check length (minimum 8 characters)
+  if (password.length < 8) {
+    errors.push('Password must be at least 8 characters long');
+  }
+
+  if (!/[A-Z]/.test(password)) {
+    errors.push('Password must contain at least one uppercase letter');
+  }
+
+  if (!/[a-z]/.test(password)) {
+    errors.push('Password must contain at least one lowercase letter');
+  }
+
+  if (!/[0-9]/.test(password)) {
+    errors.push('Password must contain at least one number');
+  }
+
+  // Special character requirement - only allow: !@#$%^&*
+  if (!/[!@#$%^&*]/.test(password)) {
+    errors.push('Password must contain at least one special character (!@#$%^&*)');
+  }
+
+  return {
+    isValid: errors.length === 0,
+    errors,
+  };
+}
+
+export function getPasswordStrength(password: string | null | undefined): 'weak' | 'medium' | 'strong' {
+  // Handle null/undefined
+  if (!password) return 'weak';
+
+  let strength = 0;
+
+  // Length scoring - only give points for significant length increases
+  if (password.length >= 12) strength++;
+  if (password.length >= 16) strength++;
+  if (password.length >= 20) strength++;
+
+  // Character variety scoring
+  if (/[A-Z]/.test(password)) strength++;
+  if (/[a-z]/.test(password)) strength++;
+  if (/[0-9]/.test(password)) strength++;
+  if (/[!@#$%^&*]/.test(password)) strength++;
+
+  // Additional complexity checks
+  const hasMultipleUppercase = (password.match(/[A-Z]/g) || []).length >= 2;
+  const hasMultipleLowercase = (password.match(/[a-z]/g) || []).length >= 2;
+  const hasMultipleNumbers = (password.match(/[0-9]/g) || []).length >= 2;
+  const hasMultipleSpecialChars = (password.match(/[!@#$%^&*]/g) || []).length >= 2;
+
+  if (hasMultipleUppercase) strength++;
+  if (hasMultipleLowercase) strength++;
+  if (hasMultipleNumbers) strength++;
+  if (hasMultipleSpecialChars) strength++;
+
+  // Strength classification
+  // 0-6: weak (less than 12 chars, even if meets requirements)
+  // 7-9: medium (12-15 chars with good variety)
+  // 10+: strong (16+ chars with excellent variety)
+  if (strength <= 6) return 'weak';
+  if (strength <= 9) return 'medium';
+  return 'strong';
+}
+
+// Simple password hashing (for demo - in production use proper bcrypt/scrypt)
+export async function hashPassword(password: string): Promise<string> {
+  // Handle edge cases
+  if (!password && password !== '') {
+    throw new Error('Cannot hash null or undefined password');
+  }
+
+  // In a real app, use bcrypt or a similar secure hashing algorithm
+  // For demo purposes, we'll use a simple hash
+  const encoder = new TextEncoder();
+  const data = encoder.encode(password);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  return hashHex;
+}
+
+export async function verifyPassword(password: string, hash: string): Promise<boolean> {
+  // Handle edge cases
+  if (!password && password !== '') {
+    return false;
+  }
+  if (!hash || hash.trim() === '') {
+    return false;
+  }
+
+  // Verify hash format (64 hex characters for SHA-256)
+  if (!/^[a-f0-9]{64}$/i.test(hash)) {
+    return false;
+  }
+
+  try {
+    const passwordHash = await hashPassword(password);
+    return passwordHash === hash;
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Comprehensive UK postcode regex
  * Handles all valid UK postcode formats:

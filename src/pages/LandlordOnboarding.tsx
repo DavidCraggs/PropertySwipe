@@ -4,10 +4,11 @@ import { Home, Users, Briefcase, Shield, FileCheck, Link2, Check, AlertCircle } 
 import { FormStep } from '../components/molecules/FormStep';
 import { RadioCardGroup } from '../components/molecules/RadioCardGroup';
 import { FormField } from '../components/molecules/FormField';
+import { PasswordInput } from '../components/molecules/PasswordInput';
 import type { LandlordProfile, PropertyType, FurnishingType, RenterType, Property, OmbudsmanScheme } from '../types';
 import { useAuthStore } from '../hooks/useAuthStore';
 import { useAppStore } from '../hooks';
-import { extractPostcode, comparePostcodes, isValidPropertyListingUrl } from '../utils/validation';
+import { extractPostcode, comparePostcodes, isValidPropertyListingUrl, validatePassword, hashPassword } from '../utils/validation';
 
 interface LandlordOnboardingProps {
   onComplete: () => void;
@@ -42,6 +43,11 @@ export function LandlordOnboarding({ onComplete }: LandlordOnboardingProps) {
   const { allProperties, linkPropertyToLandlord } = useAppStore();
   const [currentStep, setCurrentStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Email and password state
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [passwordError, setPasswordError] = useState('');
 
   const [formData, setFormData] = useState<LandlordFormData>({
     names: '',
@@ -110,6 +116,21 @@ export function LandlordOnboarding({ onComplete }: LandlordOnboardingProps) {
     const newErrors: Partial<Record<keyof LandlordFormData, string>> = {};
 
     if (step === 0) {
+      // Validate email
+      if (!email || !email.includes('@')) {
+        alert('Please enter a valid email address');
+        return false;
+      }
+
+      // Validate password
+      const passwordValidation = validatePassword(password);
+      if (!passwordValidation.isValid) {
+        setPasswordError(passwordValidation.errors[0]);
+        return false;
+      }
+      setPasswordError('');
+
+      // Validate name
       if (!formData.names.trim()) {
         newErrors.names = 'Please enter your name(s)';
       } else if (formData.names.trim().length < 2) {
@@ -201,71 +222,89 @@ export function LandlordOnboarding({ onComplete }: LandlordOnboardingProps) {
   const handleSubmit = async () => {
     setIsSubmitting(true);
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    try {
+      // Hash password before creating profile
+      const passwordHash = await hashPassword(password);
 
-    // Auto-format URL
-    let formattedLink = formData.propertyListingLink.trim();
-    if (formattedLink && !formattedLink.startsWith('http')) {
-      formattedLink = `https://${formattedLink}`;
-    }
+      // Simulate API call
+      await new Promise((resolve) => setTimeout(resolve, 1500));
 
-    // Generate landlord ID
-    const landlordId = `landlord-${Date.now()}`;
+      // Auto-format URL
+      let formattedLink = formData.propertyListingLink.trim();
+      if (formattedLink && !formattedLink.startsWith('http')) {
+        formattedLink = `https://${formattedLink}`;
+      }
 
-    // Attempt to auto-link property from listing URL
-    let linkedPropertyId: string | undefined;
-    const matchedProperty = matchPropertyFromUrl(formattedLink);
+      // Attempt to auto-link property from listing URL
+      let linkedPropertyId: string | undefined;
+      const matchedProperty = matchPropertyFromUrl(formattedLink);
 
-    if (matchedProperty) {
-      // Check if property is already linked to another landlord
-      if (!matchedProperty.landlordId || matchedProperty.landlordId.trim() === '') {
-        linkPropertyToLandlord(matchedProperty.id, landlordId);
-        linkedPropertyId = matchedProperty.id;
+      if (matchedProperty) {
+        // Check if property is already linked to another landlord
+        if (!matchedProperty.landlordId || matchedProperty.landlordId.trim() === '') {
+          // Note: landlordId will be set by Supabase after login
+          linkedPropertyId = matchedProperty.id;
+          console.log(
+            `[Onboarding] Property ${matchedProperty.id} will be linked after landlord creation`
+          );
+        } else {
+          console.warn(
+            `[Onboarding] Property ${matchedProperty.id} is already linked to landlord ${matchedProperty.landlordId}`
+          );
+        }
+      } else if (formattedLink) {
         console.log(
-          `[Onboarding] Successfully linked property ${matchedProperty.id} to landlord ${landlordId}`
-        );
-      } else {
-        console.warn(
-          `[Onboarding] Property ${matchedProperty.id} is already linked to landlord ${matchedProperty.landlordId}`
+          `[Onboarding] Could not auto-match property from URL: ${formattedLink}`
         );
       }
-    } else if (formattedLink) {
-      console.log(
-        `[Onboarding] Could not auto-match property from URL: ${formattedLink}`
-      );
+
+      const profile: LandlordProfile = {
+        id: '', // Will be set by Supabase
+        email: email.toLowerCase().trim(),
+        passwordHash,
+        names: formData.names.trim(),
+        propertyType: formData.propertyType,
+        preferredTenantTypes: formData.preferredTenantType === 'Any' ? [] : [formData.preferredTenantType],
+        furnishingPreference: formData.furnishingProvided,
+        defaultPetsPolicy: {
+          willConsiderPets: true,
+          requiresPetInsurance: formData.acceptsPets === 'negotiable',
+          preferredPetTypes: formData.acceptsPets === 'yes' ? ['cat', 'dog', 'small_caged', 'fish'] : [],
+          maxPetsAllowed: formData.acceptsPets === 'yes' ? 2 : 0,
+        },
+        estateAgentLink: formattedLink,
+        propertyId: linkedPropertyId,
+        // RRA 2025 Compliance
+        prsRegistrationNumber: formData.prsRegistrationNumber.trim(),
+        prsRegistrationStatus: 'active',
+        ombudsmanScheme: formData.ombudsmanScheme as OmbudsmanScheme,
+        isFullyCompliant: true,
+        depositScheme: 'DPS',
+        isRegisteredLandlord: true,
+        createdAt: new Date(),
+        onboardingComplete: true,
+      };
+
+      await login('landlord', profile);
+
+      // Link property to landlord after profile is created with correct UUID
+      if (linkedPropertyId && matchedProperty) {
+        const landlordId = profile.id; // Now has the Supabase UUID
+        linkPropertyToLandlord(linkedPropertyId, landlordId);
+        console.log(
+          `[Onboarding] Successfully linked property ${linkedPropertyId} to landlord ${landlordId}`
+        );
+      }
+
+      localStorage.removeItem('landlord-onboarding-draft');
+
+      setIsSubmitting(false);
+      onComplete();
+    } catch (error) {
+      console.error('[LandlordOnboarding] Error creating profile:', error);
+      alert('Failed to create account. Please try again.');
+      setIsSubmitting(false);
     }
-
-    const profile: LandlordProfile = {
-      id: landlordId,
-      names: formData.names.trim(),
-      propertyType: formData.propertyType,
-      preferredTenantTypes: formData.preferredTenantType === 'Any' ? [] : [formData.preferredTenantType],
-      furnishingPreference: formData.furnishingProvided,
-      defaultPetsPolicy: {
-        willConsiderPets: true,
-        requiresPetInsurance: formData.acceptsPets === 'negotiable',
-        preferredPetTypes: formData.acceptsPets === 'yes' ? ['cat', 'dog', 'small_caged', 'fish'] : [],
-        maxPetsAllowed: formData.acceptsPets === 'yes' ? 2 : 0,
-      },
-      estateAgentLink: formattedLink,
-      propertyId: linkedPropertyId,
-      // RRA 2025 Compliance
-      prsRegistrationNumber: formData.prsRegistrationNumber.trim(),
-      prsRegistrationStatus: 'active',
-      ombudsmanScheme: formData.ombudsmanScheme as OmbudsmanScheme,
-      isFullyCompliant: true,
-      depositScheme: 'DPS',
-      isRegisteredLandlord: true,
-      createdAt: new Date(),
-      isComplete: true,
-    };
-
-    await login('landlord', profile);
-    localStorage.removeItem('landlord-onboarding-draft');
-
-    setIsSubmitting(false);
-    onComplete();
   };
 
   const steps = [
@@ -277,8 +316,28 @@ export function LandlordOnboarding({ onComplete }: LandlordOnboardingProps) {
       currentStep={0}
       totalSteps={6}
       onNext={handleNext}
-      isNextDisabled={!formData.names}
+      isNextDisabled={!email || !password || !formData.names}
     >
+      <FormField
+        id="email"
+        label="Email Address"
+        type="email"
+        placeholder="your@email.com"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        isRequired
+        helperText="We'll use this for your account login"
+      />
+
+      <PasswordInput
+        value={password}
+        onChange={setPassword}
+        label="Create Password"
+        showStrengthIndicator={true}
+        showRequirements={true}
+        error={passwordError}
+      />
+
       <FormField
         id="names"
         label="Name(s)"

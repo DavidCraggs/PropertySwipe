@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { Building2, MapPin, Clock, Shield, Check } from 'lucide-react';
 import { Button } from '../components/atoms/Button';
+import { PasswordInput } from '../components/molecules/PasswordInput';
 import type { AgencyProfile, AgencyType, LocalArea } from '../types';
 import { useAuthStore } from '../hooks/useAuthStore';
+import { validatePassword, hashPassword } from '../utils/validation';
 
 interface AgencyOnboardingProps {
   onComplete: () => void;
@@ -16,6 +18,8 @@ interface AgencyOnboardingProps {
 export function AgencyOnboarding({ onComplete, initialAgencyType = 'management_agency' }: AgencyOnboardingProps) {
   const { login } = useAuthStore();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [password, setPassword] = useState('');
+  const [passwordError, setPasswordError] = useState('');
 
   const [formData, setFormData] = useState({
     agencyType: initialAgencyType,
@@ -79,6 +83,15 @@ export function AgencyOnboarding({ onComplete, initialAgencyType = 'management_a
     if (!formData.propertyOmbudsmanMember)
       newErrors.propertyOmbudsmanMember = 'Ombudsman membership is isRequired';
 
+    // Validate password
+    const passwordValidation = validatePassword(password);
+    if (!passwordValidation.isValid) {
+      setPasswordError(passwordValidation.errors[0]);
+      newErrors.password = passwordValidation.errors[0];
+    } else {
+      setPasswordError('');
+    }
+
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
@@ -86,17 +99,22 @@ export function AgencyOnboarding({ onComplete, initialAgencyType = 'management_a
 
     setIsSubmitting(true);
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    try {
+      // Hash password before creating profile
+      const passwordHash = await hashPassword(password);
 
-    const profile: AgencyProfile = {
-      id: `agency-${Date.now()}`,
-      agencyType: formData.agencyType,
-      companyName: formData.companyName,
-      registrationNumber: formData.registrationNumber,
-      primaryContactName: formData.primaryContactName,
-      email: formData.email,
-      phone: formData.phone,
+      // Simulate API call
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+
+      const profile: AgencyProfile = {
+        id: '', // Will be set by Supabase
+        email: formData.email.toLowerCase().trim(),
+        passwordHash,
+        agencyType: formData.agencyType,
+        companyName: formData.companyName,
+        registrationNumber: formData.registrationNumber,
+        primaryContactName: formData.primaryContactName,
+        phone: formData.phone,
       address: {
         street: formData.street,
         city: formData.city,
@@ -130,12 +148,17 @@ export function AgencyOnboarding({ onComplete, initialAgencyType = 'management_a
         : undefined,
       createdAt: new Date(),
       isActive: true,
-      isComplete: true,
+      onboardingComplete: true,
     };
 
-    await login(formData.agencyType, profile);
-    setIsSubmitting(false);
-    onComplete();
+      await login(formData.agencyType, profile);
+      setIsSubmitting(false);
+      onComplete();
+    } catch (error) {
+      console.error('[AgencyOnboarding] Error creating profile:', error);
+      alert('Failed to create account. Please try again.');
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -232,6 +255,16 @@ export function AgencyOnboarding({ onComplete, initialAgencyType = 'management_a
                 onChange={(e) => setFormData((prev) => ({ ...prev, email: e.target.value }))}
               />
               {errors.email && <p className="text-sm text-danger-600">{errors.email}</p>}
+
+              <PasswordInput
+                value={password}
+                onChange={setPassword}
+                label="Create Password"
+                showStrengthIndicator={true}
+                showRequirements={true}
+                error={passwordError}
+              />
+              {errors.password && <p className="text-sm text-danger-600">{errors.password}</p>}
 
               <input
                 type="tel"

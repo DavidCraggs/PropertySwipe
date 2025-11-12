@@ -8,6 +8,7 @@ import { supabase, isSupabaseConfigured } from './supabase';
 import type {
   LandlordProfile,
   RenterProfile,
+  AgencyProfile,
   Property,
   Match,
   Rating,
@@ -29,6 +30,8 @@ import type {
 export const saveLandlordProfile = async (profile: LandlordProfile): Promise<LandlordProfile> => {
   if (isSupabaseConfigured()) {
     const profileData = {
+      email: profile.email,
+      password_hash: profile.passwordHash,
       names: profile.names,
       property_type: profile.propertyType,
       furnishing_preference: profile.furnishingPreference,
@@ -43,7 +46,7 @@ export const saveLandlordProfile = async (profile: LandlordProfile): Promise<Lan
       deposit_scheme: profile.depositScheme,
       estate_agent_link: profile.estateAgentLink,
       property_id: profile.propertyId || null,
-      is_complete: profile.isComplete,
+      is_complete: profile.onboardingComplete,
     };
 
     // Check if profile has a valid UUID
@@ -98,7 +101,21 @@ export const saveLandlordProfile = async (profile: LandlordProfile): Promise<Lan
       return { ...profile, id: data.id };
     }
   } else {
+    // Store individual profile
     localStorage.setItem(`landlord-profile-${profile.id}`, JSON.stringify(profile));
+
+    // Also maintain a list of all landlord profiles for loginWithPassword
+    const profilesJson = localStorage.getItem('get-on-landlord-profiles');
+    const profiles: LandlordProfile[] = profilesJson ? JSON.parse(profilesJson) : [];
+    const existingIndex = profiles.findIndex(p => p.id === profile.id);
+
+    if (existingIndex >= 0) {
+      profiles[existingIndex] = profile;
+    } else {
+      profiles.push(profile);
+    }
+
+    localStorage.setItem('get-on-landlord-profiles', JSON.stringify(profiles));
     return profile;
   }
 };
@@ -115,6 +132,8 @@ export const getLandlordProfile = async (id: string): Promise<LandlordProfile | 
 
     return {
       id: data.id,
+      email: data.email,
+      passwordHash: data.password_hash,
       names: data.names,
       propertyType: data.property_type,
       furnishingPreference: data.furnishing_preference,
@@ -132,7 +151,7 @@ export const getLandlordProfile = async (id: string): Promise<LandlordProfile | 
       estateAgentLink: data.estate_agent_link,
       propertyId: data.property_id,
       createdAt: new Date(data.created_at),
-      isComplete: data.is_complete,
+      onboardingComplete: data.is_complete,
       ratingsSummary: data.average_rating ? {
         userId: data.id,
         userType: 'landlord' as const,
@@ -165,6 +184,8 @@ export const getVendorProfile = getLandlordProfile as unknown as (id: string) =>
 export const saveRenterProfile = async (profile: RenterProfile): Promise<RenterProfile> => {
   if (isSupabaseConfigured()) {
     const profileData = {
+      email: profile.email,
+      password_hash: profile.passwordHash,
       situation: profile.situation,
       names: profile.names,
       ages: profile.ages,
@@ -183,7 +204,7 @@ export const saveRenterProfile = async (profile: RenterProfile): Promise<RenterP
       receives_housing_benefit: profile.receivesHousingBenefit,
       receives_universal_credit: profile.receivesUniversalCredit,
       number_of_children: profile.numberOfChildren,
-      is_complete: profile.isComplete,
+      is_complete: profile.onboardingComplete,
     };
 
     // Check if profile has a valid UUID
@@ -212,7 +233,21 @@ export const saveRenterProfile = async (profile: RenterProfile): Promise<RenterP
       return { ...profile, id: data.id };
     }
   } else {
+    // Store individual profile
     localStorage.setItem(`renter-profile-${profile.id}`, JSON.stringify(profile));
+
+    // Also maintain a list of all renter profiles for loginWithPassword
+    const profilesJson = localStorage.getItem('get-on-renter-profiles');
+    const profiles: RenterProfile[] = profilesJson ? JSON.parse(profilesJson) : [];
+    const existingIndex = profiles.findIndex(p => p.id === profile.id);
+
+    if (existingIndex >= 0) {
+      profiles[existingIndex] = profile;
+    } else {
+      profiles.push(profile);
+    }
+
+    localStorage.setItem('get-on-renter-profiles', JSON.stringify(profiles));
     return profile;
   }
 };
@@ -229,6 +264,8 @@ export const getRenterProfile = async (id: string): Promise<RenterProfile | null
 
     return {
       id: data.id,
+      email: data.email,
+      passwordHash: data.password_hash,
       status: 'prospective', // Default to prospective for new renters
       situation: data.situation,
       names: data.names,
@@ -249,7 +286,7 @@ export const getRenterProfile = async (id: string): Promise<RenterProfile | null
       receivesUniversalCredit: data.receives_universal_credit,
       numberOfChildren: data.number_of_children,
       createdAt: new Date(data.created_at),
-      isComplete: data.is_complete,
+      onboardingComplete: data.is_complete,
       ratingsSummary: data.average_rating ? {
         userId: data.id,
         userType: 'renter' as const,
@@ -274,6 +311,120 @@ export const getRenterProfile = async (id: string): Promise<RenterProfile | null
 // Legacy aliases for backward compatibility (DEPRECATED)
 export const saveBuyerProfile = saveRenterProfile as unknown as (profile: BuyerProfile) => Promise<BuyerProfile>;
 export const getBuyerProfile = getRenterProfile as unknown as (id: string) => Promise<BuyerProfile | null>;
+
+// =====================================================
+// AGENCY PROFILES (Estate Agents & Management Agencies)
+// =====================================================
+
+export const saveAgencyProfile = async (profile: AgencyProfile): Promise<AgencyProfile> => {
+  if (isSupabaseConfigured()) {
+    const profileData = {
+      email: profile.email,
+      password_hash: profile.passwordHash,
+      agency_type: profile.agencyType,
+      company_name: profile.companyName,
+      registration_number: profile.registrationNumber,
+      primary_contact_name: profile.primaryContactName,
+      phone: profile.phone,
+      address: profile.address,
+      service_areas: profile.serviceAreas,
+      managed_property_ids: profile.managedPropertyIds,
+      landlord_client_ids: profile.landlordClientIds,
+      active_tenants_count: profile.activeTenantsCount,
+      total_properties_managed: profile.totalPropertiesManaged,
+      sla_configuration: profile.slaConfiguration,
+      performance_metrics: profile.performanceMetrics,
+      property_ombudsman_member: profile.propertyOmbudsmanMember,
+      insurance_details: profile.insuranceDetails,
+      is_active: profile.isActive,
+      is_complete: profile.onboardingComplete,
+    };
+
+    if (profile.id) {
+      // Update existing profile
+      const { data, error } = await supabase
+        .from('agency_profiles')
+        .update(profileData)
+        .eq('id', profile.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return { ...profile, id: data.id };
+    } else {
+      // Insert new profile (let Supabase generate UUID)
+      const { data, error } = await supabase
+        .from('agency_profiles')
+        .insert(profileData)
+        .select()
+        .single();
+
+      if (error) throw error;
+      console.log('[Storage] Agency profile created successfully with ID:', data.id);
+      return { ...profile, id: data.id };
+    }
+  } else {
+    // localStorage fallback
+    const agencyId = profile.id || `agency-${Date.now()}`;
+    const updatedProfile = { ...profile, id: agencyId };
+
+    // Store in array of agency profiles
+    const storedProfiles = localStorage.getItem('get-on-agency-profiles');
+    const profiles: AgencyProfile[] = storedProfiles ? JSON.parse(storedProfiles) : [];
+
+    const existingIndex = profiles.findIndex(p => p.id === agencyId);
+    if (existingIndex >= 0) {
+      profiles[existingIndex] = updatedProfile;
+    } else {
+      profiles.push(updatedProfile);
+    }
+
+    localStorage.setItem('get-on-agency-profiles', JSON.stringify(profiles));
+    return updatedProfile;
+  }
+};
+
+export const getAgencyProfile = async (id: string): Promise<AgencyProfile | null> => {
+  if (isSupabaseConfigured()) {
+    const { data, error } = await supabase
+      .from('agency_profiles')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error) return null;
+
+    return {
+      id: data.id,
+      email: data.email,
+      passwordHash: data.password_hash,
+      agencyType: data.agency_type,
+      companyName: data.company_name,
+      registrationNumber: data.registration_number,
+      primaryContactName: data.primary_contact_name,
+      phone: data.phone,
+      address: data.address,
+      serviceAreas: data.service_areas,
+      managedPropertyIds: data.managed_property_ids || [],
+      landlordClientIds: data.landlord_client_ids || [],
+      activeTenantsCount: data.active_tenants_count,
+      totalPropertiesManaged: data.total_properties_managed,
+      slaConfiguration: data.sla_configuration,
+      performanceMetrics: data.performance_metrics,
+      propertyOmbudsmanMember: data.property_ombudsman_member,
+      insuranceDetails: data.insurance_details,
+      createdAt: new Date(data.created_at),
+      isActive: data.is_active,
+      onboardingComplete: data.is_complete,
+    };
+  } else {
+    const storedProfiles = localStorage.getItem('get-on-agency-profiles');
+    if (!storedProfiles) return null;
+
+    const profiles: AgencyProfile[] = JSON.parse(storedProfiles);
+    return profiles.find(p => p.id === id) || null;
+  }
+};
 
 // =====================================================
 // RENTAL PROPERTIES
