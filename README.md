@@ -229,16 +229,37 @@ The application uses a property-focused color scheme:
 
 ## 🧪 Testing
 
+### Unit & Integration Tests (Vitest)
 ```bash
-npm run test        # Run unit tests
-npm run test:watch  # Watch mode
-npm run test:coverage # Generate coverage report
+npm run test           # Watch mode
+npm run test:run       # Run once
+npm run test:coverage  # With coverage
+npm run test:ui        # Interactive UI
 ```
 
-Testing strategy:
-- **Unit tests**: Utility functions, custom hooks
-- **Component tests**: React Testing Library
-- **E2E tests**: Playwright (future)
+### E2E Tests (Playwright)
+```bash
+npm run test:e2e           # Run all E2E tests
+npm run test:e2e:ui        # Interactive UI mode
+npm run test:e2e:headed    # See browser
+npm run test:e2e:debug     # Debug mode
+npm run test:e2e:report    # View test report
+npm run test:e2e:codegen   # Generate tests
+```
+
+**Test Coverage:**
+- ✅ **20 unit/integration test files** (525 tests with Vitest)
+- ✅ **7 E2E test files** (26 tests with Playwright)
+- ✅ **Total: 551+ tests** covering all critical flows
+
+**E2E Tests Cover:**
+- Authentication (renter, landlord, agency signup/login)
+- RRA 2025 compliance enforcement
+- Property creation and management
+- Swipe and match flows
+- Navigation and session persistence
+
+See [tests/e2e/README.md](tests/e2e/README.md) for E2E testing documentation.
 
 ## 🔧 Configuration
 

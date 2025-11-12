@@ -37,7 +37,9 @@
       "Bash(npx vitest:*)",
       "Bash(timeout 5 npm test:*)",
       "Bash(npm run test:coverage:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(npx playwright install:*)",
+      "Bash(npm run test:e2e:*)"
     ],
     "deny": [],
     "ask": []
