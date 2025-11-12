@@ -268,6 +268,8 @@ export interface Property {
 
 export interface RenterProfile {
   id: string;
+  email: string;
+  passwordHash: string;  // Hashed password for secure authentication
   situation: RenterSituation;
   names: string;
   ages: string;
@@ -300,7 +302,7 @@ export interface RenterProfile {
   numberOfChildren?: number;
 
   createdAt: Date;
-  isComplete: boolean;
+  onboardingComplete: boolean;
 
   // NEW: Current tenancy tracking
   status: RenterStatus; // 'prospective' | 'current' | 'former'
@@ -320,6 +322,8 @@ export interface RenterProfile {
 
 export interface LandlordProfile {
   id: string;
+  email: string;
+  passwordHash: string;  // Hashed password for secure authentication
   names: string;
   propertyType: PropertyType;
 
@@ -355,7 +359,7 @@ export interface LandlordProfile {
   estateAgentLink: string;
   propertyId?: string;
   createdAt: Date;
-  isComplete: boolean;
+  onboardingComplete: boolean;
 
   // NEW: Agency relationships
   managementAgencyId?: string; // Link to managing agency
@@ -386,6 +390,7 @@ export interface AgencyProfile {
   // Contact
   primaryContactName: string;
   email: string;
+  passwordHash: string;  // Hashed password for secure authentication
   phone: string;
   address: {
     street: string;
@@ -433,7 +438,7 @@ export interface AgencyProfile {
 
   createdAt: Date;
   isActive: boolean;
-  isComplete: boolean; // Onboarding completion status
+  onboardingComplete: boolean; // Onboarding completion status
 }
 
 // =====================================================
