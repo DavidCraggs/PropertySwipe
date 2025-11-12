@@ -5,12 +5,14 @@ import { FormStep } from '../components/molecules/FormStep';
 import { RadioCardGroup } from '../components/molecules/RadioCardGroup';
 import { FormField } from '../components/molecules/FormField';
 import { PasswordInput } from '../components/molecules/PasswordInput';
+import { LoginButton } from '../components/molecules/LoginButton';
 import type { RenterProfile, RenterSituation, LocalArea, RenterType, EmploymentStatus, FurnishingType } from '../types';
 import { useAuthStore } from '../hooks/useAuthStore';
 import { validatePassword, hashPassword } from '../utils/validation';
 
 interface RenterOnboardingProps {
   onComplete: () => void;
+  onLogin: () => void;
 }
 
 interface RenterFormData {
@@ -30,7 +32,7 @@ interface RenterFormData {
  * Multi-step onboarding wizard for renters
  * Collects personal info, location, employment, income, preferences
  */
-export function RenterOnboarding({ onComplete }: RenterOnboardingProps) {
+export function RenterOnboarding({ onComplete, onLogin }: RenterOnboardingProps) {
   const { login } = useAuthStore();
   const [currentStep, setCurrentStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -658,6 +660,9 @@ export function RenterOnboarding({ onComplete }: RenterOnboardingProps) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-neutral-50 to-white p-6">
+      {/* Login Button - Only on Step 1 */}
+      {currentStep === 0 && <LoginButton onLogin={onLogin} />}
+
       <div className="max-w-2xl mx-auto">
         <AnimatePresence mode="wait">{steps[currentStep]}</AnimatePresence>
       </div>

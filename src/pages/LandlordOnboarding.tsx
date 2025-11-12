@@ -5,6 +5,7 @@ import { FormStep } from '../components/molecules/FormStep';
 import { RadioCardGroup } from '../components/molecules/RadioCardGroup';
 import { FormField } from '../components/molecules/FormField';
 import { PasswordInput } from '../components/molecules/PasswordInput';
+import { LoginButton } from '../components/molecules/LoginButton';
 import type { LandlordProfile, PropertyType, FurnishingType, RenterType, Property, OmbudsmanScheme } from '../types';
 import { useAuthStore } from '../hooks/useAuthStore';
 import { useAppStore } from '../hooks';
@@ -12,6 +13,7 @@ import { extractPostcode, comparePostcodes, isValidPropertyListingUrl, validateP
 
 interface LandlordOnboardingProps {
   onComplete: () => void;
+  onLogin: () => void;
 }
 
 interface LandlordFormData {
@@ -38,7 +40,7 @@ interface LandlordFormData {
  * - Ombudsman Scheme Membership (mandatory)
  * - Property certifications (EPC, Gas Safety, EICR)
  */
-export function LandlordOnboarding({ onComplete }: LandlordOnboardingProps) {
+export function LandlordOnboarding({ onComplete, onLogin }: LandlordOnboardingProps) {
   const { login } = useAuthStore();
   const { allProperties, linkPropertyToLandlord } = useAppStore();
   const [currentStep, setCurrentStep] = useState(0);
@@ -784,6 +786,9 @@ export function LandlordOnboarding({ onComplete }: LandlordOnboardingProps) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-neutral-50 to-white p-6">
+      {/* Login Button - Only on Step 1 */}
+      {currentStep === 0 && <LoginButton onLogin={onLogin} />}
+
       <div className="max-w-2xl mx-auto">
         <AnimatePresence mode="wait">{steps[currentStep]}</AnimatePresence>
       </div>

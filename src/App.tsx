@@ -110,7 +110,7 @@ function App() {
   const renderRoute = () => {
     switch (currentRoute) {
       case 'welcome':
-        return <WelcomeScreen onGetStarted={handleGetStarted} />;
+        return <WelcomeScreen onGetStarted={handleGetStarted} onLogin={() => setCurrentRoute('login')} />;
 
       case 'role-select':
         return (
@@ -130,15 +130,16 @@ function App() {
         );
 
       case 'renter-onboarding':
-        return <RenterOnboarding onComplete={handleOnboardingComplete} />;
+        return <RenterOnboarding onComplete={handleOnboardingComplete} onLogin={() => setCurrentRoute('login')} />;
 
       case 'landlord-onboarding':
-        return <LandlordOnboarding onComplete={handleOnboardingComplete} />;
+        return <LandlordOnboarding onComplete={handleOnboardingComplete} onLogin={() => setCurrentRoute('login')} />;
 
       case 'agency-onboarding':
         return (
           <AgencyOnboarding
             onComplete={handleOnboardingComplete}
+            onLogin={() => setCurrentRoute('login')}
             initialAgencyType={
               selectedRole === 'estate_agent' ? 'estate_agent' : 'management_agency'
             }

@@ -2,12 +2,14 @@ import { useState } from 'react';
 import { Building2, MapPin, Clock, Shield, Check } from 'lucide-react';
 import { Button } from '../components/atoms/Button';
 import { PasswordInput } from '../components/molecules/PasswordInput';
+import { LoginButton } from '../components/molecules/LoginButton';
 import type { AgencyProfile, AgencyType, LocalArea } from '../types';
 import { useAuthStore } from '../hooks/useAuthStore';
 import { validatePassword, hashPassword } from '../utils/validation';
 
 interface AgencyOnboardingProps {
   onComplete: () => void;
+  onLogin: () => void;
   initialAgencyType?: AgencyType;
 }
 
@@ -15,7 +17,7 @@ interface AgencyOnboardingProps {
  * Phase 5: Simplified single-page onboarding for estate agents and management agencies
  * Collects company info, service areas, SLA configuration, and compliance details
  */
-export function AgencyOnboarding({ onComplete, initialAgencyType = 'management_agency' }: AgencyOnboardingProps) {
+export function AgencyOnboarding({ onComplete, onLogin, initialAgencyType = 'management_agency' }: AgencyOnboardingProps) {
   const { login } = useAuthStore();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [password, setPassword] = useState('');
@@ -163,6 +165,9 @@ export function AgencyOnboarding({ onComplete, initialAgencyType = 'management_a
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-success-50 py-8 px-4">
+      {/* Login Button */}
+      <LoginButton onLogin={onLogin} />
+
       <div className="max-w-3xl mx-auto">
         <div className="bg-white rounded-2xl shadow-lg p-8">
           <div className="text-center mb-8">

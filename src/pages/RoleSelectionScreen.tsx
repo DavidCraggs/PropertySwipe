@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import { Home, ShoppingBag, ArrowLeft, Building2, Briefcase } from 'lucide-react';
+import { LoginButton } from '../components/molecules/LoginButton';
 import type { UserType } from '../types';
 
 interface RoleSelectionScreenProps {
@@ -51,6 +52,9 @@ export function RoleSelectionScreen({ onSelectRole, onLogin, onBack }: RoleSelec
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-neutral-50 to-white flex flex-col p-6">
+      {/* Login Button */}
+      <LoginButton onLogin={onLogin} />
+
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}

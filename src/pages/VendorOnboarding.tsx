@@ -4,6 +4,7 @@ import { Home, Link2, Check } from 'lucide-react';
 import { FormStep } from '../components/molecules/FormStep';
 import { RadioCardGroup } from '../components/molecules/RadioCardGroup';
 import { FormField } from '../components/molecules/FormField';
+import { LoginButton } from '../components/molecules/LoginButton';
 import type { LandlordProfile, PropertyType, Property, FurnishingType, RenterType } from '../types';
 import { useAuthStore } from '../hooks/useAuthStore';
 import { useAppStore } from '../hooks';
@@ -11,6 +12,7 @@ import { extractPostcode, comparePostcodes, isValidPropertyListingUrl } from '..
 
 interface VendorOnboardingProps {
   onComplete: () => void;
+  onLogin: () => void;
 }
 
 interface VendorFormData {
@@ -25,7 +27,7 @@ interface VendorFormData {
  * Multi-step onboarding wizard for vendors
  * * Collects names, property details, renter preferences, and listing link
  */
-export function VendorOnboarding({ onComplete }: VendorOnboardingProps) {
+export function VendorOnboarding({ onComplete, onLogin }: VendorOnboardingProps) {
   const { login } = useAuthStore();
   const { allProperties, linkPropertyToLandlord } = useAppStore();
   const [currentStep, setCurrentStep] = useState(0);
@@ -482,6 +484,9 @@ export function VendorOnboarding({ onComplete }: VendorOnboardingProps) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-neutral-50 to-white p-6">
+      {/* Login Button - Only on Step 1 */}
+      {currentStep === 0 && <LoginButton onLogin={onLogin} />}
+
       <div className="max-w-2xl mx-auto">
         <AnimatePresence mode="wait">{steps[currentStep]}</AnimatePresence>
       </div>

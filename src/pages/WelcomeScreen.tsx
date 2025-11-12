@@ -1,16 +1,18 @@
 import { motion } from 'framer-motion';
 import { Home, Heart, Zap, ArrowRight } from 'lucide-react';
 import { Button } from '../components/atoms/Button';
+import { LoginButton } from '../components/molecules/LoginButton';
 
 interface WelcomeScreenProps {
   onGetStarted: () => void;
+  onLogin: () => void;
 }
 
 /**
  * Landing page for Get On
  * Shows value propositions and CTAs for getting started
  */
-export function WelcomeScreen({ onGetStarted }: WelcomeScreenProps) {
+export function WelcomeScreen({ onGetStarted, onLogin }: WelcomeScreenProps) {
   const features = [
     {
       icon: Zap,
@@ -31,6 +33,9 @@ export function WelcomeScreen({ onGetStarted }: WelcomeScreenProps) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-secondary-50 flex flex-col">
+      {/* Login Button */}
+      <LoginButton onLogin={onLogin} />
+
       {/* Header */}
       <header className="p-4 md:p-6">
         <motion.div
