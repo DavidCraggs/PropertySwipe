@@ -29,9 +29,10 @@ export function validatePassword(password: string | null | undefined): { isValid
     errors.push('Password must contain at least one number');
   }
 
-  // Special character requirement - only allow: !@#$%^&*
-  if (!/[!@#$%^&*]/.test(password)) {
-    errors.push('Password must contain at least one special character (!@#$%^&*)');
+  // Special character requirement - allow common special characters
+  // Includes: !@#$%^&*()_+-=[]{}|;:',.<>?/~`"
+  if (!/[!@#$%^&*()_+\-=\[\]{}|;:'",.<>?/~`"]/.test(password)) {
+    errors.push('Password must contain at least one special character');
   }
 
   return {
@@ -55,13 +56,13 @@ export function getPasswordStrength(password: string | null | undefined): 'weak'
   if (/[A-Z]/.test(password)) strength++;
   if (/[a-z]/.test(password)) strength++;
   if (/[0-9]/.test(password)) strength++;
-  if (/[!@#$%^&*]/.test(password)) strength++;
+  if (/[!@#$%^&*()_+\-=\[\]{}|;:'",.<>?/~`"]/.test(password)) strength++;
 
   // Additional complexity checks
   const hasMultipleUppercase = (password.match(/[A-Z]/g) || []).length >= 2;
   const hasMultipleLowercase = (password.match(/[a-z]/g) || []).length >= 2;
   const hasMultipleNumbers = (password.match(/[0-9]/g) || []).length >= 2;
-  const hasMultipleSpecialChars = (password.match(/[!@#$%^&*]/g) || []).length >= 2;
+  const hasMultipleSpecialChars = (password.match(/[!@#$%^&*()_+\-=\[\]{}|;:'",.<>?/~`"]/g) || []).length >= 2;
 
   if (hasMultipleUppercase) strength++;
   if (hasMultipleLowercase) strength++;

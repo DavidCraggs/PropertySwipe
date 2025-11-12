@@ -114,11 +114,12 @@ describe('validatePassword', () => {
     it('should reject passwords without special characters', () => {
       const result = validatePassword('Password123');
       expect(result.isValid).toBe(false);
-      expect(result.errors).toContain('Password must contain at least one special character (!@#$%^&*)');
+      expect(result.errors).toContain('Password must contain at least one special character');
     });
 
-    it('should accept all allowed special characters', () => {
-      const specialChars = ['!', '@', '#', '$', '%', '^', '&', '*'];
+    it('should accept all common special characters from password generators', () => {
+      // Test a comprehensive set of special characters that password generators commonly use
+      const specialChars = ['!', '@', '#', '$', '%', '^', '&', '*', '(', ')', '_', '+', '-', '=', '[', ']', '{', '}', '|', ';', ':', "'", '"', ',', '.', '<', '>', '?', '/', '~', '`'];
 
       specialChars.forEach((char) => {
         const result = validatePassword(`Password1${char}`);
@@ -132,10 +133,10 @@ describe('validatePassword', () => {
       expect(result.isValid).toBe(true);
     });
 
-    it('should reject passwords with non-allowed special characters', () => {
-      const result = validatePassword('Password123+');
-      expect(result.isValid).toBe(false);
-      expect(result.errors).toContain('Password must contain at least one special character (!@#$%^&*)');
+    it('should accept passwords with extended special characters like ?', () => {
+      const result = validatePassword('Password123?');
+      expect(result.isValid).toBe(true);
+      expect(result.errors).toHaveLength(0);
     });
   });
 
@@ -147,7 +148,7 @@ describe('validatePassword', () => {
       expect(result.errors).toContain('Password must be at least 8 characters long');
       expect(result.errors).toContain('Password must contain at least one uppercase letter');
       expect(result.errors).toContain('Password must contain at least one number');
-      expect(result.errors).toContain('Password must contain at least one special character (!@#$%^&*)');
+      expect(result.errors).toContain('Password must contain at least one special character');
     });
 
     it('should return multiple errors for partially valid password', () => {
@@ -155,7 +156,7 @@ describe('validatePassword', () => {
       expect(result.isValid).toBe(false);
       expect(result.errors).toHaveLength(2);
       expect(result.errors).toContain('Password must be at least 8 characters long');
-      expect(result.errors).toContain('Password must contain at least one special character (!@#$%^&*)');
+      expect(result.errors).toContain('Password must contain at least one special character');
     });
   });
 
