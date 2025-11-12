@@ -192,7 +192,7 @@ function App() {
         );
 
       default:
-        return <WelcomeScreen onGetStarted={handleGetStarted} />;
+        return <WelcomeScreen onGetStarted={handleGetStarted} onLogin={() => setCurrentRoute('login')} />;
     }
   };
 
