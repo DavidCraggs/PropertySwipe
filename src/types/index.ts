@@ -9,8 +9,11 @@
 
 export type PropertyType = 'Detached' | 'Semi-detached' | 'Terraced' | 'End-Terraced' | 'Bungalow' | 'Flat';
 export type EPCRating = 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G';
-export type UserType = 'landlord' | 'renter' | 'estate_agent' | 'management_agency';
+export type UserType = 'landlord' | 'renter' | 'estate_agent' | 'management_agency' | 'admin';
 export type LocalArea = 'Southport' | 'Liverpool' | 'Manchester' | 'Preston' | 'Blackpool' | 'Chester' | 'Warrington' | 'Wigan' | 'St Helens' | 'Formby';
+
+// Admin system types
+export type AdminPermission = 'role_switching' | 'view_all_users' | 'modify_users' | 'system_settings';
 
 // NEW: Renter lifecycle status
 export type RenterStatus = 'prospective' | 'current' | 'former';
@@ -442,6 +445,29 @@ export interface AgencyProfile {
 }
 
 // =====================================================
+// ADMIN PROFILE (Role Switching & Testing)
+// =====================================================
+
+export interface AdminProfile {
+  id: string;
+  email: string;
+  passwordHash: string;
+  name: string;
+  role: 'admin';
+  permissions: AdminPermission[];
+  createdAt: string;
+  lastLogin?: string;
+}
+
+export interface AdminSession {
+  adminId: string;
+  adminProfile: AdminProfile;
+  impersonatedRole: UserType | null;
+  impersonatedProfile: LandlordProfile | RenterProfile | AgencyProfile | null;
+  sessionStarted: string;
+}
+
+// =====================================================
 // USER PREFERENCES (FILTERING)
 // =====================================================
 
@@ -754,8 +780,13 @@ export interface EmailNotification {
 export interface AuthState {
   isAuthenticated: boolean;
   userType: UserType | null;
-  currentUser: LandlordProfile | RenterProfile | AgencyProfile | null;
+  currentUser: LandlordProfile | RenterProfile | AgencyProfile | AdminProfile | null;
   onboardingStep: number;
+
+  // Admin mode fields
+  isAdminMode?: boolean;
+  adminProfile?: AdminProfile;
+  impersonatedRole?: UserType;
 }
 
 // =====================================================

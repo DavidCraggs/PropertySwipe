@@ -11,13 +11,16 @@ import { LandlordDashboard } from './pages/LandlordDashboard';
 import { AgencyDashboard } from './pages/AgencyDashboard';
 import { MatchesPage } from './pages/MatchesPage';
 import { ProfilePage } from './pages/ProfilePage';
+import { AdminLoginPage } from './pages/AdminLoginPage';
+import { AdminDashboard } from './pages/AdminDashboard';
+import { AdminModeIndicator } from './components/AdminModeIndicator';
 import { BottomNav } from './components/organisms/BottomNav';
 import { ToastContainer, useToastStore } from './components/organisms/Toast';
 import { useAuthStore } from './hooks/useAuthStore';
 import { useAppStore } from './hooks/useAppStore';
 import type { UserType } from './types';
 
-type Route = 'welcome' | 'role-select' | 'login' | 'renter-onboarding' | 'landlord-onboarding' | 'agency-onboarding' | 'app';
+type Route = 'welcome' | 'role-select' | 'login' | 'renter-onboarding' | 'landlord-onboarding' | 'agency-onboarding' | 'admin-login' | 'admin-dashboard' | 'app';
 type AppPage = 'swipe' | 'matches' | 'profile';
 
 /**
@@ -25,13 +28,22 @@ type AppPage = 'swipe' | 'matches' | 'profile';
  * Handles public routes (welcome, onboarding) and protected routes (app pages)
  */
 function App() {
-  const { isAuthenticated, userType, currentUser } = useAuthStore();
+  const { isAuthenticated, userType, currentUser, isAdminMode, impersonatedRole } = useAuthStore();
   const { addToast } = useToastStore();
   const { loadProperties } = useAppStore();
 
   const [currentRoute, setCurrentRoute] = useState<Route>('welcome');
   const [currentPage, setCurrentPage] = useState<AppPage>('swipe');
   const [selectedRole, setSelectedRole] = useState<UserType | null>(null);
+
+  // Initialize admin profile on first load
+  useEffect(() => {
+    const initAdmin = async () => {
+      const { initializeAdminProfile } = await import('./lib/adminStorage');
+      await initializeAdminProfile();
+    };
+    initAdmin();
+  }, []);
 
   // Load properties from storage on app initialization
   useEffect(() => {
@@ -44,11 +56,30 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Run only once on mount
 
+  // Check URL hash for direct admin access
+  useEffect(() => {
+    const hash = window.location.hash.slice(1); // Remove '#'
+    if (hash === '/admin-login' && !isAuthenticated) {
+      setCurrentRoute('admin-login');
+    }
+  }, [isAuthenticated]);
+
   // Handle initial routing based on auth state
   useEffect(() => {
-    if (isAuthenticated && currentUser?.onboardingComplete) {
+    // Admin routing
+    if (isAdminMode) {
+      if (!impersonatedRole) {
+        setCurrentRoute('admin-dashboard');
+      } else {
+        setCurrentRoute('app');
+      }
+      return;
+    }
+
+    // Normal user routing
+    if (isAuthenticated && currentUser && 'onboardingComplete' in currentUser && currentUser.onboardingComplete) {
       setCurrentRoute('app');
-    } else if (isAuthenticated && !currentUser?.onboardingComplete) {
+    } else if (isAuthenticated && currentUser && 'onboardingComplete' in currentUser && !currentUser.onboardingComplete) {
       // Route to appropriate onboarding based on user type
       let route: Route = 'renter-onboarding';
       if (userType === 'renter') {
@@ -68,7 +99,7 @@ function App() {
         setCurrentRoute('welcome');
       }
     }
-  }, [isAuthenticated, currentUser, userType]);
+  }, [isAuthenticated, currentUser, userType, isAdminMode, impersonatedRole]);
 
   const handleGetStarted = () => {
     localStorage.setItem('get-on-has-visited', 'true');
@@ -129,6 +160,12 @@ function App() {
           />
         );
 
+      case 'admin-login':
+        return <AdminLoginPage />;
+
+      case 'admin-dashboard':
+        return <AdminDashboard />;
+
       case 'renter-onboarding':
         return <RenterOnboarding onComplete={handleOnboardingComplete} onLogin={() => setCurrentRoute('login')} />;
 
@@ -149,45 +186,48 @@ function App() {
       case 'app':
         return (
           <>
-            <AnimatePresence mode="wait">
-              {currentPage === 'swipe' && (
-                <motion.div
-                  key="swipe"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                >
-                  {userType === 'renter' ? (
-                    <SwipePage />
-                  ) : userType === 'estate_agent' || userType === 'management_agency' ? (
-                    <AgencyDashboard />
-                  ) : (
-                    <LandlordDashboard />
-                  )}
-                </motion.div>
-              )}
-              {currentPage === 'matches' && (
-                <motion.div
-                  key="matches"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                >
-                  <MatchesPage />
-                </motion.div>
-              )}
-              {currentPage === 'profile' && (
-                <motion.div
-                  key="profile"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                >
-                  <ProfilePage />
-                </motion.div>
-              )}
-            </AnimatePresence>
-            <BottomNav currentPage={currentPage} onNavigate={setCurrentPage} />
+            {isAdminMode && <AdminModeIndicator />}
+            <div className={isAdminMode ? 'pt-12' : ''}>
+              <AnimatePresence mode="wait">
+                {currentPage === 'swipe' && (
+                  <motion.div
+                    key="swipe"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                  >
+                    {userType === 'renter' ? (
+                      <SwipePage />
+                    ) : userType === 'estate_agent' || userType === 'management_agency' ? (
+                      <AgencyDashboard />
+                    ) : (
+                      <LandlordDashboard />
+                    )}
+                  </motion.div>
+                )}
+                {currentPage === 'matches' && (
+                  <motion.div
+                    key="matches"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                  >
+                    <MatchesPage />
+                  </motion.div>
+                )}
+                {currentPage === 'profile' && (
+                  <motion.div
+                    key="profile"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                  >
+                    <ProfilePage />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+              <BottomNav currentPage={currentPage} onNavigate={setCurrentPage} />
+            </div>
           </>
         );
 

@@ -35,20 +35,20 @@ test.describe('Landlord Signup Flow', () => {
     await page.locator('#email').fill('landlord@test.com');
     await page.locator('input[type="password"]').first().fill('TestPass123!');
     await page.locator('#names').fill('Test Landlord');
-    await page.getByRole('button', { name: /next/i }).click();
+    await page.getByRole('button', { name: /continue/i }).click();
 
     await page.waitForTimeout(500);
     await page.getByRole('button', { name: /flat/i }).first().click();
-    await page.getByRole('button', { name: /next/i }).click();
+    await page.getByRole('button', { name: /continue/i }).click();
 
     await page.waitForTimeout(500);
-    await page.getByRole('button', { name: /next/i }).click();
+    await page.getByRole('button', { name: /continue/i }).click();
 
     // Step 3: Try to proceed without filling compliance
     await page.waitForTimeout(500);
 
     // Leave PRS registration empty and try to proceed
-    await page.getByRole('button', { name: /next/i }).click();
+    await page.getByRole('button', { name: /continue/i }).click();
 
     // Should show validation error or be blocked
     await page.waitForTimeout(500);

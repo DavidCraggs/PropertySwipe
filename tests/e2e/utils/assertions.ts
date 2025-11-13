@@ -22,9 +22,11 @@ export async function expectRoleSelectionScreen(page: Page) {
  * Assert user is on login page
  */
 export async function expectLoginPage(page: Page) {
-  await expect(page.locator('#email')).toBeVisible();
+  // Login page has "Welcome Back" heading and email/password inputs (no IDs)
+  await expect(page.getByText(/welcome back/i)).toBeVisible();
+  await expect(page.locator('input[type="email"]')).toBeVisible();
   await expect(page.locator('input[type="password"]')).toBeVisible();
-  await expect(page.getByRole('button', { name: /log in|sign in/i })).toBeVisible();
+  await expect(page.getByRole('button', { name: /sign in/i })).toBeVisible();
 }
 
 /**

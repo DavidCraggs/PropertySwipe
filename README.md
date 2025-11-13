@@ -261,6 +261,46 @@ npm run test:e2e:codegen   # Generate tests
 
 See [tests/e2e/README.md](tests/e2e/README.md) for E2E testing documentation.
 
+## 🔐 Admin Access
+
+### Admin Login
+For development and testing, access the admin portal via hash-based routing:
+```
+http://localhost:5173/#/admin-login
+```
+
+**Default Credentials:**
+- Email: `admin@geton.com`
+- Password: `Admin1234!`
+
+### Role Switching
+The admin panel allows switching between all user roles:
+- **Renter** - Test property browsing and matching flow
+- **Landlord** - Test property management and tenant selection
+- **Estate Agent** - Test property marketing and client management
+- **Management Agency** - Test maintenance and tenant issue handling
+
+Each role has a pre-populated test profile with realistic, RRA 2025-compliant data.
+
+### Features
+- ✅ One-click role switching without logout
+- ✅ Visual admin mode indicator showing current role
+- ✅ Complete test profiles for each user type
+- ✅ Session persistence across page reloads
+- ✅ Instant return to role selector dashboard
+
+### Security Note
+⚠️ **For development use only.** See [ADMIN_SECURITY.md](ADMIN_SECURITY.md) for production security requirements.
+
+### How It Works
+1. Visit `#/admin-login` or click "Admin Access" on login page
+2. Enter admin credentials
+3. View role selector dashboard
+4. Click any role card to impersonate that user
+5. Purple admin banner shows at top with "Exit Role" button
+6. Test the platform from that user's perspective
+7. Exit to switch to another role or logout
+
 ## 🔧 Configuration
 
 ### Environment Variables

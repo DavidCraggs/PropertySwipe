@@ -15,6 +15,8 @@ export const ProfilePage: React.FC = () => {
     if (confirm('Are you sure you want to log out?')) {
       logout();
       resetApp();
+      // Clear hasVisited flag so user sees welcome screen after logout
+      localStorage.removeItem('get-on-has-visited');
       addToast({
         type: 'info',
         message: 'You have been logged out successfully',

@@ -26,13 +26,15 @@ test.describe('Login Flow', () => {
     await page.goto('/');
     await page.getByRole('button', { name: /log in/i }).click();
 
-    await page.waitForTimeout(500);
+    // Wait for login page to load
+    await page.waitForSelector('text=Welcome Back');
 
-    await page.locator('#email').fill('nonexistent@test.com');
+    // Fill with invalid credentials - no #email ID, use type selector
+    await page.locator('input[type="email"]').fill('nonexistent@test.com');
     await page.locator('input[type="password"]').fill('WrongPass123!');
-    await page.getByRole('button', { name: /log in|sign in/i }).click();
+    await page.getByRole('button', { name: /sign in/i }).click();
 
-    // Should show error message (via alert or toast)
+    // Should show error message
     await page.waitForTimeout(1000);
 
     // Verify we're still on login page (not navigated away)

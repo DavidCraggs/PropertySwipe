@@ -62,23 +62,23 @@ async function completeRenterOnboarding(page: Page, user: TestUser) {
   await page.locator('input[type="password"]').first().fill(user.password);
   await page.locator('#names').fill('Test Renter');
   await page.locator('#ages').fill('28');
-  await page.getByRole('button', { name: /next/i }).click();
+  await page.getByRole('button', { name: /continue/i }).click();
 
   // Step 1: Location preferences - wait for step to load
   await page.waitForTimeout(500); // Allow animation to complete
-  await page.getByRole('button', { name: /next/i }).click();
+  await page.getByRole('button', { name: /continue/i }).click();
 
   // Step 2: Income & employment - wait for step to load
   await page.waitForTimeout(500);
   await page.locator('#monthlyIncome').fill('3000');
-  await page.getByRole('button', { name: /next/i }).click();
+  await page.getByRole('button', { name: /continue/i }).click();
 
   // Step 3: Move-in date - wait for step to load
   await page.waitForTimeout(500);
   const futureDate = new Date();
   futureDate.setDate(futureDate.getDate() + 30);
   await page.locator('#moveInDate').fill(futureDate.toISOString().split('T')[0]);
-  await page.getByRole('button', { name: /next/i }).click();
+  await page.getByRole('button', { name: /continue/i }).click();
 
   // Step 4: Review & submit - wait for step to load
   await page.waitForTimeout(500);
@@ -89,23 +89,23 @@ async function completeRenterOnboarding(page: Page, user: TestUser) {
 }
 
 async function completeLandlordOnboarding(page: Page, user: TestUser) {
-  // Wait for onboarding to load
-  await page.waitForSelector('text=Let\'s get started');
+  // Wait for onboarding to load - just wait for email field since page renders quickly
+  await page.waitForSelector('#email', { timeout: 10000 });
 
   // Step 0: Basic info
   await page.locator('#email').fill(user.email);
   await page.locator('input[type="password"]').first().fill(user.password);
   await page.locator('#names').fill('Test Landlord');
-  await page.getByRole('button', { name: /next/i }).click();
+  await page.getByRole('button', { name: /continue/i }).click();
 
   // Step 1: Property type - wait for step to load
   await page.waitForTimeout(500);
   await page.getByRole('button', { name: /flat/i }).first().click();
-  await page.getByRole('button', { name: /next/i }).click();
+  await page.getByRole('button', { name: /continue/i }).click();
 
   // Step 2: Property details - wait for step to load
   await page.waitForTimeout(500);
-  await page.getByRole('button', { name: /next/i }).click();
+  await page.getByRole('button', { name: /continue/i }).click();
 
   // Step 3: RRA 2025 compliance - wait for step to load
   await page.waitForTimeout(500);
@@ -120,7 +120,7 @@ async function completeLandlordOnboarding(page: Page, user: TestUser) {
     await checkbox.check();
   }
 
-  await page.getByRole('button', { name: /next/i }).click();
+  await page.getByRole('button', { name: /continue/i }).click();
 
   // Step 4: Review & submit - wait for step to load
   await page.waitForTimeout(500);
@@ -138,20 +138,20 @@ async function completeAgencyOnboarding(page: Page, user: TestUser) {
   await page.locator('#email').fill(user.email);
   await page.locator('input[type="password"]').first().fill(user.password);
   await page.locator('#companyName').fill('Test Agency Ltd');
-  await page.getByRole('button', { name: /next/i }).click();
+  await page.getByRole('button', { name: /continue/i }).click();
 
   // Step 1: Contact details - wait for step to load
   await page.waitForTimeout(500);
   await page.locator('#primaryContactName').fill('Test Contact');
   await page.locator('#phone').fill('01234567890');
-  await page.getByRole('button', { name: /next/i }).click();
+  await page.getByRole('button', { name: /continue/i }).click();
 
   // Step 2: Address & service areas - wait for step to load
   await page.waitForTimeout(500);
   await page.locator('#street').fill('123 Test Street');
   await page.locator('#city').fill('Liverpool');
   await page.locator('#postcode').fill('L1 1AA');
-  await page.getByRole('button', { name: /next/i }).click();
+  await page.getByRole('button', { name: /continue/i }).click();
 
   // Step 3: Review & submit - wait for step to load
   await page.waitForTimeout(500);
@@ -170,16 +170,16 @@ export async function login(page: Page, email: string, password: string) {
   // Click top-right login button
   await page.getByRole('button', { name: /log in/i }).click();
 
-  // Wait for login page
-  await page.waitForTimeout(500);
+  // Wait for login page to load (has "Welcome Back" heading)
+  await page.waitForSelector('text=Welcome Back');
 
-  // Fill login form
-  await page.locator('#email').fill(email);
+  // Fill login form - inputs don't have IDs, use type selectors
+  await page.locator('input[type="email"]').fill(email);
   await page.locator('input[type="password"]').fill(password);
-  await page.getByRole('button', { name: /log in|sign in/i }).click();
+  await page.getByRole('button', { name: /sign in/i }).click();
 
-  // Wait for navigation
-  await page.waitForTimeout(1000);
+  // Wait for navigation to complete
+  await page.waitForTimeout(1500);
 }
 
 /**
@@ -192,11 +192,19 @@ export async function logout(page: Page) {
   // Wait for profile page to load
   await page.waitForTimeout(500);
 
-  // Click logout button
-  await page.getByRole('button', { name: /log out|logout/i }).click();
+  // Click logout button (text is "Logout" as one word)
+  // App shows confirm dialog, then does window.location.reload() after logout
+  page.once('dialog', dialog => dialog.accept());
 
-  // Should return to welcome screen
-  await page.waitForTimeout(500);
+  await Promise.all([
+    page.waitForLoadState('networkidle'),
+    page.getByRole('button', { name: /logout/i }).click(),
+  ]);
+
+  // Wait for app to initialize after reload and show welcome screen
+  await page.waitForTimeout(2000);
+  // Verify welcome screen appeared (hasVisited flag was cleared)
+  await page.waitForSelector('text=/get on with living better/i', { timeout: 5000 });
 }
 
 /**

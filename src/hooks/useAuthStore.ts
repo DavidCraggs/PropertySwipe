@@ -5,6 +5,7 @@ import type {
   LandlordProfile,
   RenterProfile,
   AgencyProfile,
+  AdminSession,
   UserType,
   RenterStatus,
 } from '../types';
@@ -23,6 +24,13 @@ interface AuthStore extends AuthState {
   setOnboardingStep: (step: number) => void;
   completeOnboarding: () => void;
   getSessionData: () => AuthState;
+
+  // Admin methods
+  loginAsAdmin: (email: string, password: string) => Promise<boolean>;
+  switchToRole: (userType: Exclude<UserType, 'admin'>) => Promise<void>;
+  exitRoleSwitch: () => void;
+  isAdmin: () => boolean;
+  getAdminSession: () => AdminSession | null;
 }
 
 const STORAGE_KEY = 'get-on-auth';
@@ -140,12 +148,31 @@ export const useAuthStore = create<AuthStore>()(
 
       // Logout action - clears all auth data
       logout: () => {
+        const state = get();
+
+        // Clear admin session if in admin mode
+        if (state.isAdminMode) {
+          try {
+            localStorage.removeItem('get-on-admin-session');
+          } catch (error) {
+            console.error('[Auth] Failed to clear admin session:', error);
+          }
+        }
+
+        // Clear visit flag
+        localStorage.removeItem('get-on-has-visited');
+
         set({
           isAuthenticated: false,
           userType: null,
           currentUser: null,
           onboardingStep: 0,
+          isAdminMode: false,
+          adminProfile: undefined,
+          impersonatedRole: undefined,
         });
+
+        console.log('[Auth] Logged out successfully');
       },
 
       // Update user profile (landlord, renter, or agency)
@@ -178,7 +205,7 @@ export const useAuthStore = create<AuthStore>()(
 
         // Update state with the saved profile (includes the UUID from Supabase)
         set({
-          currentUser: savedProfile,
+          currentUser: savedProfile as typeof currentUser,
         });
       },
 
@@ -190,7 +217,7 @@ export const useAuthStore = create<AuthStore>()(
       // Complete onboarding process
       completeOnboarding: () => {
         const { currentUser } = get();
-        if (!currentUser) return;
+        if (!currentUser || !('onboardingComplete' in currentUser)) return;
 
         set({
           currentUser: {
@@ -205,6 +232,170 @@ export const useAuthStore = create<AuthStore>()(
       getSessionData: () => {
         const { isAuthenticated, userType, currentUser, onboardingStep } = get();
         return { isAuthenticated, userType, currentUser, onboardingStep };
+      },
+
+      // =====================================================
+      // ADMIN METHODS
+      // =====================================================
+
+      /**
+       * Login as admin user
+       */
+      loginAsAdmin: async (email: string, password: string) => {
+        try {
+          const { verifyPassword } = await import('../utils/validation');
+          const { getAdminProfile, saveAdminSession } = await import('../lib/adminStorage');
+          const { initializeTestProfiles } = await import('../utils/adminTestProfiles');
+
+          // Get admin profile
+          const adminProfile = getAdminProfile();
+          if (!adminProfile) {
+            console.error('[Auth] Admin profile not found');
+            return false;
+          }
+
+          // Verify credentials
+          if (adminProfile.email.toLowerCase() !== email.toLowerCase()) {
+            console.error('[Auth] Admin email mismatch');
+            return false;
+          }
+
+          const isValid = await verifyPassword(password, adminProfile.passwordHash);
+          if (!isValid) {
+            console.error('[Auth] Admin password incorrect');
+            return false;
+          }
+
+          // Initialize test profiles if not exists
+          await initializeTestProfiles();
+
+          // Update last login
+          adminProfile.lastLogin = new Date().toISOString();
+          localStorage.setItem('get-on-admin-profile', JSON.stringify(adminProfile));
+
+          // Create admin session
+          const session: AdminSession = {
+            adminId: adminProfile.id,
+            adminProfile,
+            impersonatedRole: null,
+            impersonatedProfile: null,
+            sessionStarted: new Date().toISOString(),
+          };
+          saveAdminSession(session);
+
+          // Set auth state
+          set({
+            isAuthenticated: true,
+            userType: 'admin',
+            currentUser: adminProfile,
+            isAdminMode: true,
+            adminProfile,
+            impersonatedRole: undefined,
+            onboardingStep: 0,
+          });
+
+          console.log('[Auth] Admin login successful');
+          return true;
+        } catch (error) {
+          console.error('[Auth] Admin login error:', error);
+          return false;
+        }
+      },
+
+      /**
+       * Switch to a specific user role (admin impersonation)
+       */
+      switchToRole: async (userType: Exclude<UserType, 'admin'>) => {
+        const state = get();
+
+        if (!state.isAdminMode || !state.adminProfile) {
+          console.error('[Auth] Must be in admin mode to switch roles');
+          return;
+        }
+
+        try {
+          const { getTestProfile } = await import('../utils/adminTestProfiles');
+          const { saveAdminSession } = await import('../lib/adminStorage');
+
+          // Get test profile for this role
+          const testProfile = getTestProfile(userType);
+          if (!testProfile) {
+            console.error(`[Auth] No test profile found for role: ${userType}`);
+            return;
+          }
+
+          // Update session
+          const session: AdminSession = {
+            adminId: state.adminProfile.id,
+            adminProfile: state.adminProfile,
+            impersonatedRole: userType,
+            impersonatedProfile: testProfile,
+            sessionStarted: state.adminProfile.lastLogin || new Date().toISOString(),
+          };
+          saveAdminSession(session);
+
+          // Update state
+          set({
+            userType,
+            currentUser: testProfile,
+            impersonatedRole: userType,
+            onboardingStep: 0,
+          });
+
+          console.log(`[Auth] Switched to role: ${userType}`);
+        } catch (error) {
+          console.error('[Auth] Role switch error:', error);
+        }
+      },
+
+      /**
+       * Exit role impersonation and return to admin view
+       */
+      exitRoleSwitch: () => {
+        const state = get();
+
+        if (!state.isAdminMode || !state.adminProfile) {
+          console.error('[Auth] Not in admin mode');
+          return;
+        }
+
+        try {
+          const session: AdminSession = {
+            adminId: state.adminProfile.id,
+            adminProfile: state.adminProfile,
+            impersonatedRole: null,
+            impersonatedProfile: null,
+            sessionStarted: state.adminProfile.lastLogin || new Date().toISOString(),
+          };
+          localStorage.setItem('get-on-admin-session', JSON.stringify(session));
+
+          set({
+            userType: 'admin',
+            currentUser: state.adminProfile,
+            impersonatedRole: undefined,
+          });
+
+          console.log('[Auth] Exited role impersonation');
+        } catch (error) {
+          console.error('[Auth] Exit role switch error:', error);
+        }
+      },
+
+      /**
+       * Check if current user is admin (non-reactive)
+       */
+      isAdmin: () => {
+        const state = get();
+        return state.isAdminMode === true || state.userType === 'admin';
+      },
+
+      /**
+       * Get admin session data
+       */
+      getAdminSession: () => {
+        const sessionJson = localStorage.getItem('get-on-admin-session');
+        if (!sessionJson) return null;
+        return JSON.parse(sessionJson);
       },
     }),
     {
@@ -233,7 +424,9 @@ export const getCurrentUserType = (): UserType | null => {
  */
 export const isOnboardingComplete = (): boolean => {
   const state = useAuthStore.getState();
-  return state.currentUser?.onboardingComplete ?? false;
+  const user = state.currentUser;
+  if (!user || !('onboardingComplete' in user)) return false;
+  return user.onboardingComplete ?? false;
 };
 
 /**
