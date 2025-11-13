@@ -264,10 +264,20 @@ See [tests/e2e/README.md](tests/e2e/README.md) for E2E testing documentation.
 ## 🔐 Admin Access
 
 ### Admin Login
-For development and testing, access the admin portal via hash-based routing:
+For development and testing, access the admin portal using any of these methods:
+
+**Method 1: URL Parameter (Recommended for Vercel)**
+```
+http://localhost:5173/?admin=true
+https://your-app.vercel.app/?admin=true
+```
+
+**Method 2: Hash-based Routing**
 ```
 http://localhost:5173/#/admin-login
 ```
+
+**Method 3: Click "Admin Access" link** on the login page
 
 **Default Credentials:**
 - Email: `admin@geton.com`
@@ -293,13 +303,16 @@ Each role has a pre-populated test profile with realistic, RRA 2025-compliant da
 ⚠️ **For development use only.** See [ADMIN_SECURITY.md](ADMIN_SECURITY.md) for production security requirements.
 
 ### How It Works
-1. Visit `#/admin-login` or click "Admin Access" on login page
+1. Visit `?admin=true` or `#/admin-login` or click "Admin Access" on login page
 2. Enter admin credentials
 3. View role selector dashboard
 4. Click any role card to impersonate that user
 5. Purple admin banner shows at top with "Exit Role" button
 6. Test the platform from that user's perspective
 7. Exit to switch to another role or logout
+
+### Deployment Note
+The URL parameter method (`?admin=true`) is recommended for Vercel and other hosting platforms as it works seamlessly with client-side routing and doesn't require any special server configuration.
 
 ## 🔧 Configuration
 

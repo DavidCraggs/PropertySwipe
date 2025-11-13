@@ -158,7 +158,10 @@ export function LoginPage({ onBack, onLoginSuccess }: LoginPageProps) {
           {/* Admin Access Link */}
           <div className="mt-4 pt-4 border-t border-neutral-200 text-center">
             <button
-              onClick={() => window.location.hash = '#/admin-login'}
+              onClick={() => {
+                // Use URL parameter for cleaner links (works better on Vercel)
+                window.location.href = window.location.pathname + '?admin=true';
+              }}
               className="text-xs text-neutral-500 hover:text-neutral-700 transition-colors inline-flex items-center gap-1"
             >
               <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">

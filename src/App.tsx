@@ -56,11 +56,22 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Run only once on mount
 
-  // Check URL hash for direct admin access
+  // Check URL hash or query parameter for direct admin access
   useEffect(() => {
+    // Check hash-based routing (e.g., #/admin-login)
     const hash = window.location.hash.slice(1); // Remove '#'
     if (hash === '/admin-login' && !isAuthenticated) {
       setCurrentRoute('admin-login');
+      return;
+    }
+
+    // Check URL parameter (e.g., ?admin=true or ?admin=login)
+    const urlParams = new URLSearchParams(window.location.search);
+    const adminParam = urlParams.get('admin');
+    if ((adminParam === 'true' || adminParam === 'login') && !isAuthenticated) {
+      setCurrentRoute('admin-login');
+      // Clean URL by removing the parameter after routing
+      window.history.replaceState({}, '', window.location.pathname + window.location.hash);
     }
   }, [isAuthenticated]);
 
