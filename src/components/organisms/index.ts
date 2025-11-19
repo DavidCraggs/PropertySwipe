@@ -11,3 +11,4 @@ export { BottomNav } from './BottomNav';
 export { ToastContainer, useToast } from './Toast';
 export { PropertyForm } from './PropertyForm';
 export { ImageUploader } from '../molecules/ImageUploader';
+export { RatingModal } from './RatingModal';

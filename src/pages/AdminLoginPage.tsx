@@ -17,6 +17,19 @@ export const AdminLoginPage: React.FC = () => {
   const { loginAsAdmin } = useAuthStore();
   const navigate = useNavigate();
 
+  // Debug: Log environment variable status
+  React.useEffect(() => {
+    console.log('[AdminLogin] Environment Variable Status:');
+    console.log('- VITE_ADMIN_EMAIL set:', !!import.meta.env.VITE_ADMIN_EMAIL);
+    console.log('- VITE_ADMIN_PASSWORD set:', !!import.meta.env.VITE_ADMIN_PASSWORD);
+    console.log('- MODE:', import.meta.env.MODE);
+    console.log('- PROD:', import.meta.env.PROD);
+
+    if (!import.meta.env.VITE_ADMIN_EMAIL) {
+      console.warn('[AdminLogin] WARNING: VITE_ADMIN_EMAIL is missing! Using default credentials.');
+    }
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');

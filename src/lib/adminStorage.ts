@@ -7,20 +7,44 @@ const ADMIN_SESSION_KEY = 'get-on-admin-session';
 /**
  * Initialize the admin profile (run once on first load)
  * In production, this would be in a secure backend
+ * 
+ * IMPORTANT: This function now detects when credentials change
+ * and automatically updates the profile in localStorage
  */
 export const initializeAdminProfile = async (): Promise<void> => {
+  const expectedEmail = import.meta.env.VITE_ADMIN_EMAIL || 'admin@geton.com';
+  const expectedPassword = import.meta.env.VITE_ADMIN_PASSWORD || 'Admin1234!';
+
   const existing = localStorage.getItem(ADMIN_PROFILE_KEY);
+
+  // Check if credentials have changed
   if (existing) {
-    console.log('[Admin] Admin profile already exists');
-    return;
+    try {
+      const existingProfile = JSON.parse(existing) as AdminProfile;
+
+      // If email changed, recreate profile with new credentials
+      if (existingProfile.email !== expectedEmail) {
+        console.log('[Admin] Credentials changed - updating profile');
+        console.log('[Admin] Old email:', existingProfile.email);
+        console.log('[Admin] New email:', expectedEmail);
+        localStorage.removeItem(ADMIN_PROFILE_KEY);
+        // Continue to create new profile below
+      } else {
+        console.log('[Admin] Admin profile already exists');
+        return;
+      }
+    } catch (error) {
+      console.error('[Admin] Error parsing existing profile, recreating:', error);
+      localStorage.removeItem(ADMIN_PROFILE_KEY);
+      // Continue to create new profile below
+    }
   }
 
-  // Create default admin profile
-  // In production: use environment variables and secure backend
+  // Create or recreate admin profile
   const adminProfile: AdminProfile = {
     id: 'admin-001',
-    email: import.meta.env.VITE_ADMIN_EMAIL || 'admin@geton.com',
-    passwordHash: await hashPassword(import.meta.env.VITE_ADMIN_PASSWORD || 'Admin1234!'),
+    email: expectedEmail,
+    passwordHash: await hashPassword(expectedPassword),
     name: 'Admin User',
     role: 'admin',
     permissions: ['role_switching', 'view_all_users', 'modify_users', 'system_settings'],
@@ -28,7 +52,7 @@ export const initializeAdminProfile = async (): Promise<void> => {
   };
 
   localStorage.setItem(ADMIN_PROFILE_KEY, JSON.stringify(adminProfile));
-  console.log('[Admin] Admin profile initialized');
+  console.log('[Admin] Admin profile initialized with email:', expectedEmail);
 };
 
 /**

@@ -13,6 +13,7 @@ import {
   createAgencyPropertyLink,
   createAgencyInvitation,
   terminateAgencyPropertyLink,
+  getAgencyProfile,
 } from '../../lib/storage';
 
 interface AgencyLinkManagerProps {
@@ -35,6 +36,7 @@ export function AgencyLinkManager({
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'invitations' | 'links'>('invitations');
   const [showNewInvitationModal, setShowNewInvitationModal] = useState(false);
+  const [agencyNames, setAgencyNames] = useState<Map<string, string>>(new Map());
 
   // Load invitations and links
   useEffect(() => {
@@ -50,6 +52,26 @@ export function AgencyLinkManager({
       ]);
       setInvitations(invitationsData);
       setActiveLinks(linksData.filter(link => link.isActive));
+
+      // Fetch agency names for all unique agency IDs
+      const agencyIds = new Set<string>();
+      invitationsData.forEach(inv => agencyIds.add(inv.agencyId));
+      linksData.forEach(link => agencyIds.add(link.agencyId));
+
+      const namesMap = new Map<string, string>();
+      await Promise.all(
+        Array.from(agencyIds).map(async (agencyId) => {
+          try {
+            const agency = await getAgencyProfile(agencyId);
+            if (agency) {
+              namesMap.set(agencyId, agency.companyName);
+            }
+          } catch (error) {
+            console.error(`[AgencyLinkManager] Error fetching agency ${agencyId}:`, error);
+          }
+        })
+      );
+      setAgencyNames(namesMap);
     } catch (error) {
       console.error('[AgencyLinkManager] Error loading data:', error);
     } finally {
@@ -249,11 +271,10 @@ export function AgencyLinkManager({
       <div className="flex gap-2 mb-6 border-b border-neutral-200">
         <button
           onClick={() => setActiveTab('invitations')}
-          className={`px-4 py-2 font-medium transition-colors relative ${
-            activeTab === 'invitations'
+          className={`px-4 py-2 font-medium transition-colors relative ${activeTab === 'invitations'
               ? 'text-primary-600'
               : 'text-neutral-600 hover:text-neutral-900'
-          }`}
+            }`}
         >
           Invitations
           {pendingInvitations.length > 0 && (
@@ -270,11 +291,10 @@ export function AgencyLinkManager({
         </button>
         <button
           onClick={() => setActiveTab('links')}
-          className={`px-4 py-2 font-medium transition-colors relative ${
-            activeTab === 'links'
+          className={`px-4 py-2 font-medium transition-colors relative ${activeTab === 'links'
               ? 'text-primary-600'
               : 'text-neutral-600 hover:text-neutral-900'
-          }`}
+            }`}
         >
           Active Links ({activeLinks.length})
           {activeTab === 'links' && (
@@ -308,7 +328,7 @@ export function AgencyLinkManager({
                       key={invitation.id}
                       invitation={invitation}
                       propertyAddress={getPropertyAddress(invitation.propertyId)}
-                      agencyName="Agency Name" // TODO: Fetch from agency profile
+                      agencyName={agencyNames.get(invitation.agencyId) || `Agency ${invitation.agencyId.substring(0, 8)}...`}
                       viewerType="landlord"
                       onAccept={handleAcceptInvitation}
                       onDecline={handleDeclineInvitation}
@@ -331,7 +351,7 @@ export function AgencyLinkManager({
                       key={invitation.id}
                       invitation={invitation}
                       propertyAddress={getPropertyAddress(invitation.propertyId)}
-                      agencyName="Agency Name" // TODO: Fetch from agency profile
+                      agencyName={agencyNames.get(invitation.agencyId) || `Agency ${invitation.agencyId.substring(0, 8)}...`}
                       viewerType="landlord"
                     />
                   ))}

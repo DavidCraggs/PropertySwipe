@@ -1,15 +1,43 @@
+import { useState, useEffect } from 'react';
 import { User, TrendingUp, Heart, X, Home, LogOut, ShoppingBag, MapPin, CreditCard, Users } from 'lucide-react';
 import { Button } from '../components/atoms/Button';
 import { useAppStore } from '../hooks';
 import { useAuthStore } from '../hooks/useAuthStore';
 import { useToastStore } from '../components/organisms/Toast';
-import type { RenterProfile, LandlordProfile } from '../types';
+import { RatingsSummaryCard } from '../components/molecules/RatingsSummaryCard';
+import type { RenterProfile, LandlordProfile, UserRatingsSummary } from '../types';
+import { calculateUserRatingsSummary } from '../utils/ratingCalculations';
 
 export const ProfilePage: React.FC = () => {
-  const { getStats, resetApp } = useAppStore();
+  const { getStats, resetApp, getUserRatings } = useAppStore();
   const { currentUser, userType, logout } = useAuthStore();
   const { addToast } = useToastStore();
   const stats = getStats();
+  const [ratingsSummary, setRatingsSummary] = useState<UserRatingsSummary | null>(null);
+  const [isLoadingRatings, setIsLoadingRatings] = useState(true);
+
+  // Load user ratings on mount
+  useEffect(() => {
+    const loadRatings = async () => {
+      if (!currentUser || !userType) {
+        setIsLoadingRatings(false);
+        return;
+      }
+
+      try {
+        setIsLoadingRatings(true);
+        const ratings = await getUserRatings(currentUser.id, userType === 'renter' ? 'renter' : 'landlord');
+        const summary = calculateUserRatingsSummary(ratings, currentUser.id, userType);
+        setRatingsSummary(summary);
+      } catch (error) {
+        console.error('Failed to load ratings:', error);
+      } finally {
+        setIsLoadingRatings(false);
+      }
+    };
+
+    loadRatings();
+  }, [currentUser, userType, getUserRatings]);
 
   const handleLogout = () => {
     if (confirm('Are you sure you want to log out?')) {
@@ -96,6 +124,26 @@ export const ProfilePage: React.FC = () => {
             </div>
           </div>
         </div>
+
+        {/* Ratings Summary - Show for renters and landlords only */}
+        {!isAgency && (
+          <div>
+            {isLoadingRatings ? (
+              <div className="bg-white rounded-2xl shadow-sm p-6">
+                <div className="animate-pulse">
+                  <div className="h-6 bg-neutral-200 rounded w-1/3 mb-4"></div>
+                  <div className="h-20 bg-neutral-200 rounded"></div>
+                </div>
+              </div>
+            ) : (
+              <RatingsSummaryCard
+                summary={ratingsSummary}
+                userType={userType === 'renter' ? 'renter' : 'landlord'}
+                showDetails={true}
+              />
+            )}
+          </div>
+        )}
 
         {/* Statistics */}
         <div className="bg-white rounded-2xl shadow-sm p-6">

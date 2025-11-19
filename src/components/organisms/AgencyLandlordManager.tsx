@@ -13,6 +13,7 @@ import {
   createAgencyPropertyLink,
   createAgencyInvitation,
   terminateAgencyPropertyLink,
+  getLandlordProfile,
 } from '../../lib/storage';
 
 interface AgencyLandlordManagerProps {
@@ -35,6 +36,7 @@ export function AgencyLandlordManager({
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'invitations' | 'links'>('invitations');
   const [showNewInvitationModal, setShowNewInvitationModal] = useState(false);
+  const [landlordNames, setLandlordNames] = useState<Map<string, string>>(new Map());
 
   // Load invitations and links
   useEffect(() => {
@@ -50,6 +52,26 @@ export function AgencyLandlordManager({
       ]);
       setInvitations(invitationsData);
       setActiveLinks(linksData.filter(link => link.isActive));
+
+      // Fetch landlord names for all unique landlord IDs
+      const landlordIds = new Set<string>();
+      invitationsData.forEach(inv => landlordIds.add(inv.landlordId));
+      linksData.forEach(link => landlordIds.add(link.landlordId));
+
+      const namesMap = new Map<string, string>();
+      await Promise.all(
+        Array.from(landlordIds).map(async (landlordId) => {
+          try {
+            const landlord = await getLandlordProfile(landlordId);
+            if (landlord) {
+              namesMap.set(landlordId, landlord.names);
+            }
+          } catch (error) {
+            console.error(`[AgencyLandlordManager] Error fetching landlord ${landlordId}:`, error);
+          }
+        })
+      );
+      setLandlordNames(namesMap);
     } catch (error) {
       console.error('[AgencyLandlordManager] Error loading data:', error);
     } finally {
@@ -245,11 +267,10 @@ export function AgencyLandlordManager({
       <div className="flex gap-2 mb-6 border-b border-neutral-200">
         <button
           onClick={() => setActiveTab('invitations')}
-          className={`px-4 py-2 font-medium transition-colors relative ${
-            activeTab === 'invitations'
+          className={`px-4 py-2 font-medium transition-colors relative ${activeTab === 'invitations'
               ? 'text-primary-600'
               : 'text-neutral-600 hover:text-neutral-900'
-          }`}
+            }`}
         >
           Invitations
           {pendingInvitations.length > 0 && (
@@ -266,11 +287,10 @@ export function AgencyLandlordManager({
         </button>
         <button
           onClick={() => setActiveTab('links')}
-          className={`px-4 py-2 font-medium transition-colors relative ${
-            activeTab === 'links'
+          className={`px-4 py-2 font-medium transition-colors relative ${activeTab === 'links'
               ? 'text-primary-600'
               : 'text-neutral-600 hover:text-neutral-900'
-          }`}
+            }`}
         >
           Active Links ({activeLinks.length})
           {activeTab === 'links' && (
@@ -303,7 +323,7 @@ export function AgencyLandlordManager({
                     <AgencyInvitationCard
                       key={invitation.id}
                       invitation={invitation}
-                      landlordName="Landlord Name" // TODO: Fetch from landlord profile
+                      landlordName={landlordNames.get(invitation.landlordId) || `Landlord ${invitation.landlordId.substring(0, 8)}...`}
                       agencyName="Your Agency"
                       viewerType="agency"
                       onAccept={handleAcceptInvitation}
@@ -326,7 +346,7 @@ export function AgencyLandlordManager({
                     <AgencyInvitationCard
                       key={invitation.id}
                       invitation={invitation}
-                      landlordName="Landlord Name" // TODO: Fetch from landlord profile
+                      landlordName={landlordNames.get(invitation.landlordId) || `Landlord ${invitation.landlordId.substring(0, 8)}...`}
                       agencyName="Your Agency"
                       viewerType="agency"
                     />

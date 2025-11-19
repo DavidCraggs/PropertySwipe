@@ -1,7 +1,7 @@
 /**
  * Phase 8: Email Notification Service
  * Handles sending email notifications for messages and issues
- * Supports SendGrid, AWS SES, or Resend API integration
+ * Integrated with SendGrid for production email delivery
  *
  * Per user requirements: Messages "go via an internal message system but also
  * get emailed out as well for visibility"
@@ -11,13 +11,14 @@ import type { EmailNotification, EmailNotificationType, Issue, Match } from '../
 
 /**
  * Email service configuration
- * In production, these would come from environment variables
+ * Configuration comes from environment variables
  */
 interface EmailConfig {
   provider: 'sendgrid' | 'aws-ses' | 'resend' | 'mock';
   apiKey?: string;
   fromEmail: string;
   fromName: string;
+  isDevelopment: boolean;
 }
 
 /**
@@ -61,14 +62,49 @@ interface SLAAlertEmailData {
 }
 
 /**
+ * Rate limiter for email sending
+ */
+class RateLimiter {
+  private requests: number[] = [];
+  private readonly maxRequests: number;
+  private readonly windowMs: number;
+
+  constructor(maxRequests: number = 100, windowMs: number = 3600000) {
+    this.maxRequests = maxRequests;
+    this.windowMs = windowMs;
+  }
+
+  canSend(): boolean {
+    const now = Date.now();
+    // Remove old requests outside the window
+    this.requests = this.requests.filter(time => now - time < this.windowMs);
+
+    if (this.requests.length >= this.maxRequests) {
+      return false;
+    }
+
+    this.requests.push(now);
+    return true;
+  }
+
+  getRemaining(): number {
+    const now = Date.now();
+    this.requests = this.requests.filter(time => now - time < this.windowMs);
+    return Math.max(0, this.maxRequests - this.requests.length);
+  }
+}
+
+/**
  * EmailService class - handles all email notifications
  */
 export class EmailService {
   private config: EmailConfig;
   private notificationQueue: EmailNotification[] = [];
+  private rateLimiter: RateLimiter;
 
   constructor(config: EmailConfig) {
     this.config = config;
+    this.rateLimiter = new RateLimiter(100, 3600000); // 100 emails per hour
   }
 
   /**
@@ -84,8 +120,8 @@ export class EmailService {
       recipientType === 'renter'
         ? 'new_message_renter'
         : recipientType === 'landlord'
-        ? 'new_message_landlord'
-        : 'new_message_agency';
+          ? 'new_message_landlord'
+          : 'new_message_agency';
 
     const subject = `New message from ${data.senderName} - ${data.propertyAddress}`;
 
@@ -188,7 +224,7 @@ export class EmailService {
 
   /**
    * Queue an email for sending
-   * In production, this would integrate with actual email provider
+   * Handles rate limiting and provider selection
    */
   private async queueEmail(params: {
     type: EmailNotificationType;
@@ -211,57 +247,176 @@ export class EmailService {
     // Add to queue
     this.notificationQueue.push(notification);
 
-    // In production, send via email provider
-    if (this.config.provider === 'mock') {
-      // Mock implementation - log to console
-      console.log('[EmailService] Mock email queued:', {
+    // Check rate limit
+    if (!this.rateLimiter.canSend()) {
+      console.warn('[EmailService] Rate limit exceeded. Remaining:', this.rateLimiter.getRemaining());
+      notification.status = 'failed';
+      notification.failureReason = 'Rate limit exceeded (100 emails/hour)';
+      return notification;
+    }
+
+    // Development mode - log instead of sending
+    if (this.config.isDevelopment || this.config.provider === 'mock') {
+      console.log('[EmailService] Development mode - Email logged:', {
         to: params.recipientEmail,
         subject: params.subject,
         type: params.type,
       });
-
-      // Simulate successful send
       notification.status = 'sent';
       notification.sentAt = new Date();
-    } else {
-      // Real implementation would call email provider API here
+      return notification;
+    }
+
+    // Production - send via provider
+    try {
       await this.sendViaProvider(notification);
+    } catch (error) {
+      console.error('[EmailService] Failed to send email:', error);
+      notification.status = 'failed';
+      notification.failureReason = error instanceof Error ? error.message : 'Unknown error';
     }
 
     return notification;
   }
 
   /**
-   * Send email via configured provider (SendGrid/AWS SES/Resend)
-   * Placeholder for actual integration
+   * Send email via configured provider with retry logic
    */
   private async sendViaProvider(notification: EmailNotification): Promise<void> {
-    // TODO: Integrate with actual email provider
-    // Example for SendGrid:
-    // const sgMail = require('@sendgrid/mail');
-    // sgMail.setApiKey(this.config.apiKey);
-    // await sgMail.send({
-    //   to: notification.recipientEmail,
-    //   from: { email: this.config.fromEmail, name: this.config.fromName },
-    //   subject: notification.subject,
-    //   html: notification.bodyHtml,
-    //   text: notification.bodyText,
-    // });
+    const maxRetries = 3;
+    let lastError: Error | null = null;
 
-    console.log(`[EmailService] Would send email via ${this.config.provider}:`, {
-      to: notification.recipientEmail,
-      subject: notification.subject,
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        if (this.config.provider === 'sendgrid') {
+          await this.sendViaSendGrid(notification);
+        } else if (this.config.provider === 'aws-ses') {
+          await this.sendViaAWSSES(notification);
+        } else if (this.config.provider === 'resend') {
+          await this.sendViaResend(notification);
+        } else {
+          throw new Error(`Unsupported email provider: ${this.config.provider}`);
+        }
+
+        // Success
+        notification.status = 'sent';
+        notification.sentAt = new Date();
+        console.log(`[EmailService] Email sent successfully via ${this.config.provider}:`, {
+          to: notification.recipientEmail,
+          subject: notification.subject,
+          attempt,
+        });
+        return;
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error('Unknown error');
+        console.error(`[EmailService] Attempt ${attempt}/${maxRetries} failed:`, lastError.message);
+
+        // Wait before retry (exponential backoff)
+        if (attempt < maxRetries) {
+          const delay = Math.pow(2, attempt) * 1000; // 2s, 4s, 8s
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
+    }
+
+    // All retries failed
+    throw lastError || new Error('Failed to send email after retries');
+  }
+
+  /**
+   * Send email via SendGrid API
+   */
+  private async sendViaSendGrid(notification: EmailNotification): Promise<void> {
+    if (!this.config.apiKey) {
+      throw new Error('SendGrid API key not configured');
+    }
+
+    const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${this.config.apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        personalizations: [
+          {
+            to: [{ email: notification.recipientEmail, name: notification.recipientName }],
+            subject: notification.subject,
+          },
+        ],
+        from: {
+          email: this.config.fromEmail,
+          name: this.config.fromName,
+        },
+        content: [
+          {
+            type: 'text/plain',
+            value: notification.bodyText,
+          },
+          {
+            type: 'text/html',
+            value: notification.bodyHtml,
+          },
+        ],
+        // Add unsubscribe link
+        tracking_settings: {
+          subscription_tracking: {
+            enable: true,
+            substitution_tag: '[unsubscribe]',
+          },
+        },
+      }),
     });
 
-    notification.status = 'sent';
-    notification.sentAt = new Date();
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`SendGrid API error: ${response.status} - ${error}`);
+    }
+  }
+
+  /**
+   * Send email via AWS SES API
+   */
+  private async sendViaAWSSES(_notification: EmailNotification): Promise<void> {
+    // Placeholder for AWS SES implementation
+    // Would require AWS SDK and proper authentication
+    throw new Error('AWS SES integration not yet implemented');
+  }
+
+  /**
+   * Send email via Resend API
+   */
+  private async sendViaResend(notification: EmailNotification): Promise<void> {
+    if (!this.config.apiKey) {
+      throw new Error('Resend API key not configured');
+    }
+
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${this.config.apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: `${this.config.fromName} <${this.config.fromEmail}>`,
+        to: [notification.recipientEmail],
+        subject: notification.subject,
+        html: notification.bodyHtml,
+        text: notification.bodyText,
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Resend API error: ${response.status} - ${error}`);
+    }
   }
 
   /**
    * Get recipient email from match based on recipient type
    */
   private getRecipientEmail(_match: Match, recipientType: 'renter' | 'landlord' | 'agency'): string {
-    // TODO: Fetch actual email from user profiles
+    // In production, fetch actual email from user profiles
     // For now, return placeholder
     return `${recipientType}@example.com`;
   }
@@ -305,8 +460,9 @@ export class EmailService {
     </div>
 
     <p style="font-size: 12px; color: #999; margin-top: 30px; text-align: center;">
-      PropertySwipe - Making Renting Better<br>
-      You're receiving this because messages are automatically emailed for visibility.
+      GetOn - Making Renting Better<br>
+      You're receiving this because messages are automatically emailed for visibility.<br>
+      <a href="[unsubscribe]" style="color: #999;">Unsubscribe</a>
     </p>
   </div>
 </body>
@@ -364,8 +520,9 @@ export class EmailService {
     </div>
 
     <p style="font-size: 12px; color: #999; margin-top: 30px; text-align: center;">
-      PropertySwipe Issue Management<br>
-      Please respond according to your SLA commitments.
+      GetOn Issue Management<br>
+      Please respond according to your SLA commitments.<br>
+      <a href="[unsubscribe]" style="color: #999;">Unsubscribe</a>
     </p>
   </div>
 </body>
@@ -412,7 +569,8 @@ export class EmailService {
     </div>
 
     <p style="font-size: 12px; color: #999; margin-top: 30px; text-align: center;">
-      PropertySwipe Issue Management
+      GetOn Issue Management<br>
+      <a href="[unsubscribe]" style="color: #999;">Unsubscribe</a>
     </p>
   </div>
 </body>
@@ -469,8 +627,9 @@ export class EmailService {
     </div>
 
     <p style="font-size: 12px; color: #999; margin-top: 30px; text-align: center;">
-      PropertySwipe SLA Monitoring<br>
-      ${data.isBreached ? 'Immediate action required to maintain service standards.' : 'Please respond within the SLA timeframe.'}
+      GetOn SLA Monitoring<br>
+      ${data.isBreached ? 'Immediate action required to maintain service standards.' : 'Please respond within the SLA timeframe.'}<br>
+      <a href="[unsubscribe]" style="color: #999;">Unsubscribe</a>
     </p>
   </div>
 </body>
@@ -496,8 +655,9 @@ ${data.messagePreview}
 View full message: ${data.viewUrl}
 
 ---
-PropertySwipe - Making Renting Better
+GetOn - Making Renting Better
 You're receiving this because messages are automatically emailed for visibility.
+To unsubscribe, visit: [unsubscribe]
     `.trim();
   }
 
@@ -521,8 +681,9 @@ Property: ${data.propertyAddress}
 View and respond: ${data.viewUrl}
 
 ---
-PropertySwipe Issue Management
+GetOn Issue Management
 Please respond according to your SLA commitments.
+To unsubscribe, visit: [unsubscribe]
     `.trim();
   }
 
@@ -542,7 +703,8 @@ ${data.updateNotes ? `Notes: ${data.updateNotes}` : ''}
 View issue details: ${data.viewUrl}
 
 ---
-PropertySwipe Issue Management
+GetOn Issue Management
+To unsubscribe, visit: [unsubscribe]
     `.trim();
   }
 
@@ -553,8 +715,8 @@ ${data.isBreached ? 'SLA BREACHED' : 'SLA Approaching'}
 Hi ${data.recipientName},
 
 ${data.isBreached
-  ? 'URGENT: An issue has exceeded its SLA deadline.'
-  : 'An issue is approaching its SLA deadline and requires your attention.'}
+        ? 'URGENT: An issue has exceeded its SLA deadline.'
+        : 'An issue is approaching its SLA deadline and requires your attention.'}
 
 Subject: ${data.issueSubject}
 SLA Deadline: ${data.slaDeadline.toLocaleString()}
@@ -563,21 +725,24 @@ ${data.isBreached ? 'Overdue by:' : 'Time remaining:'} ${data.timeRemaining}
 Take action now: ${data.viewUrl}
 
 ---
-PropertySwipe SLA Monitoring
+GetOn SLA Monitoring
 ${data.isBreached ? 'Immediate action required to maintain service standards.' : 'Please respond within the SLA timeframe.'}
+To unsubscribe, visit: [unsubscribe]
     `.trim();
   }
 }
 
 /**
  * Create a default EmailService instance
- * Uses mock provider for development
+ * Configuration from environment variables
  */
 export function createEmailService(config?: Partial<EmailConfig>): EmailService {
   const defaultConfig: EmailConfig = {
-    provider: 'mock',
-    fromEmail: 'noreply@propertyswipe.com',
-    fromName: 'PropertySwipe',
+    provider: (import.meta.env.VITE_EMAIL_PROVIDER as EmailConfig['provider']) || 'mock',
+    apiKey: import.meta.env.VITE_EMAIL_API_KEY,
+    fromEmail: import.meta.env.VITE_EMAIL_FROM || 'noreply@geton.app',
+    fromName: import.meta.env.VITE_EMAIL_FROM_NAME || 'GetOn',
+    isDevelopment: import.meta.env.DEV || false,
     ...config,
   };
 

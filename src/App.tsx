@@ -87,6 +87,11 @@ function App() {
       return;
     }
 
+    // Don't override admin-login route if user is trying to access admin
+    if (currentRoute === 'admin-login') {
+      return;
+    }
+
     // Normal user routing
     if (isAuthenticated && currentUser && 'onboardingComplete' in currentUser && currentUser.onboardingComplete) {
       setCurrentRoute('app');
@@ -110,7 +115,7 @@ function App() {
         setCurrentRoute('welcome');
       }
     }
-  }, [isAuthenticated, currentUser, userType, isAdminMode, impersonatedRole]);
+  }, [isAuthenticated, currentUser, userType, isAdminMode, impersonatedRole, currentRoute]);
 
   const handleGetStarted = () => {
     localStorage.setItem('get-on-has-visited', 'true');
@@ -143,8 +148,8 @@ function App() {
       message: isRenter
         ? 'Start swiping to find your perfect rental'
         : isAgency
-        ? 'Your agency profile is ready - start managing properties'
-        : 'You can now connect with interested renters',
+          ? 'Your agency profile is ready - start managing properties'
+          : 'You can now connect with interested renters',
       duration: 5000,
     });
   };

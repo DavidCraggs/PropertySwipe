@@ -1,21 +1,35 @@
 import { useState } from 'react';
-import { Heart, MessageCircle, MapPin, Calendar, Clock, CheckCircle } from 'lucide-react';
-import { useAppStore } from '../hooks';
+import { Heart, MessageCircle, MapPin, Calendar, Clock, CheckCircle, Star } from 'lucide-react';
+import { useAppStore, useAuthStore } from '../hooks';
 import { formatRelativeTime } from '../utils/formatters';
 import { Badge } from '../components/atoms/Badge';
 import { ViewingsList } from '../components/organisms/ViewingsList';
+import { RatingModal } from '../components/organisms/RatingModal';
+import type { Match } from '../types';
 
 type TabType = 'matches' | 'viewings';
 
 export const MatchesPage: React.FC = () => {
-  const { matches } = useAppStore();
+  const { matches, submitRating } = useAppStore();
+  const { userType } = useAuthStore();
   const [selectedMatch, setSelectedMatch] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>('matches');
+  const [ratingModalMatch, setRatingModalMatch] = useState<Match | null>(null);
+  const [ratingType, setRatingType] = useState<'landlord' | 'renter'>('landlord');
 
   // Sort matches by most recent
   const sortedMatches = [...matches].sort(
     (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
   );
+
+  const handleOpenRatingModal = (match: Match, type: 'landlord' | 'renter') => {
+    setRatingModalMatch(match);
+    setRatingType(type);
+  };
+
+  const handleCloseRatingModal = () => {
+    setRatingModalMatch(null);
+  };
 
   if (matches.length === 0) {
     return (
@@ -53,22 +67,20 @@ export const MatchesPage: React.FC = () => {
           <div className="flex gap-2 mt-4">
             <button
               onClick={() => setActiveTab('matches')}
-              className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-lg font-medium transition-all ${
-                activeTab === 'matches'
-                  ? 'bg-primary-500 text-white shadow-sm'
-                  : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
-              }`}
+              className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-lg font-medium transition-all ${activeTab === 'matches'
+                ? 'bg-primary-500 text-white shadow-sm'
+                : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                }`}
             >
               <Heart className="w-4 h-4" />
               Matches
             </button>
             <button
               onClick={() => setActiveTab('viewings')}
-              className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-lg font-medium transition-all ${
-                activeTab === 'viewings'
-                  ? 'bg-primary-500 text-white shadow-sm'
-                  : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
-              }`}
+              className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-lg font-medium transition-all ${activeTab === 'viewings'
+                ? 'bg-primary-500 text-white shadow-sm'
+                : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
+                }`}
             >
               <Calendar className="w-4 h-4" />
               Viewings
@@ -81,124 +93,172 @@ export const MatchesPage: React.FC = () => {
         {/* Matches Tab */}
         {activeTab === 'matches' && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {sortedMatches.map((match) => {
-            const unreadCount = match.unreadCount || 0;
-            const lastMessage = match.messages[match.messages.length - 1];
+            {sortedMatches.map((match) => {
+              const unreadCount = match.unreadCount || 0;
+              const lastMessage = match.messages[match.messages.length - 1];
 
-            return (
-              <div
-                key={match.id}
-                className="bg-white rounded-2xl shadow-sm overflow-hidden hover:shadow-md transition-shadow cursor-pointer group"
-                onClick={() => setSelectedMatch(match.id)}
-              >
-                {/* Property Image */}
-                <div className="relative h-48 bg-neutral-200">
-                  <img
-                    src={match.property.images[0]}
-                    alt={match.property.address.street}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                  {unreadCount > 0 && (
-                    <div className="absolute top-3 right-3 w-8 h-8 bg-danger-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
-                      {unreadCount}
-                    </div>
-                  )}
-                  <div className="absolute top-3 left-3 flex flex-col gap-2">
-                    <Badge variant="success" size="sm">
-                      ✨ Match!
-                    </Badge>
-                    {match.hasViewingScheduled && match.confirmedViewingDate && (
+              // Determine if user can rate and hasn't rated yet
+              const canRateAsRenter = userType === 'renter' && match.canRate && !match.hasRenterRated && match.tenancyStatus === 'ended';
+              const canRateAsLandlord = userType === 'landlord' && match.canRate && !match.hasLandlordRated && match.tenancyStatus === 'ended';
+              const hasRatedAsRenter = userType === 'renter' && match.hasRenterRated;
+              const hasRatedAsLandlord = userType === 'landlord' && match.hasLandlordRated;
+
+              return (
+                <div
+                  key={match.id}
+                  className="bg-white rounded-2xl shadow-sm overflow-hidden hover:shadow-md transition-shadow cursor-pointer group"
+                  onClick={() => setSelectedMatch(match.id)}
+                >
+                  {/* Property Image */}
+                  <div className="relative h-48 bg-neutral-200">
+                    <img
+                      src={match.property.images[0]}
+                      alt={match.property.address.street}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                    {unreadCount > 0 && (
+                      <div className="absolute top-3 right-3 w-8 h-8 bg-danger-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
+                        {unreadCount}
+                      </div>
+                    )}
+                    <div className="absolute top-3 left-3 flex flex-col gap-2">
                       <Badge variant="success" size="sm">
-                        <CheckCircle className="w-3 h-3 mr-1" />
-                        Viewing Confirmed
+                        ✨ Match!
                       </Badge>
+                      {match.hasViewingScheduled && match.confirmedViewingDate && (
+                        <Badge variant="success" size="sm">
+                          <CheckCircle className="w-3 h-3 mr-1" />
+                          Viewing Confirmed
+                        </Badge>
+                      )}
+                      {match.viewingPreference && !match.hasViewingScheduled && (
+                        <Badge variant="secondary" size="sm">
+                          <Clock className="w-3 h-3 mr-1" />
+                          Viewing Pending
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Property Info */}
+                  <div className="p-4">
+                    <div className="text-2xl font-bold text-neutral-900 mb-1">
+                      £{match.property.rentPcm.toLocaleString()} <span className="text-lg font-medium text-neutral-600">pcm</span>
+                    </div>
+                    <div className="flex items-start gap-2 text-neutral-600 mb-3">
+                      <MapPin size={16} className="flex-shrink-0 mt-0.5" />
+                      <span className="text-sm">{match.property.address.street}</span>
+                    </div>
+
+                    {/* Viewing Info */}
+                    {match.hasViewingScheduled && match.confirmedViewingDate && (
+                      <div className="bg-success-50 border border-success-200 rounded-lg p-3 mb-3">
+                        <div className="flex items-center gap-2 text-success-700 mb-1">
+                          <Calendar size={14} />
+                          <span className="text-xs font-medium">Viewing Scheduled</span>
+                        </div>
+                        <p className="text-sm font-semibold text-success-900">
+                          {new Date(match.confirmedViewingDate).toLocaleDateString('en-GB', {
+                            weekday: 'short',
+                            day: 'numeric',
+                            month: 'short',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </p>
+                      </div>
                     )}
                     {match.viewingPreference && !match.hasViewingScheduled && (
-                      <Badge variant="secondary" size="sm">
-                        <Clock className="w-3 h-3 mr-1" />
-                        Viewing Pending
-                      </Badge>
+                      <div className="bg-secondary-50 border border-secondary-200 rounded-lg p-3 mb-3">
+                        <div className="flex items-center gap-2 text-secondary-700 mb-1">
+                          <Clock size={14} />
+                          <span className="text-xs font-medium">Viewing Request Sent</span>
+                        </div>
+                        <p className="text-xs text-secondary-900">
+                          {match.viewingPreference.flexibility} • {match.viewingPreference.preferredTimes.length} time{match.viewingPreference.preferredTimes.length !== 1 ? 's' : ''}
+                        </p>
+                      </div>
                     )}
-                  </div>
-                </div>
 
-                {/* Property Info */}
-                <div className="p-4">
-                  <div className="text-2xl font-bold text-neutral-900 mb-1">
-                    £{match.property.rentPcm.toLocaleString()} <span className="text-lg font-medium text-neutral-600">pcm</span>
-                  </div>
-                  <div className="flex items-start gap-2 text-neutral-600 mb-3">
-                    <MapPin size={16} className="flex-shrink-0 mt-0.5" />
-                    <span className="text-sm">{match.property.address.street}</span>
-                  </div>
-
-                  {/* Viewing Info */}
-                  {match.hasViewingScheduled && match.confirmedViewingDate && (
-                    <div className="bg-success-50 border border-success-200 rounded-lg p-3 mb-3">
-                      <div className="flex items-center gap-2 text-success-700 mb-1">
-                        <Calendar size={14} />
-                        <span className="text-xs font-medium">Viewing Scheduled</span>
+                    {/* Last Message Preview */}
+                    {lastMessage && (
+                      <div className="bg-neutral-50 rounded-lg p-3 mb-3">
+                        <p className="text-xs text-neutral-500 mb-1">
+                          {lastMessage.senderType === 'landlord' ? 'Landlord' : 'You'}
+                        </p>
+                        <p className="text-sm text-neutral-700 line-clamp-2">
+                          {lastMessage.content}
+                        </p>
+                        <p className="text-xs text-neutral-400 mt-1">
+                          {formatRelativeTime(lastMessage.timestamp)}
+                        </p>
                       </div>
-                      <p className="text-sm font-semibold text-success-900">
-                        {new Date(match.confirmedViewingDate).toLocaleDateString('en-GB', {
-                          weekday: 'short',
-                          day: 'numeric',
-                          month: 'short',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
-                      </p>
-                    </div>
-                  )}
-                  {match.viewingPreference && !match.hasViewingScheduled && (
-                    <div className="bg-secondary-50 border border-secondary-200 rounded-lg p-3 mb-3">
-                      <div className="flex items-center gap-2 text-secondary-700 mb-1">
-                        <Clock size={14} />
-                        <span className="text-xs font-medium">Viewing Request Sent</span>
+                    )}
+
+                    {/* Rating Section - Show for completed tenancies */}
+                    {match.tenancyStatus === 'ended' && (
+                      <div className="mb-3">
+                        {canRateAsRenter && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenRatingModal(match, 'landlord');
+                            }}
+                            className="w-full flex items-center justify-center gap-2 bg-warning-500 hover:bg-warning-600 text-white py-2 px-4 rounded-lg transition-colors font-medium"
+                          >
+                            <Star size={18} />
+                            Rate Landlord
+                          </button>
+                        )}
+                        {canRateAsLandlord && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenRatingModal(match, 'renter');
+                            }}
+                            className="w-full flex items-center justify-center gap-2 bg-warning-500 hover:bg-warning-600 text-white py-2 px-4 rounded-lg transition-colors font-medium"
+                          >
+                            <Star size={18} />
+                            Rate Tenant
+                          </button>
+                        )}
+                        {hasRatedAsRenter && (
+                          <div className="w-full flex items-center justify-center gap-2 bg-success-100 text-success-700 py-2 px-4 rounded-lg font-medium">
+                            <CheckCircle size={18} />
+                            Rated ✓
+                          </div>
+                        )}
+                        {hasRatedAsLandlord && (
+                          <div className="w-full flex items-center justify-center gap-2 bg-success-100 text-success-700 py-2 px-4 rounded-lg font-medium">
+                            <CheckCircle size={18} />
+                            Rated ✓
+                          </div>
+                        )}
                       </div>
-                      <p className="text-xs text-secondary-900">
-                        {match.viewingPreference.flexibility} • {match.viewingPreference.preferredTimes.length} time{match.viewingPreference.preferredTimes.length !== 1 ? 's' : ''}
-                      </p>
-                    </div>
-                  )}
+                    )}
 
-                  {/* Last Message Preview */}
-                  {lastMessage && (
-                    <div className="bg-neutral-50 rounded-lg p-3 mb-3">
-                      <p className="text-xs text-neutral-500 mb-1">
-                        {lastMessage.senderType === 'landlord' ? 'Landlord' : 'You'}
-                      </p>
-                      <p className="text-sm text-neutral-700 line-clamp-2">
-                        {lastMessage.content}
-                      </p>
-                      <p className="text-xs text-neutral-400 mt-1">
-                        {formatRelativeTime(lastMessage.timestamp)}
-                      </p>
-                    </div>
-                  )}
+                    {/* Action Button */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedMatch(match.id);
+                      }}
+                      className="w-full flex items-center justify-center gap-2 bg-primary-500 hover:bg-primary-600 text-white py-2 px-4 rounded-lg transition-colors font-medium"
+                    >
+                      <MessageCircle size={18} />
+                      {unreadCount > 0 ? `${unreadCount} New Messages` : 'View Conversation'}
+                    </button>
+                  </div>
 
-                  {/* Action Button */}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedMatch(match.id);
-                    }}
-                    className="w-full flex items-center justify-center gap-2 bg-primary-500 hover:bg-primary-600 text-white py-2 px-4 rounded-lg transition-colors font-medium"
-                  >
-                    <MessageCircle size={18} />
-                    {unreadCount > 0 ? `${unreadCount} New Messages` : 'View Conversation'}
-                  </button>
+                  {/* Match Info Footer */}
+                  <div className="px-4 pb-4 text-center">
+                    <p className="text-xs text-neutral-500">
+                      Matched {formatRelativeTime(match.timestamp)}
+                    </p>
+                  </div>
                 </div>
-
-                {/* Match Info Footer */}
-                <div className="px-4 pb-4 text-center">
-                  <p className="text-xs text-neutral-500">
-                    Matched {formatRelativeTime(match.timestamp)}
-                  </p>
-                </div>
-              </div>
-            );
-          })}
+              );
+            })}
           </div>
         )}
 
@@ -214,6 +274,7 @@ export const MatchesPage: React.FC = () => {
               <li>✅ Ask questions about the property</li>
               <li>✅ Arrange a viewing if you're interested</li>
               <li>✅ The landlord will respond to your messages</li>
+              <li>✅ Rate your experience after the tenancy ends</li>
             </ul>
           </div>
         )}
@@ -241,6 +302,17 @@ export const MatchesPage: React.FC = () => {
             </button>
           </div>
         </div>
+      )}
+
+      {/* Rating Modal */}
+      {ratingModalMatch && (
+        <RatingModal
+          isOpen={true}
+          onClose={handleCloseRatingModal}
+          match={ratingModalMatch}
+          ratingType={ratingType}
+          onSubmit={submitRating}
+        />
       )}
     </div>
   );

@@ -1590,3 +1590,333 @@ export const deleteAgencyPropertyLink = async (linkId: string): Promise<void> =>
     localStorage.setItem('agency-property-links', JSON.stringify(filtered));
   }
 };
+
+// =====================================================
+// ISSUE MANAGEMENT SYSTEM
+// =====================================================
+
+/**
+ * Save an issue (create or update)
+ */
+export const saveIssue = async (issue: any): Promise<any> => {
+  if (isSupabaseConfigured()) {
+    const issueData = {
+      match_id: issue.matchId,
+      property_id: issue.propertyId,
+      reported_by_id: issue.reportedById,
+      reported_by_type: issue.reportedByType,
+      issue_type: issue.issueType,
+      category: issue.category,
+      severity: issue.severity,
+      title: issue.title,
+      description: issue.description,
+      location_in_property: issue.locationInProperty,
+      images: issue.images || [],
+      status: issue.status,
+      priority: issue.priority,
+      assigned_to_id: issue.assignedToId,
+      assigned_to_type: issue.assignedToType,
+      sla_deadline: issue.slaDeadline,
+      is_overdue: issue.isOverdue || false,
+      resolution_notes: issue.resolutionNotes,
+      resolved_at: issue.resolvedAt,
+      resolved_by_id: issue.resolvedById,
+      is_escalated: issue.isEscalated || false,
+      escalated_at: issue.escalatedAt,
+      escalation_reason: issue.escalationReason,
+    };
+
+    const isValidUUID = issue.id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(issue.id);
+
+    if (isValidUUID) {
+      // Update existing issue
+      const { data, error } = await supabase
+        .from('issues')
+        .update(issueData)
+        .eq('id', issue.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return { ...issue, id: data.id };
+    } else {
+      // Insert new issue
+      const { data, error } = await supabase
+        .from('issues')
+        .insert(issueData)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return { ...issue, id: data.id };
+    }
+  } else {
+    const issueId = issue.id || `issue-${Date.now()}`;
+    const updatedIssue = { ...issue, id: issueId };
+
+    const stored = localStorage.getItem('issues');
+    const issues: any[] = stored ? JSON.parse(stored) : [];
+    const index = issues.findIndex(i => i.id === issueId);
+
+    if (index >= 0) {
+      issues[index] = updatedIssue;
+    } else {
+      issues.push(updatedIssue);
+    }
+
+    localStorage.setItem('issues', JSON.stringify(issues));
+    return updatedIssue;
+  }
+};
+
+/**
+ * Get all issues for a match
+ */
+export const getIssuesForMatch = async (matchId: string): Promise<any[]> => {
+  if (isSupabaseConfigured()) {
+    const { data, error } = await supabase
+      .from('issues')
+      .select('*')
+      .eq('match_id', matchId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  } else {
+    const stored = localStorage.getItem('issues');
+    const issues: any[] = stored ? JSON.parse(stored) : [];
+    return issues.filter(i => i.matchId === matchId);
+  }
+};
+
+/**
+ * Get all issues for a property
+ */
+export const getIssuesForProperty = async (propertyId: string): Promise<any[]> => {
+  if (isSupabaseConfigured()) {
+    const { data, error } = await supabase
+      .from('issues')
+      .select('*')
+      .eq('property_id', propertyId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  } else {
+    const stored = localStorage.getItem('issues');
+    const issues: any[] = stored ? JSON.parse(stored) : [];
+    return issues.filter(i => i.propertyId === propertyId);
+  }
+};
+
+/**
+ * Get a single issue by ID
+ */
+export const getIssue = async (issueId: string): Promise<any | null> => {
+  if (isSupabaseConfigured()) {
+    const { data, error } = await supabase
+      .from('issues')
+      .select('*')
+      .eq('id', issueId)
+      .single();
+
+    if (error) return null;
+    return data;
+  } else {
+    const stored = localStorage.getItem('issues');
+    const issues: any[] = stored ? JSON.parse(stored) : [];
+    return issues.find(i => i.id === issueId) || null;
+  }
+};
+
+/**
+ * Update issue status
+ */
+export const updateIssueStatus = async (
+  issueId: string,
+  status: string,
+  resolutionNotes?: string
+): Promise<any> => {
+  const updates: any = {
+    status,
+    updatedAt: new Date(),
+  };
+
+  if (status === 'resolved' || status === 'closed') {
+    updates.resolvedAt = new Date();
+    updates.resolutionNotes = resolutionNotes;
+  }
+
+  if (isSupabaseConfigured()) {
+    const { data, error } = await supabase
+      .from('issues')
+      .update(updates)
+      .eq('id', issueId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  } else {
+    const stored = localStorage.getItem('issues');
+    const issues: any[] = stored ? JSON.parse(stored) : [];
+    const index = issues.findIndex(i => i.id === issueId);
+
+    if (index >= 0) {
+      issues[index] = { ...issues[index], ...updates };
+      localStorage.setItem('issues', JSON.stringify(issues));
+      return issues[index];
+    }
+    throw new Error('Issue not found');
+  }
+};
+
+/**
+ * Save a ticket (support ticket for issue)
+ */
+export const saveTicket = async (ticket: any): Promise<any> => {
+  if (isSupabaseConfigured()) {
+    const ticketData = {
+      issue_id: ticket.issueId,
+      match_id: ticket.matchId,
+      created_by_id: ticket.createdById,
+      created_by_type: ticket.createdByType,
+      assigned_to_id: ticket.assignedToId,
+      assigned_to_type: ticket.assignedToType,
+      subject: ticket.subject,
+      description: ticket.description,
+      status: ticket.status,
+      priority: ticket.priority,
+      category: ticket.category,
+      messages: ticket.messages || [],
+      attachments: ticket.attachments || [],
+      resolved_at: ticket.resolvedAt,
+      resolution_notes: ticket.resolutionNotes,
+    };
+
+    const isValidUUID = ticket.id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(ticket.id);
+
+    if (isValidUUID) {
+      // Update existing ticket
+      const { data, error } = await supabase
+        .from('tickets')
+        .update(ticketData)
+        .eq('id', ticket.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return { ...ticket, id: data.id };
+    } else {
+      // Insert new ticket
+      const { data, error } = await supabase
+        .from('tickets')
+        .insert(ticketData)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return { ...ticket, id: data.id };
+    }
+  } else {
+    const ticketId = ticket.id || `ticket-${Date.now()}`;
+    const updatedTicket = { ...ticket, id: ticketId };
+
+    const stored = localStorage.getItem('tickets');
+    const tickets: any[] = stored ? JSON.parse(stored) : [];
+    const index = tickets.findIndex(t => t.id === ticketId);
+
+    if (index >= 0) {
+      tickets[index] = updatedTicket;
+    } else {
+      tickets.push(updatedTicket);
+    }
+
+    localStorage.setItem('tickets', JSON.stringify(tickets));
+    return updatedTicket;
+  }
+};
+
+/**
+ * Get all tickets for an issue
+ */
+export const getTicketsForIssue = async (issueId: string): Promise<any[]> => {
+  if (isSupabaseConfigured()) {
+    const { data, error } = await supabase
+      .from('tickets')
+      .select('*')
+      .eq('issue_id', issueId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  } else {
+    const stored = localStorage.getItem('tickets');
+    const tickets: any[] = stored ? JSON.parse(stored) : [];
+    return tickets.filter(t => t.issueId === issueId);
+  }
+};
+
+/**
+ * Get all tickets for a match
+ */
+export const getTicketsForMatch = async (matchId: string): Promise<any[]> => {
+  if (isSupabaseConfigured()) {
+    const { data, error } = await supabase
+      .from('tickets')
+      .select('*')
+      .eq('match_id', matchId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  } else {
+    const stored = localStorage.getItem('tickets');
+    const tickets: any[] = stored ? JSON.parse(stored) : [];
+    return tickets.filter(t => t.matchId === matchId);
+  }
+};
+
+/**
+ * Add a message to a ticket
+ */
+export const addTicketMessage = async (
+  ticketId: string,
+  message: any
+): Promise<any> => {
+  if (isSupabaseConfigured()) {
+    const { data: ticket, error: fetchError } = await supabase
+      .from('tickets')
+      .select('messages')
+      .eq('id', ticketId)
+      .single();
+
+    if (fetchError) throw fetchError;
+
+    const messages = ticket.messages || [];
+    messages.push(message);
+
+    const { data, error } = await supabase
+      .from('tickets')
+      .update({ messages, updated_at: new Date() })
+      .eq('id', ticketId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  } else {
+    const stored = localStorage.getItem('tickets');
+    const tickets: any[] = stored ? JSON.parse(stored) : [];
+    const index = tickets.findIndex(t => t.id === ticketId);
+
+    if (index >= 0) {
+      tickets[index].messages = tickets[index].messages || [];
+      tickets[index].messages.push(message);
+      tickets[index].updatedAt = new Date();
+      localStorage.setItem('tickets', JSON.stringify(tickets));
+      return tickets[index];
+    }
+    throw new Error('Ticket not found');
+  }
+};

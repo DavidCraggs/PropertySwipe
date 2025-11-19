@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Home, MessageCircle, AlertTriangle, Clock, CheckCircle2, Package } from 'lucide-react';
 import { useAuthStore } from '../hooks/useAuthStore';
 import { Button } from '../components/atoms/Button';
 import type { RenterProfile, Property, AgencyProfile, Issue } from '../types';
+import { getAllProperties, getAgencyProfile, getIssuesForMatch } from '../lib/storage';
+import { useAppStore } from '../hooks';
 
 /**
  * Dashboard for current renters (actively in a tenancy)
@@ -11,7 +13,12 @@ import type { RenterProfile, Property, AgencyProfile, Issue } from '../types';
  */
 export const CurrentRenterDashboard: React.FC = () => {
   const { currentUser, userType } = useAuthStore();
+  const { matches } = useAppStore();
   const [activeTab, setActiveTab] = useState<'overview' | 'issues'>('overview');
+  const [currentProperty, setCurrentProperty] = useState<Property | null>(null);
+  const [currentAgency, setCurrentAgency] = useState<AgencyProfile | null>(null);
+  const [issues, setIssues] = useState<Issue[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Type guards
   if (userType !== 'renter') {
@@ -43,9 +50,55 @@ export const CurrentRenterDashboard: React.FC = () => {
     );
   }
 
-  // TODO: Fetch actual property, agency, and issues data from storage
-  // For now, using placeholder values
+  // Fetch data on mount
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setIsLoading(true);
+
+        // Find current match for this renter
+        const currentMatch = matches.find(
+          m => m.renterId === renterProfile.id && m.tenancyStatus === 'active'
+        );
+
+        if (currentMatch) {
+          // Fetch property
+          const properties = await getAllProperties();
+          const property = properties.find(p => p.id === currentMatch.propertyId);
+          setCurrentProperty(property || null);
+
+          // Fetch agency if exists
+          if (renterProfile.currentAgencyId) {
+            const agency = await getAgencyProfile(renterProfile.currentAgencyId);
+            setCurrentAgency(agency);
+          }
+
+          // Fetch issues for this match
+          const matchIssues = await getIssuesForMatch(currentMatch.id);
+          setIssues(matchIssues);
+        }
+      } catch (error) {
+        console.error('Failed to fetch dashboard data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [renterProfile.id, renterProfile.currentAgencyId, matches]);
+
   const hasAgency = !!renterProfile.currentAgencyId;
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-success-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
+          <p className="text-neutral-600">Loading your dashboard...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-success-50 pb-24">
@@ -63,23 +116,26 @@ export const CurrentRenterDashboard: React.FC = () => {
           <div className="flex gap-6">
             <button
               onClick={() => setActiveTab('overview')}
-              className={`py-4 px-2 border-b-2 font-medium transition-colors ${
-                activeTab === 'overview'
-                  ? 'border-primary-600 text-primary-600'
-                  : 'border-transparent text-neutral-600 hover:text-neutral-900'
-              }`}
+              className={`py-4 px-2 border-b-2 font-medium transition-colors ${activeTab === 'overview'
+                ? 'border-primary-600 text-primary-600'
+                : 'border-transparent text-neutral-600 hover:text-neutral-900'
+                }`}
             >
               Overview
             </button>
             <button
               onClick={() => setActiveTab('issues')}
-              className={`py-4 px-2 border-b-2 font-medium transition-colors ${
-                activeTab === 'issues'
-                  ? 'border-primary-600 text-primary-600'
-                  : 'border-transparent text-neutral-600 hover:text-neutral-900'
-              }`}
+              className={`py-4 px-2 border-b-2 font-medium transition-colors ${activeTab === 'issues'
+                ? 'border-primary-600 text-primary-600'
+                : 'border-transparent text-neutral-600 hover:text-neutral-900'
+                }`}
             >
               Issues & Maintenance
+              {issues.filter(i => i.status !== 'resolved' && i.status !== 'closed').length > 0 && (
+                <span className="ml-2 px-2 py-0.5 bg-danger-500 text-white text-xs rounded-full">
+                  {issues.filter(i => i.status !== 'resolved' && i.status !== 'closed').length}
+                </span>
+              )}
             </button>
           </div>
         </div>
@@ -90,7 +146,7 @@ export const CurrentRenterDashboard: React.FC = () => {
           <div className="space-y-6">
             {/* Current Property Card */}
             <CurrentPropertyCard
-              propertyId={renterProfile.currentPropertyId}
+              property={currentProperty}
               moveInDate={renterProfile.moveInDate}
             />
 
@@ -98,7 +154,7 @@ export const CurrentRenterDashboard: React.FC = () => {
             <div className="grid md:grid-cols-2 gap-6">
               {/* Agency Contact */}
               {hasAgency && (
-                <AgencyContactCard agencyId={renterProfile.currentAgencyId} />
+                <AgencyContactCard agency={currentAgency} />
               )}
 
               {/* Landlord Contact */}
@@ -140,7 +196,7 @@ export const CurrentRenterDashboard: React.FC = () => {
             />
 
             {/* Active Issues Section */}
-            <IssueSection renterId={renterProfile.id} />
+            <IssueSection issues={issues} />
           </div>
         )}
       </main>
@@ -153,18 +209,15 @@ export const CurrentRenterDashboard: React.FC = () => {
  * Displays information about the renter's current property
  */
 interface CurrentPropertyCardProps {
-  propertyId?: string;
+  property: Property | null;
   moveInDate?: Date;
 }
 
 const CurrentPropertyCard: React.FC<CurrentPropertyCardProps> = ({
-  propertyId,
+  property,
   moveInDate,
 }) => {
-  // TODO: Fetch property details from storage
-  const property: Property | null = null;
-
-  if (!property && !propertyId) {
+  if (!property) {
     return (
       <div className="bg-white rounded-2xl shadow-sm p-6 border-2 border-dashed border-neutral-200">
         <p className="text-neutral-600 text-center">Property information not available</p>
@@ -175,8 +228,18 @@ const CurrentPropertyCard: React.FC<CurrentPropertyCardProps> = ({
   return (
     <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
       {/* Property Image */}
-      <div className="h-48 bg-gradient-to-br from-primary-100 to-primary-200 flex items-center justify-center">
-        <Home size={64} className="text-primary-600 opacity-50" />
+      <div className="h-48 bg-gradient-to-br from-primary-100 to-primary-200 relative overflow-hidden">
+        {property.images && property.images.length > 0 ? (
+          <img
+            src={property.images[0]}
+            alt={property.address.street}
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <Home size={64} className="text-primary-600 opacity-50" />
+          </div>
+        )}
       </div>
 
       {/* Property Info */}
@@ -195,9 +258,16 @@ const CurrentPropertyCard: React.FC<CurrentPropertyCardProps> = ({
           </span>
         </div>
 
-        {/* TODO: Display actual property details when fetched */}
         <div className="space-y-2 text-sm text-neutral-600">
-          <p>Property ID: {propertyId || 'Not available'}</p>
+          <p className="font-medium text-neutral-900">{property.address.street}</p>
+          <p>{property.address.city}, {property.address.postcode}</p>
+          <div className="flex gap-4 mt-3">
+            <span>{property.bedrooms} bed</span>
+            <span>•</span>
+            <span>{property.bathrooms} bath</span>
+            <span>•</span>
+            <span>£{property.rentPcm}/month</span>
+          </div>
         </div>
       </div>
     </div>
@@ -209,19 +279,19 @@ const CurrentPropertyCard: React.FC<CurrentPropertyCardProps> = ({
  * Displays agency contact information with SLA performance
  */
 interface AgencyContactCardProps {
-  agencyId?: string;
+  agency: AgencyProfile | null;
 }
 
-const AgencyContactCard: React.FC<AgencyContactCardProps> = ({ agencyId }) => {
-  // TODO: Fetch agency details from storage
-  const agency: AgencyProfile | null = null;
-
-  if (!agency && !agencyId) {
+const AgencyContactCard: React.FC<AgencyContactCardProps> = ({ agency }) => {
+  if (!agency) {
     return null;
   }
 
-  // TODO: Calculate SLA display text based on agency performance
-  const slaText = 'usually responds within 24 hours';
+  // Calculate SLA display text based on agency performance
+  const slaConfig = agency.slaConfiguration;
+  const slaText = slaConfig?.emergencyResponseHours
+    ? `usually responds within ${slaConfig.emergencyResponseHours} hours`
+    : 'usually responds within 24 hours';
   const slaColor = 'text-success-600';
 
   return (
@@ -232,7 +302,7 @@ const AgencyContactCard: React.FC<AgencyContactCardProps> = ({ agencyId }) => {
         </div>
         <div className="flex-1">
           <h3 className="font-bold text-neutral-900">Managing Agency</h3>
-          <p className="text-sm text-neutral-600">Agency ID: {agencyId || 'Not available'}</p>
+          <p className="text-sm text-neutral-600">{agency.companyName}</p>
         </div>
       </div>
 
@@ -272,7 +342,7 @@ const LandlordContactCard: React.FC<LandlordContactCardProps> = ({ landlordId })
         </div>
         <div className="flex-1">
           <h3 className="font-bold text-neutral-900">Your Landlord</h3>
-          <p className="text-sm text-neutral-600">Landlord ID: {landlordId}</p>
+          <p className="text-sm text-neutral-600">Landlord ID: {landlordId.substring(0, 8)}...</p>
         </div>
       </div>
 
@@ -321,7 +391,7 @@ const RenterIssueReporter: React.FC<RenterIssueReporterProps> = ({
         will be notified.
       </p>
 
-      {/* TODO: Implement full issue reporting form */}
+      {/* TODO: Implement full issue reporting form with storage integration */}
       <div className="space-y-4">
         <div>
           <label className="block text-sm font-medium text-neutral-700 mb-2">Issue Type</label>
@@ -372,12 +442,12 @@ const RenterIssueReporter: React.FC<RenterIssueReporterProps> = ({
  * Displays list of active and resolved issues
  */
 interface IssueSectionProps {
-  renterId: string;
+  issues: Issue[];
 }
 
-const IssueSection: React.FC<IssueSectionProps> = () => {
-  // TODO: Fetch issues from storage
-  const issues: Issue[] = [];
+const IssueSection: React.FC<IssueSectionProps> = ({ issues }) => {
+  const activeIssues = issues.filter(i => i.status !== 'resolved' && i.status !== 'closed');
+  const resolvedIssues = issues.filter(i => i.status === 'resolved' || i.status === 'closed');
 
   if (issues.length === 0) {
     return (
@@ -392,13 +462,34 @@ const IssueSection: React.FC<IssueSectionProps> = () => {
   }
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm p-6">
-      <h3 className="text-xl font-bold text-neutral-900 mb-4">Your Issues</h3>
-      <div className="space-y-3">
-        {issues.map((issue) => (
-          <IssueCard key={issue.id} issue={issue} />
-        ))}
-      </div>
+    <div className="space-y-6">
+      {/* Active Issues */}
+      {activeIssues.length > 0 && (
+        <div className="bg-white rounded-2xl shadow-sm p-6">
+          <h3 className="text-xl font-bold text-neutral-900 mb-4">
+            Active Issues ({activeIssues.length})
+          </h3>
+          <div className="space-y-3">
+            {activeIssues.map((issue) => (
+              <IssueCard key={issue.id} issue={issue} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Resolved Issues */}
+      {resolvedIssues.length > 0 && (
+        <div className="bg-white rounded-2xl shadow-sm p-6">
+          <h3 className="text-xl font-bold text-neutral-900 mb-4">
+            Resolved Issues ({resolvedIssues.length})
+          </h3>
+          <div className="space-y-3">
+            {resolvedIssues.map((issue) => (
+              <IssueCard key={issue.id} issue={issue} />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -430,7 +521,7 @@ const IssueCard: React.FC<IssueCardProps> = ({ issue }) => {
   };
 
   return (
-    <div className="border border-neutral-200 rounded-lg p-4 hover:border-primary-300 transition-colors">
+    <div className="border border-neutral-200 rounded-lg p-4 hover:border-primary-300 transition-colors cursor-pointer">
       <div className="flex items-start justify-between mb-2">
         <h4 className="font-semibold text-neutral-900">{issue.subject}</h4>
         <span className={`px-2 py-1 text-xs font-medium rounded ${priorityColors[issue.priority]}`}>

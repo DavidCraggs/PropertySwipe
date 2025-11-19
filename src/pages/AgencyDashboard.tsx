@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Building2, Users, AlertTriangle, CheckCircle2, Clock, TrendingUp, Home, MessageSquare } from 'lucide-react';
 import { useAuthStore } from '../hooks/useAuthStore';
 import type { AgencyProfile, Issue, Property, Match } from '../types';
 import { AgencyLandlordManager } from '../components/organisms/AgencyLandlordManager';
+import { getAllProperties, getIssuesForProperty } from '../lib/storage';
+import { useAppStore } from '../hooks';
 
 /**
  * Phase 6: Dashboard for estate agents and management agencies
@@ -10,7 +12,11 @@ import { AgencyLandlordManager } from '../components/organisms/AgencyLandlordMan
  */
 export function AgencyDashboard() {
   const { currentUser, userType } = useAuthStore();
+  const { matches } = useAppStore();
   const [activeTab, setActiveTab] = useState<'overview' | 'landlords' | 'properties' | 'tenancies' | 'issues'>('overview');
+  const [properties, setProperties] = useState<Property[]>([]);
+  const [allIssues, setAllIssues] = useState<Issue[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Type guard
   if (userType !== 'estate_agent' && userType !== 'management_agency') {
@@ -27,18 +33,67 @@ export function AgencyDashboard() {
 
   const agencyProfile = currentUser as AgencyProfile;
 
-  // TODO: Fetch actual data from storage
-  // For now, using placeholder values from profile
+  // Fetch data on mount
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setIsLoading(true);
+
+        // Fetch all properties
+        const allProps = await getAllProperties();
+
+        // Filter properties managed by this agency
+        const managedProps = allProps.filter(p =>
+          agencyProfile.managedPropertyIds.includes(p.id)
+        );
+        setProperties(managedProps);
+
+        // Fetch issues for all managed properties
+        const issuesPromises = managedProps.map(p => getIssuesForProperty(p.id));
+        const issuesArrays = await Promise.all(issuesPromises);
+        const flatIssues = issuesArrays.flat();
+        setAllIssues(flatIssues);
+      } catch (error) {
+        console.error('Failed to fetch agency data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [agencyProfile.id, agencyProfile.managedPropertyIds]);
+
+  // Calculate stats from real data
+  const activeTenancies = matches.filter(m =>
+    m.tenancyStatus === 'active' &&
+    properties.some(p => p.id === m.propertyId)
+  );
+
+  const openIssues = allIssues.filter(i =>
+    i.status !== 'resolved' && i.status !== 'closed'
+  );
+
   const stats = {
-    totalProperties: agencyProfile.totalPropertiesManaged,
-    activeTenancies: agencyProfile.activeTenantsCount,
+    totalProperties: properties.length,
+    activeTenancies: activeTenancies.length,
     totalLandlords: agencyProfile.landlordClientIds.length,
-    openIssues: agencyProfile.performanceMetrics.currentOpenIssues,
+    openIssues: openIssues.length,
     slaComplianceRate: agencyProfile.performanceMetrics.slaComplianceRate,
     averageResponseTime: agencyProfile.performanceMetrics.averageResponseTimeHours,
-    totalIssuesResolved: agencyProfile.performanceMetrics.totalIssuesResolved,
-    totalIssuesRaised: agencyProfile.performanceMetrics.totalIssuesRaised,
+    totalIssuesResolved: allIssues.filter(i => i.status === 'resolved' || i.status === 'closed').length,
+    totalIssuesRaised: allIssues.length,
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-success-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
+          <p className="text-neutral-600">Loading agency dashboard...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-success-50 pb-24">
@@ -61,18 +116,22 @@ export function AgencyDashboard() {
               { id: 'landlords', label: 'Landlords' },
               { id: 'properties', label: 'Properties' },
               { id: 'tenancies', label: 'Tenancies' },
-              { id: 'issues', label: 'Issues' },
+              { id: 'issues', label: 'Issues', badge: openIssues.length },
             ].map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as typeof activeTab)}
-                className={`py-4 px-2 border-b-2 font-medium transition-colors ${
-                  activeTab === tab.id
+                className={`py-4 px-2 border-b-2 font-medium transition-colors ${activeTab === tab.id
                     ? 'border-primary-600 text-primary-600'
                     : 'border-transparent text-neutral-600 hover:text-neutral-900'
-                }`}
+                  }`}
               >
                 {tab.label}
+                {tab.badge !== undefined && tab.badge > 0 && (
+                  <span className="ml-2 px-2 py-0.5 bg-danger-500 text-white text-xs rounded-full">
+                    {tab.badge}
+                  </span>
+                )}
               </button>
             ))}
           </div>
@@ -106,7 +165,7 @@ export function AgencyDashboard() {
                   View All →
                 </button>
               </div>
-              <AgencyIssuesDashboard limit={5} />
+              <AgencyIssuesDashboard issues={allIssues} limit={5} />
             </div>
           </div>
         )}
@@ -124,7 +183,7 @@ export function AgencyDashboard() {
               <Home size={24} className="text-primary-600" />
               Managed Properties
             </h3>
-            <AgencyPropertiesTable propertyIds={agencyProfile.managedPropertyIds} />
+            <AgencyPropertiesTable properties={properties} />
           </div>
         )}
 
@@ -134,7 +193,7 @@ export function AgencyDashboard() {
               <Users size={24} className="text-success-600" />
               Active Tenancies
             </h3>
-            <AgencyTenanciesTable agencyId={agencyProfile.id} />
+            <AgencyTenanciesTable tenancies={activeTenancies} />
           </div>
         )}
 
@@ -144,7 +203,7 @@ export function AgencyDashboard() {
               <AlertTriangle size={24} className="text-warning-600" />
               All Issues
             </h3>
-            <AgencyIssuesDashboard />
+            <AgencyIssuesDashboard issues={allIssues} />
           </div>
         )}
       </main>
@@ -270,8 +329,8 @@ function SLAPerformanceSection({ complianceRate, averageResponseTime, slaConfig 
             {complianceRate >= 80
               ? 'Excellent! You are meeting your SLA commitments.'
               : complianceRate >= 60
-              ? 'Good, but there is room for improvement.'
-              : 'Action needed: Focus on reducing response times.'}
+                ? 'Good, but there is room for improvement.'
+                : 'Action needed: Focus on reducing response times.'}
           </p>
         </div>
 
@@ -318,14 +377,11 @@ function SLAPerformanceSection({ complianceRate, averageResponseTime, slaConfig 
  * List of all properties under management
  */
 interface AgencyPropertiesTableProps {
-  propertyIds: string[];
+  properties: Property[];
 }
 
-function AgencyPropertiesTable({ propertyIds }: AgencyPropertiesTableProps) {
-  // TODO: Fetch actual properties from storage
-  const properties: Property[] = [];
-
-  if (propertyIds.length === 0) {
+function AgencyPropertiesTable({ properties }: AgencyPropertiesTableProps) {
+  if (properties.length === 0) {
     return (
       <div className="text-center py-12">
         <Home size={48} className="mx-auto text-neutral-400 mb-4" />
@@ -348,40 +404,31 @@ function AgencyPropertiesTable({ propertyIds }: AgencyPropertiesTableProps) {
           </tr>
         </thead>
         <tbody>
-          {properties.length === 0 ? (
-            <tr>
-              <td colSpan={5} className="text-center py-8 text-neutral-500">
-                Property data will be loaded from storage
+          {properties.map((property) => (
+            <tr key={property.id} className="border-b border-neutral-200 hover:bg-neutral-50">
+              <td className="py-3 px-4">
+                <div className="font-medium text-neutral-900">{property.address.street}</div>
+                <div className="text-sm text-neutral-600">{property.address.city}, {property.address.postcode}</div>
+              </td>
+              <td className="py-3 px-4 text-sm text-neutral-700">{property.propertyType}</td>
+              <td className="py-3 px-4 text-sm font-medium text-neutral-900">
+                £{property.rentPcm.toLocaleString()}/mo
+              </td>
+              <td className="py-3 px-4">
+                <span className={`px-2 py-1 text-xs font-medium rounded-full ${property.isAvailable
+                    ? 'bg-success-100 text-success-700'
+                    : 'bg-neutral-100 text-neutral-700'
+                  }`}>
+                  {property.isAvailable ? 'Available' : 'Occupied'}
+                </span>
+              </td>
+              <td className="py-3 px-4">
+                <button className="text-primary-600 hover:text-primary-700 text-sm font-medium">
+                  View Details
+                </button>
               </td>
             </tr>
-          ) : (
-            properties.map((property) => (
-              <tr key={property.id} className="border-b border-neutral-200 hover:bg-neutral-50">
-                <td className="py-3 px-4">
-                  <div className="font-medium text-neutral-900">{property.address.street}</div>
-                  <div className="text-sm text-neutral-600">{property.address.city}, {property.address.postcode}</div>
-                </td>
-                <td className="py-3 px-4 text-sm text-neutral-700">{property.propertyType}</td>
-                <td className="py-3 px-4 text-sm font-medium text-neutral-900">
-                  £{property.rentPcm.toLocaleString()}/mo
-                </td>
-                <td className="py-3 px-4">
-                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                    property.isAvailable
-                      ? 'bg-success-100 text-success-700'
-                      : 'bg-neutral-100 text-neutral-700'
-                  }`}>
-                    {property.isAvailable ? 'Available' : 'Occupied'}
-                  </span>
-                </td>
-                <td className="py-3 px-4">
-                  <button className="text-primary-600 hover:text-primary-700 text-sm font-medium">
-                    View Details
-                  </button>
-                </td>
-              </tr>
-            ))
-          )}
+          ))}
         </tbody>
       </table>
     </div>
@@ -393,13 +440,10 @@ function AgencyPropertiesTable({ propertyIds }: AgencyPropertiesTableProps) {
  * List of all active tenancies
  */
 interface AgencyTenanciesTableProps {
-  agencyId: string;
+  tenancies: Match[];
 }
 
-function AgencyTenanciesTable({ }: AgencyTenanciesTableProps) {
-  // TODO: Fetch actual tenancies (matches with tenancyStatus === 'active' and managingAgencyId === agencyId)
-  const tenancies: Match[] = [];
-
+function AgencyTenanciesTable({ tenancies }: AgencyTenanciesTableProps) {
   if (tenancies.length === 0) {
     return (
       <div className="text-center py-12">
@@ -438,7 +482,7 @@ function AgencyTenanciesTable({ }: AgencyTenanciesTableProps) {
                   : 'N/A'}
               </td>
               <td className="py-3 px-4 text-sm font-medium text-neutral-900">
-                £{tenancy.monthlyRentAmount?.toLocaleString() || '0'}/mo
+                £{tenancy.property?.rentPcm?.toLocaleString() || '0'}/mo
               </td>
               <td className="py-3 px-4">
                 {tenancy.activeIssueIds?.length > 0 ? (
@@ -469,13 +513,11 @@ function AgencyTenanciesTable({ }: AgencyTenanciesTableProps) {
  * List of all issues with filtering and status
  */
 interface AgencyIssuesDashboardProps {
+  issues: Issue[];
   limit?: number;
 }
 
-function AgencyIssuesDashboard({ limit }: AgencyIssuesDashboardProps) {
-  // TODO: Fetch actual issues from storage
-  const issues: Issue[] = [];
-
+function AgencyIssuesDashboard({ issues, limit }: AgencyIssuesDashboardProps) {
   const displayIssues = limit ? issues.slice(0, limit) : issues;
 
   if (issues.length === 0) {
@@ -528,9 +570,8 @@ function AgencyIssueRow({ issue }: AgencyIssueRowProps) {
 
   return (
     <div
-      className={`border-2 ${colors.border} ${colors.bg} rounded-lg p-4 hover:shadow-md transition-shadow ${
-        isOverdue ? 'ring-2 ring-danger-500 ring-offset-2' : ''
-      }`}
+      className={`border-2 ${colors.border} ${colors.bg} rounded-lg p-4 hover:shadow-md transition-shadow ${isOverdue ? 'ring-2 ring-danger-500 ring-offset-2' : ''
+        }`}
     >
       <div className="flex items-start justify-between mb-3">
         <div className="flex-1">
