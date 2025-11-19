@@ -1,5 +1,4 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../hooks/useAuthStore';
 import { Shield, ArrowLeft } from 'lucide-react';
 
@@ -9,7 +8,6 @@ import { Shield, ArrowLeft } from 'lucide-react';
  */
 export const AdminModeIndicator: React.FC = () => {
   const { isAdminMode, impersonatedRole, exitRoleSwitch } = useAuthStore();
-  const navigate = useNavigate();
 
   if (!isAdminMode || !impersonatedRole) {
     return null;
@@ -17,7 +15,7 @@ export const AdminModeIndicator: React.FC = () => {
 
   const handleExitRole = () => {
     exitRoleSwitch();
-    navigate('/admin-dashboard');
+    // Note: App.tsx will automatically route to admin-dashboard when exitRoleSwitch() is called
   };
 
   return (

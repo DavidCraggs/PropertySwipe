@@ -1,5 +1,4 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../hooks/useAuthStore';
 import {
   Shield,
@@ -62,17 +61,15 @@ const roleCards: RoleCard[] = [
  */
 export const AdminDashboard: React.FC = () => {
   const { switchToRole, logout, adminProfile, impersonatedRole } = useAuthStore();
-  const navigate = useNavigate();
 
   const handleRoleSelect = async (roleType: Exclude<UserType, 'admin'>) => {
     await switchToRole(roleType);
-    // Navigate to appropriate dashboard after role switch
-    navigate('/app');
+    // Note: App.tsx will automatically route to 'app' when switchToRole() completes
   };
 
   const handleLogout = () => {
     logout();
-    navigate('/');
+    // Note: App.tsx will automatically route to welcome/role-select when logout() is called
   };
 
   return (
