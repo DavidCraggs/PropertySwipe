@@ -115,7 +115,7 @@ function App() {
         setCurrentRoute('welcome');
       }
     }
-  }, [isAuthenticated, currentUser, userType, isAdminMode, impersonatedRole, currentRoute]);
+  }, [isAuthenticated, currentUser, userType, isAdminMode, impersonatedRole]);
 
   const handleGetStarted = () => {
     localStorage.setItem('get-on-has-visited', 'true');
