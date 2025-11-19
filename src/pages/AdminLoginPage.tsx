@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../hooks/useAuthStore';
 import { Shield, Eye, EyeOff, AlertCircle } from 'lucide-react';
 
@@ -15,7 +14,6 @@ export const AdminLoginPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   const { loginAsAdmin } = useAuthStore();
-  const navigate = useNavigate();
 
   // Debug: Log environment variable status
   React.useEffect(() => {
@@ -38,11 +36,11 @@ export const AdminLoginPage: React.FC = () => {
     try {
       const success = await loginAsAdmin(email, password);
 
-      if (success) {
-        navigate('/admin-dashboard');
-      } else {
+      if (!success) {
         setError('Invalid admin credentials');
       }
+      // Note: No need to navigate - App.tsx will automatically route to admin-dashboard
+      // when isAdminMode becomes true
     } catch (err) {
       setError('An error occurred during login');
       console.error('[AdminLogin] Error:', err);
@@ -138,7 +136,7 @@ export const AdminLoginPage: React.FC = () => {
           {/* Back to App */}
           <div className="mt-6 text-center">
             <button
-              onClick={() => navigate('/')}
+              onClick={() => window.location.href = '/'}
               className="text-purple-300 hover:text-purple-200 text-sm transition"
             >
               ← Back to main app

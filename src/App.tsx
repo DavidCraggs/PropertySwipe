@@ -56,25 +56,6 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Run only once on mount
 
-  // Check URL hash or query parameter for direct admin access
-  useEffect(() => {
-    // Check hash-based routing (e.g., #/admin-login)
-    const hash = window.location.hash.slice(1); // Remove '#'
-    if (hash === '/admin-login' && !isAuthenticated) {
-      setCurrentRoute('admin-login');
-      return;
-    }
-
-    // Check URL parameter (e.g., ?admin=true or ?admin=login)
-    const urlParams = new URLSearchParams(window.location.search);
-    const adminParam = urlParams.get('admin');
-    if ((adminParam === 'true' || adminParam === 'login') && !isAuthenticated) {
-      setCurrentRoute('admin-login');
-      // Clean URL by removing the parameter after routing
-      window.history.replaceState({}, '', window.location.pathname + window.location.hash);
-    }
-  }, [isAuthenticated]);
-
   // Handle initial routing based on auth state
   useEffect(() => {
     // Admin routing
@@ -87,8 +68,14 @@ function App() {
       return;
     }
 
-    // Don't override admin-login route if user is trying to access admin
-    if (currentRoute === 'admin-login') {
+    // Don't override admin-login route if user is trying to access admin via URL
+    const hash = window.location.hash.slice(1);
+    const urlParams = new URLSearchParams(window.location.search);
+    const adminParam = urlParams.get('admin');
+    const isAdminAccess = hash === '/admin-login' || adminParam === 'true' || adminParam === 'login';
+
+    if (isAdminAccess && !isAuthenticated) {
+      setCurrentRoute('admin-login');
       return;
     }
 
