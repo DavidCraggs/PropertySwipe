@@ -1048,9 +1048,11 @@ export const getUserRatingsSummary = async (
 // RRA 2025 COMPLIANCE FUNCTIONS
 // =====================================================
 
-/**
- * Save an eviction notice (Section 8 only, per RRA 2025)
- */
+// =====================================================
+// EVICTION NOTICES (RRA 2025 - Section 8 Only)
+// =====================================================
+
+
 export const saveEvictionNotice = async (notice: EvictionNotice): Promise<EvictionNotice> => {
   if (isSupabaseConfigured()) {
     const { error } = await supabase
@@ -1690,31 +1692,40 @@ export const deleteAgencyPropertyLink = async (linkId: string): Promise<void> =>
  */
 export const saveIssue = async (issue: any): Promise<any> => {
   if (isSupabaseConfigured()) {
-    const issueData = {
-      match_id: issue.matchId,
-      property_id: issue.propertyId,
-      reported_by_id: issue.reportedById,
-      reported_by_type: issue.reportedByType,
-      issue_type: issue.issueType,
+    // Handle both old and new multi-role schema
+    const issueData: any = {
+      // Multi-role schema (new)
+      property_id: issue.property_id || issue.propertyId,
+      renter_id: issue.renter_id || issue.renterId,
+      landlord_id: issue.landlord_id || issue.landlordId,
+      agency_id: issue.agency_id || issue.agencyId,
+      assigned_to_agent_id: issue.assigned_to_agent_id || issue.assignedToAgentId,
       category: issue.category,
-      severity: issue.severity,
-      title: issue.title,
-      description: issue.description,
-      location_in_property: issue.locationInProperty,
-      images: issue.images || [],
-      status: issue.status,
       priority: issue.priority,
-      assigned_to_id: issue.assignedToId,
-      assigned_to_type: issue.assignedToType,
-      sla_deadline: issue.slaDeadline,
-      is_overdue: issue.isOverdue || false,
-      resolution_notes: issue.resolutionNotes,
-      resolved_at: issue.resolvedAt,
-      resolved_by_id: issue.resolvedById,
-      is_escalated: issue.isEscalated || false,
-      escalated_at: issue.escalatedAt,
-      escalation_reason: issue.escalationReason,
+      subject: issue.subject || issue.title, // Support both
+      description: issue.description,
+      images: issue.images || [],
+      raised_at: issue.raised_at || issue.raisedAt,
+      acknowledged_at: issue.acknowledged_at || issue.acknowledgedAt,
+      resolved_at: issue.resolved_at || issue.resolvedAt,
+      closed_at: issue.closed_at || issue.closedAt,
+      sla_deadline: issue.sla_deadline || issue.slaDeadline,
+      is_overdue: issue.is_overdue ?? issue.isOverdue ?? false,
+      response_time_hours: issue.response_time_hours ?? issue.responseTimeHours,
+      resolution_time_days: issue.resolution_time_days ?? issue.resolutionTimeDays,
+      status: issue.status,
+      status_history: issue.status_history || issue.statusHistory || [],
+      messages: issue.messages || [],
+      internal_notes: issue.internal_notes || issue.internalNotes || [],
+      resolution_summary: issue.resolution_summary || issue.resolutionSummary || issue.resolutionNotes,
+      resolution_cost: issue.resolution_cost ?? issue.resolutionCost,
+      renter_satisfaction_rating: issue.renter_satisfaction_rating ?? issue.renterSatisfactionRating,
     };
+
+    // Add seed_tag if present
+    if (issue.seed_tag) {
+      issueData.seed_tag = issue.seed_tag;
+    }
 
     const isValidUUID = issue.id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(issue.id);
 
@@ -1737,7 +1748,10 @@ export const saveIssue = async (issue: any): Promise<any> => {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('[Storage] Issue insert error:', error);
+        throw error;
+      }
       return { ...issue, id: data.id };
     }
   } else {

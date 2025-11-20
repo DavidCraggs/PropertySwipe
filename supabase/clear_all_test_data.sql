@@ -1,18 +1,28 @@
--- Clear all test data from Supabase tables
--- Run this in the Supabase SQL Editor to remove old test data
--- This is necessary before running the seed data script
+-- COMPREHENSIVE Clear Script for PropertySwipe Test Data
+-- Run this in Supabase SQL Editor to completely wipe all data
+-- This uses CASCADE to handle all foreign key relationships automatically
 
--- Delete in dependency order (child tables first)
-DELETE FROM ratings WHERE TRUE;
-DELETE FROM issues WHERE TRUE;
-DELETE FROM matches WHERE TRUE;
-DELETE FROM agency_property_links WHERE TRUE;
-DELETE FROM properties WHERE TRUE;
-DELETE FROM renter_profiles WHERE TRUE;
-DELETE FROM landlord_profiles WHERE TRUE;
-DELETE FROM agency_profiles WHERE TRUE;
+-- Disable triggers temporarily to avoid constraint issues
+SET session_replication_role = 'replica';
 
--- Verify deletion
+-- Delete all data from all tables (CASCADE handles dependencies)
+TRUNCATE TABLE 
+    email_notifications,
+    ratings,
+    issues,
+    matches,
+    agency_property_links,
+    agency_link_invitations,
+    properties,
+    agency_profiles,
+    landlord_profiles,
+    renter_profiles
+CASCADE;
+
+-- Re-enable triggers
+SET session_replication_role = 'origin';
+
+-- Verify all tables are empty
 SELECT 
     'renter_profiles' as table_name, COUNT(*) as remaining_records FROM renter_profiles
 UNION ALL
@@ -28,4 +38,9 @@ SELECT 'issues', COUNT(*) FROM issues
 UNION ALL
 SELECT 'ratings', COUNT(*) FROM ratings
 UNION ALL
-SELECT 'agency_property_links', COUNT(*) FROM agency_property_links;
+SELECT 'agency_property_links', COUNT(*) FROM agency_property_links
+UNION ALL
+SELECT 'agency_link_invitations', COUNT(*) FROM agency_link_invitations
+UNION ALL
+SELECT 'email_notifications', COUNT(*) FROM email_notifications
+ORDER BY table_name;
