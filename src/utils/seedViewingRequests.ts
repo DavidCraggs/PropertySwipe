@@ -16,8 +16,8 @@ import { MATCH_IDS } from './seedMatches';
  * Create Viewing 1: Confirmed viewing for tomorrow
  */
 export async function createViewing1(): Promise<ViewingPreference> {
-    const viewing: ViewingPreference = {
-        id: 'seed-viewing-001',
+    const viewing: any = {
+        seed_tag: 'seed-viewing-001',
         matchId: MATCH_IDS.match1Id,
         renterId: GENERATED_IDS.renterId,
         landlordId: GENERATED_IDS.landlordId,
@@ -38,8 +38,8 @@ export async function createViewing1(): Promise<ViewingPreference> {
  * Create Viewing 2: Pending viewing request
  */
 export async function createViewing2(): Promise<ViewingPreference> {
-    const viewing: ViewingPreference = {
-        id: 'seed-viewing-002',
+    const viewing: any = {
+        seed_tag: 'seed-viewing-002',
         matchId: MATCH_IDS.match2Id,
         renterId: GENERATED_IDS.renterId,
         landlordId: GENERATED_IDS.landlordId,
@@ -59,8 +59,8 @@ export async function createViewing2(): Promise<ViewingPreference> {
  * Create Viewing 3: Completed past viewing
  */
 export async function createViewing3(): Promise<ViewingPreference> {
-    const viewing: ViewingPreference = {
-        id: 'seed-viewing-003',
+    const viewing: any = {
+        seed_tag: 'seed-viewing-003',
         matchId: MATCH_IDS.match1Id,
         renterId: GENERATED_IDS.renterId,
         landlordId: GENERATED_IDS.landlordId,
