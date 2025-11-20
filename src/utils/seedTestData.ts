@@ -66,6 +66,7 @@ export async function clearSeedData(verbose: boolean = false): Promise<number> {
 
     let totalDeleted = 0;
     const tables = [
+        'agency_link_invitations',
         'ratings',
         'issues',
         'matches',
@@ -343,6 +344,30 @@ export async function seedAllTestData(
         );
         steps.push(ratingResult);
         if (!ratingResult.success) throw new Error('Failed to seed ratings');
+
+        // Step 9: Seed agency relationships
+        const agencyRelationshipResult = await executeStep(
+            'Seed Agency Relationships',
+            async () => {
+                const { seedAgencyRelationships } = await import('./seedAgencyRelationships');
+                return await seedAgencyRelationships(verbose);
+            },
+            verbose
+        );
+        steps.push(agencyRelationshipResult);
+        if (!agencyRelationshipResult.success) throw new Error('Failed to seed agency relationships');
+
+        // Step 10: Seed agency invitations
+        const agencyInvitationResult = await executeStep(
+            'Seed Agency Invitations',
+            async () => {
+                const { seedAgencyInvitations } = await import('./seedAgencyInvitations');
+                return await seedAgencyInvitations(verbose);
+            },
+            verbose
+        );
+        steps.push(agencyInvitationResult);
+        if (!agencyInvitationResult.success) throw new Error('Failed to seed agency invitations');
 
         // Final verification
         const verificationResult = await executeStep(
