@@ -899,35 +899,61 @@ export const createViewingRequest = async (viewing: ViewingPreference): Promise<
 /**
  * Save a rating (renter rating landlord OR landlord rating renter)
  */
-export const saveRating = async (rating: Rating): Promise<Rating> => {
+export const saveRating = async (rating: any): Promise<any> => {
   if (isSupabaseConfigured()) {
-    const { error } = await supabase
-      .from('ratings')
-      .insert({
-        id: rating.id,
-        match_id: rating.matchId,
-        from_user_id: rating.fromUserId,
-        from_user_type: rating.fromUserType,
-        to_user_id: rating.toUserId,
-        to_user_type: rating.toUserType,
-        property_id: rating.propertyId,
-        overall_score: rating.overallScore,
-        communication_score: rating.categoryScores.communication,
-        cleanliness_score: rating.categoryScores.cleanliness,
-        reliability_score: rating.categoryScores.reliability,
-        property_condition_score: rating.categoryScores.property_condition,
-        respect_for_property_score: rating.categoryScores.respect_for_property,
-        review: rating.review,
-        would_recommend: rating.wouldRecommend,
-        tenancy_start_date: rating.tenancyStartDate,
-        tenancy_end_date: rating.tenancyEndDate,
-        is_verified: rating.isVerified,
-      })
-      .select()
-      .single();
+    const ratingData: any = {
+      match_id: rating.match_id || rating.matchId,
+      from_user_id: rating.from_user_id || rating.fromUserId,
+      from_user_type: rating.from_user_type || rating.fromUserType,
+      to_user_id: rating.to_user_id || rating.toUserId,
+      to_user_type: rating.to_user_type || rating.toUserType,
+      property_id: rating.property_id || rating.propertyId,
+      overall_score: rating.overall_score ?? rating.overallScore,
+      communication_score: rating.categoryScores?.communication,
+      cleanliness_score: rating.categoryScores?.cleanliness,
+      reliability_score: rating.categoryScores?.reliability,
+      property_condition_score: rating.categoryScores?.property_condition,
+      respect_for_property_score: rating.categoryScores?.respect_for_property,
+      review: rating.review,
+      would_recommend: rating.would_recommend ?? rating.wouldRecommend,
+      tenancy_start_date: rating.tenancy_start_date || rating.tenancyStartDate,
+      tenancy_end_date: rating.tenancy_end_date || rating.tenancyEndDate,
+      is_verified: rating.is_verified ?? rating.isVerified,
+    };
 
-    if (error) throw error;
-    return rating;
+    // Add seed_tag if present
+    if (rating.seed_tag) {
+      ratingData.seed_tag = rating.seed_tag;
+    }
+
+    // Check if rating has a valid UUID
+    const isValidUUID = rating.id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(rating.id);
+
+    if (isValidUUID) {
+      // Update existing rating
+      const { data, error } = await supabase
+        .from('ratings')
+        .update(ratingData)
+        .eq('id', rating.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return { ...rating, id: data.id };
+    } else {
+      // Insert new rating (let Supabase generate UUID)
+      const { data, error } = await supabase
+        .from('ratings')
+        .insert(ratingData)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('[Storage] Rating insert error:', error);
+        throw error;
+      }
+      return { ...rating, id: data.id };
+    }
   } else {
     const key = `ratings-${rating.toUserId}`;
     const stored = localStorage.getItem(key);
