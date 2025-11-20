@@ -18,6 +18,8 @@ import type {
   Dispute,
   AgencyLinkInvitation,
   AgencyPropertyLink,
+  Message,
+  ViewingPreference,
   // Legacy aliases for backward compatibility
   VendorProfile,
   BuyerProfile,
@@ -799,6 +801,68 @@ export const getAllMatches = async (): Promise<Match[]> => {
   } else {
     const stored = localStorage.getItem('matches');
     return stored ? JSON.parse(stored) : [];
+  }
+};
+
+// =====================================================
+// VIEWING REQUESTS
+// =====================================================
+
+export const createViewingRequest = async (viewing: ViewingPreference): Promise<ViewingPreference> => {
+  if (isSupabaseConfigured()) {
+    // In Supabase, viewing preferences are stored on the match record
+    // We need to update the match with this viewing preference
+    const matchId = viewing.matchId;
+
+    // First fetch the match to ensure it exists
+    const { error: fetchError } = await supabase
+      .from('matches')
+      .select('id')
+      .eq('id', matchId)
+      .single();
+
+    if (fetchError) throw fetchError;
+
+    // Update the match with the viewing preference
+    const updateData: any = {
+      viewing_preference: viewing,
+      has_viewing_scheduled: viewing.status === 'confirmed',
+    };
+
+    if (viewing.status === 'confirmed' && viewing.specificDateTime) {
+      updateData.confirmed_viewing_date = viewing.specificDateTime;
+    }
+
+    const { error: updateError } = await supabase
+      .from('matches')
+      .update(updateData)
+      .eq('id', matchId);
+
+    if (updateError) throw updateError;
+
+    return viewing;
+  } else {
+    // LocalStorage fallback
+    const matches = await getAllMatches();
+    const matchIndex = matches.findIndex(m => m.id === viewing.matchId);
+
+    if (matchIndex >= 0) {
+      const match = matches[matchIndex];
+      match.viewingPreference = viewing;
+
+      // Update related match fields
+      if (viewing.status === 'confirmed') {
+        match.hasViewingScheduled = true;
+        if (viewing.specificDateTime) {
+          match.confirmedViewingDate = viewing.specificDateTime;
+        }
+      }
+
+      await saveMatch(match);
+      return viewing;
+    } else {
+      throw new Error(`Match not found for id: ${viewing.matchId}`);
+    }
   }
 };
 
@@ -1918,5 +1982,80 @@ export const addTicketMessage = async (
       return tickets[index];
     }
     throw new Error('Ticket not found');
+  }
+};
+
+// =====================================================
+// MESSAGING SYSTEM
+// =====================================================
+
+export const sendMessage = async (message: Message): Promise<Message> => {
+  // Ensure message has an ID and timestamp
+  const msgToSave = {
+    ...message,
+    id: message.id || Math.random().toString(36).substring(2, 15),
+    timestamp: message.timestamp || new Date().toISOString(),
+    isRead: message.isRead ?? false,
+  };
+
+  if (isSupabaseConfigured()) {
+    // Update the match object as per the type definition
+    // We need to fetch the current match to append the message
+    const { data: match, error: fetchError } = await supabase
+      .from('matches')
+      .select('messages, unread_count')
+      .eq('id', message.matchId)
+      .single();
+
+    if (fetchError) throw fetchError;
+
+    const currentMessages = match.messages || [];
+    const updatedMessages = [...currentMessages, msgToSave];
+
+    const { error: updateError } = await supabase
+      .from('matches')
+      .update({
+        messages: updatedMessages,
+        last_message_at: msgToSave.timestamp,
+        unread_count: (match.unread_count || 0) + 1
+      })
+      .eq('id', message.matchId);
+
+    if (updateError) throw updateError;
+    return msgToSave;
+  } else {
+    // LocalStorage fallback
+    const matches = await getAllMatches();
+    const matchIndex = matches.findIndex(m => m.id === message.matchId);
+
+    if (matchIndex >= 0) {
+      const match = matches[matchIndex];
+      match.messages = match.messages || [];
+      match.messages.push(msgToSave);
+      match.lastMessageAt = msgToSave.timestamp;
+      match.unreadCount = (match.unreadCount || 0) + 1;
+
+      await saveMatch(match);
+      return msgToSave;
+    } else {
+      throw new Error(`Match not found for id: ${message.matchId}`);
+    }
+  }
+};
+
+export const getMessagesForMatch = async (matchId: string): Promise<Message[]> => {
+  if (isSupabaseConfigured()) {
+    const { data, error } = await supabase
+      .from('matches')
+      .select('messages')
+      .eq('id', matchId)
+      .single();
+
+    if (error) throw error;
+    return data.messages || [];
+  } else {
+    const matches = await getAllMatches();
+    const match = matches.find(m => m.id === matchId);
+    return match ? match.messages || [] : [];
   }
 };

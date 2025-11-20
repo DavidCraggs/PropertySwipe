@@ -134,11 +134,11 @@ export function ViewingScheduler({ isOpen, onClose, match, onConfirm }: ViewingS
                       {match.viewingPreference.flexibility}
                     </span>
                   </div>
-                  {match.viewingPreference.preferredTimes.length > 0 && (
+                  {(match.viewingPreference.preferredTimes ?? []).length > 0 && (
                     <div>
                       <span className="font-medium text-neutral-700">Preferred times:</span>
                       <div className="flex flex-wrap gap-2 mt-2">
-                        {match.viewingPreference.preferredTimes.map((slot, idx) => (
+                        {(match.viewingPreference.preferredTimes ?? []).map((slot, idx) => (
                           <span
                             key={idx}
                             className="px-3 py-1.5 bg-white border border-primary-200 rounded-lg text-xs"
@@ -172,11 +172,10 @@ export function ViewingScheduler({ isOpen, onClose, match, onConfirm }: ViewingS
                   <button
                     key={option.value}
                     onClick={() => setSelectedDate(option.value)}
-                    className={`p-3 rounded-xl border-2 text-left transition-all ${
-                      selectedDate === option.value
-                        ? 'border-primary-500 bg-primary-50'
-                        : 'border-neutral-200 hover:border-neutral-300'
-                    }`}
+                    className={`p-3 rounded-xl border-2 text-left transition-all ${selectedDate === option.value
+                      ? 'border-primary-500 bg-primary-50'
+                      : 'border-neutral-200 hover:border-neutral-300'
+                      }`}
                   >
                     <div className="text-sm font-medium text-neutral-900">
                       {option.label}
@@ -202,11 +201,10 @@ export function ViewingScheduler({ isOpen, onClose, match, onConfirm }: ViewingS
                     <button
                       key={option.value}
                       onClick={() => setSelectedTime(option.value)}
-                      className={`p-3 rounded-xl border-2 text-center transition-all ${
-                        selectedTime === option.value
-                          ? 'border-primary-500 bg-primary-50'
-                          : 'border-neutral-200 hover:border-neutral-300'
-                      }`}
+                      className={`p-3 rounded-xl border-2 text-center transition-all ${selectedTime === option.value
+                        ? 'border-primary-500 bg-primary-50'
+                        : 'border-neutral-200 hover:border-neutral-300'
+                        }`}
                     >
                       <div className="text-sm font-medium text-neutral-900">
                         {option.label}

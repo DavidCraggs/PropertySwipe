@@ -217,9 +217,9 @@ function PendingViewingCard({ match, isRenter }: ViewingCardProps) {
           {preference.flexibility && (
             <div className="text-xs text-neutral-600">
               Flexibility: <span className="font-medium text-neutral-900">{preference.flexibility}</span>
-              {preference.preferredTimes.length > 0 && (
+              {(preference.preferredTimes ?? []).length > 0 && (
                 <span className="ml-2">
-                  ({preference.preferredTimes.length} time{preference.preferredTimes.length > 1 ? 's' : ''})
+                  ({(preference.preferredTimes ?? []).length} time{(preference.preferredTimes ?? []).length > 1 ? 's' : ''})
                 </span>
               )}
             </div>

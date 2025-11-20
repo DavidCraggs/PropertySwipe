@@ -515,16 +515,16 @@ export interface Match {
 
   // Application status (rental-specific)
   applicationStatus:
-    | 'pending'
-    | 'viewing_requested'
-    | 'viewing_completed'
-    | 'application_submitted'
-    | 'referencing'
-    | 'offer_made'
-    | 'offer_accepted'
-    | 'tenancy_signed'
-    | 'declined'
-    | 'withdrawn';
+  | 'pending'
+  | 'viewing_requested'
+  | 'viewing_completed'
+  | 'application_submitted'
+  | 'referencing'
+  | 'offer_made'
+  | 'offer_accepted'
+  | 'tenancy_signed'
+  | 'declined'
+  | 'withdrawn';
   applicationSubmittedAt?: Date;
 
   // Tenancy (RRA 2025: periodic only, no end date)
@@ -565,6 +565,11 @@ export interface Match {
   depositAmount?: number;
   depositSchemeReference?: string;
 
+  // RRA 2025: Compliance Tracking
+  rightToRentVerifiedAt?: Date; // Mandatory check
+  petRequestStatus?: 'none' | 'requested' | 'approved' | 'refused';
+  petRefusalReason?: string; // Required if refused
+
   // NEW: Issue tracking for current tenancies
   activeIssueIds: string[]; // Links to Issue[]
   totalIssuesRaised: number;
@@ -577,11 +582,13 @@ export interface Match {
 
 export interface Message {
   id: string;
+  matchId: string;
   senderId: string;
+  receiverId: string;
   senderType: UserType;
   content: string;
   timestamp: string;
-  read: boolean;
+  isRead: boolean;
 }
 
 // =====================================================
@@ -600,11 +607,12 @@ export interface ViewingPreference {
   renterId: string;
   landlordId: string;
   propertyId: string;
-  preferredTimes: ViewingTimeSlot[];
+  preferredTimes?: ViewingTimeSlot[];
   specificDateTime?: Date;
   flexibility: 'Flexible' | 'Specific' | 'ASAP';
   additionalNotes?: string;
-  requiresVirtualViewing: boolean;
+  landlordResponse?: string;
+  requiresVirtualViewing?: boolean;
   status: 'pending' | 'confirmed' | 'declined' | 'rescheduled' | 'completed';
   createdAt: Date;
   updatedAt: Date;

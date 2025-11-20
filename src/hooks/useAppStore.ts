@@ -144,6 +144,11 @@ interface AppState {
     matchesCount: number;
   };
 
+  // RRA 2025: Compliance Actions
+  requestPet: (matchId: string, petDetails: string) => void;
+  reviewPetRequest: (matchId: string, status: 'approved' | 'refused', refusalReason?: string) => void;
+  verifyRightToRent: (matchId: string) => void;
+
   // Reset
   resetApp: () => void;
 }
@@ -319,9 +324,11 @@ export const useAppStore = create<AppState>()(
             `[Matching] Creating rental match for renter ${user.id} and landlord ${property.landlordId} (${landlordName}) on property ${propertyId}`
           );
 
+          const newMatchId = `match-${Date.now()}`;
+
           // Create rental match with full renter profile
           const newMatch: Match = {
-            id: `match-${Date.now()}`,
+            id: newMatchId,
             propertyId,
             property,
             landlordId: property.landlordId,
@@ -338,14 +345,16 @@ export const useAppStore = create<AppState>()(
             messages: [
               {
                 id: `msg-${Date.now()}`,
+                matchId: newMatchId,
                 senderId: property.landlordId,
+                receiverId: user.id,
                 senderType: 'landlord',
                 content:
                   LANDLORD_MESSAGE_TEMPLATES[
-                    Math.floor(Math.random() * LANDLORD_MESSAGE_TEMPLATES.length)
+                  Math.floor(Math.random() * LANDLORD_MESSAGE_TEMPLATES.length)
                   ],
                 timestamp: new Date().toISOString(),
-                read: false,
+                isRead: false,
               },
             ],
             lastMessageAt: new Date().toISOString(),
@@ -409,11 +418,13 @@ export const useAppStore = create<AppState>()(
 
         const newMessage: Message = {
           id: `msg-${Date.now()}`,
+          matchId,
           senderId: user.id,
+          receiverId: senderType === 'renter' ? currentMatch.landlordId : currentMatch.renterId,
           senderType,
           content,
           timestamp: new Date().toISOString(),
-          read: true,
+          isRead: true,
         };
 
         const updatedMatches = [...matches];
@@ -434,11 +445,13 @@ export const useAppStore = create<AppState>()(
 
           const reply: Message = {
             id: `msg-${Date.now()}`,
+            matchId,
             senderId: replySenderId,
+            receiverId: user.id,
             senderType: replyType,
             content: "Thanks for your message! I'll get back to you shortly.",
             timestamp: new Date().toISOString(),
-            read: false,
+            isRead: false,
           };
 
           const currentMatches = get().matches;
@@ -468,7 +481,7 @@ export const useAppStore = create<AppState>()(
           ...updatedMatches[matchIndex],
           messages: updatedMatches[matchIndex].messages.map((msg) => ({
             ...msg,
-            read: true,
+            isRead: true,
           })),
           unreadCount: 0,
         };
@@ -541,12 +554,11 @@ export const useAppStore = create<AppState>()(
         // Send automated message to vendor
         get().sendMessage(
           matchId,
-          `I'd like to schedule a viewing! ${
-            preference.flexibility === 'ASAP'
-              ? "I'm available as soon as possible."
-              : preference.flexibility === 'Flexible'
-                ? `I'm flexible with times. ${preference.preferredTimes.map((slot) => `${slot.dayType} ${slot.timeOfDay.toLowerCase()}s`).join(', ')} work best for me.`
-                : 'I have specific times in mind.'
+          `I'd like to schedule a viewing! ${preference.flexibility === 'ASAP'
+            ? "I'm available as soon as possible."
+            : preference.flexibility === 'Flexible'
+              ? `I'm flexible with times. ${preference.preferredTimes.map((slot) => `${slot.dayType} ${slot.timeOfDay.toLowerCase()}s`).join(', ')} work best for me.`
+              : 'I have specific times in mind.'
           }${preference.additionalNotes ? ` ${preference.additionalNotes}` : ''}`
         );
       },
@@ -1097,19 +1109,76 @@ export const useAppStore = create<AppState>()(
           isOnboarded: false,
         });
       },
+
+      // ========================================
+      // RRA 2025: COMPLIANCE ACTIONS
+      // ========================================
+
+      requestPet: (matchId, petDetails) => {
+        const { matches } = get();
+        const matchIndex = matches.findIndex((m) => m.id === matchId);
+        if (matchIndex === -1) return;
+
+        const updatedMatches = [...matches];
+        updatedMatches[matchIndex] = {
+          ...updatedMatches[matchIndex],
+          petRequestStatus: 'requested',
+        };
+
+        set({ matches: updatedMatches });
+
+        // Send automated message
+        get().sendMessage(
+          matchId,
+          `I would like to request permission to keep a pet. Details: ${petDetails}`
+        );
+      },
+
+      reviewPetRequest: (matchId, status, refusalReason) => {
+        const { matches } = get();
+        const matchIndex = matches.findIndex((m) => m.id === matchId);
+        if (matchIndex === -1) return;
+
+        const updatedMatches = [...matches];
+        updatedMatches[matchIndex] = {
+          ...updatedMatches[matchIndex],
+          petRequestStatus: status,
+          petRefusalReason: refusalReason,
+        };
+
+        set({ matches: updatedMatches });
+
+        // Send automated message
+        const message = status === 'approved'
+          ? 'Good news! Your pet request has been approved.'
+          : `Regarding your pet request: It has been refused. Reason: ${refusalReason}`;
+
+        get().sendMessage(matchId, message);
+      },
+
+      verifyRightToRent: (matchId) => {
+        const { matches } = get();
+        const matchIndex = matches.findIndex((m) => m.id === matchId);
+        if (matchIndex === -1) return;
+
+        const updatedMatches = [...matches];
+        updatedMatches[matchIndex] = {
+          ...updatedMatches[matchIndex],
+          rightToRentVerifiedAt: new Date(),
+        };
+
+        set({ matches: updatedMatches });
+      },
     }),
     {
       name: STORAGE_KEYS.USER,
       partialize: (state) => ({
         user: state.user,
-        // Properties are now loaded from Supabase - don't persist to localStorage
-        // (they contain massive base64 images that exceed localStorage quota)
         likedProperties: state.likedProperties,
         passedProperties: state.passedProperties,
         matches: state.matches,
         viewingPreferences: state.viewingPreferences,
         isOnboarded: state.isOnboarded,
-        currentPropertyIndex: state.currentPropertyIndex,
       }),
     }
   )

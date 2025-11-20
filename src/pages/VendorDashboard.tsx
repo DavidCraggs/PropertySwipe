@@ -130,12 +130,10 @@ export function VendorDashboard() {
               </div>
             )}
             <div className="flex items-center gap-3 mb-2">
-              <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                stats.viewingRequests > 0 ? 'bg-danger-100' : 'bg-neutral-100'
-              }`}>
-                <Clock className={`w-5 h-5 ${
-                  stats.viewingRequests > 0 ? 'text-danger-600' : 'text-neutral-600'
-                }`} />
+              <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${stats.viewingRequests > 0 ? 'bg-danger-100' : 'bg-neutral-100'
+                }`}>
+                <Clock className={`w-5 h-5 ${stats.viewingRequests > 0 ? 'text-danger-600' : 'text-neutral-600'
+                  }`} />
               </div>
               <div className="text-2xl font-bold text-neutral-900">{stats.viewingRequests}</div>
             </div>
@@ -590,18 +588,18 @@ function RenterInterestCard({ match, onScheduleViewing }: RenterInterestCardProp
               <p className="text-xs text-danger-900 mb-1">
                 <strong>Flexibility:</strong> {match.viewingPreference.flexibility}
               </p>
-              {match.viewingPreference.preferredTimes.length > 0 && (
+              {(match.viewingPreference.preferredTimes ?? []).length > 0 && (
                 <div className="text-xs text-danger-900">
                   <strong>Preferred times:</strong>
                   <div className="flex flex-wrap gap-1 mt-1">
-                    {match.viewingPreference.preferredTimes.slice(0, 3).map((slot, idx) => (
+                    {(match.viewingPreference.preferredTimes ?? []).slice(0, 3).map((slot, idx) => (
                       <span key={idx} className="px-2 py-0.5 bg-danger-100 rounded text-xs">
                         {slot.dayType} {slot.timeOfDay}
                       </span>
                     ))}
-                    {match.viewingPreference.preferredTimes.length > 3 && (
+                    {(match.viewingPreference.preferredTimes ?? []).length > 3 && (
                       <span className="px-2 py-0.5 bg-danger-100 rounded text-xs">
-                        +{match.viewingPreference.preferredTimes.length - 3} more
+                        +{(match.viewingPreference.preferredTimes ?? []).length - 3} more
                       </span>
                     )}
                   </div>
@@ -612,6 +610,59 @@ function RenterInterestCard({ match, onScheduleViewing }: RenterInterestCardProp
                   "{match.viewingPreference.additionalNotes}"
                 </p>
               )}
+            </div>
+          )}
+
+          {/* Pet Request Review (RRA 2025) */}
+          {match.petRequestStatus === 'requested' && (
+            <div className="bg-secondary-50 border border-secondary-200 rounded-lg p-3 mb-2">
+              <div className="flex items-center gap-2 text-secondary-800 mb-2">
+                <Clock size={16} />
+                <span className="text-sm font-bold">Pet Request Pending</span>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    if (confirm('Approve pet request?')) {
+                      useAppStore.getState().reviewPetRequest(match.id, 'approved');
+                    }
+                  }}
+                  className="flex-1 px-3 py-1.5 bg-success-500 text-white rounded-lg text-xs font-medium hover:bg-success-600 transition-colors"
+                >
+                  Approve
+                </button>
+                <button
+                  onClick={() => {
+                    const reason = prompt('Reason for refusal (Required by RRA 2025):');
+                    if (reason) {
+                      useAppStore.getState().reviewPetRequest(match.id, 'refused', reason);
+                    }
+                  }}
+                  className="flex-1 px-3 py-1.5 bg-danger-500 text-white rounded-lg text-xs font-medium hover:bg-danger-600 transition-colors"
+                >
+                  Refuse
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Right to Rent Check (RRA 2025) */}
+          {!match.rightToRentVerifiedAt && (
+            <div className="bg-warning-50 border border-warning-200 rounded-lg p-3 mb-2">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-bold text-warning-800">Right to Rent Check Needed</span>
+                <AlertTriangle size={14} className="text-warning-600" />
+              </div>
+              <button
+                onClick={() => {
+                  if (confirm('Confirm you have seen original documents proving the tenant\'s right to rent in the UK?')) {
+                    useAppStore.getState().verifyRightToRent(match.id);
+                  }
+                }}
+                className="w-full px-3 py-1.5 bg-white border border-warning-300 text-warning-700 rounded-lg text-xs font-medium hover:bg-warning-50 transition-colors"
+              >
+                Verify Documents
+              </button>
             </div>
           )}
 
@@ -704,11 +755,10 @@ function ActiveTenancyCard({ match }: ActiveTenancyCardProps) {
 
           {/* Issue Status Banner */}
           {totalIssues > 0 && (
-            <div className={`rounded-lg p-3 mb-3 ${
-              openIssuesCount > 0
-                ? 'bg-warning-50 border border-warning-200'
-                : 'bg-success-50 border border-success-200'
-            }`}>
+            <div className={`rounded-lg p-3 mb-3 ${openIssuesCount > 0
+              ? 'bg-warning-50 border border-warning-200'
+              : 'bg-success-50 border border-success-200'
+              }`}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   {openIssuesCount > 0 ? (
@@ -716,9 +766,8 @@ function ActiveTenancyCard({ match }: ActiveTenancyCardProps) {
                   ) : (
                     <CheckCircle2 size={16} className="text-success-600" />
                   )}
-                  <span className={`text-sm font-medium ${
-                    openIssuesCount > 0 ? 'text-warning-700' : 'text-success-700'
-                  }`}>
+                  <span className={`text-sm font-medium ${openIssuesCount > 0 ? 'text-warning-700' : 'text-success-700'
+                    }`}>
                     {openIssuesCount > 0
                       ? `${openIssuesCount} Open Issue${openIssuesCount !== 1 ? 's' : ''}`
                       : 'No Open Issues'}

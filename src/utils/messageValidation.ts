@@ -56,6 +56,27 @@ const ALLOWED_PATTERNS = [
   /not\s+(willing|able)\s+to\s+pay\s+more/i,
   /cannot\s+pay\s+more/i,
   /won't\s+pay\s+more/i,
+  /won't\s+pay\s+more/i,
+];
+
+/**
+ * Banned discriminatory phrases (RRA 2025 & Equality Act 2010)
+ */
+const DISCRIMINATORY_PATTERNS = [
+  // Benefits / DSS
+  /no\s+(dss|benefits|housing\s+benefit|universal\s+credit)/i,
+  /(dss|benefits|housing\s+benefit|universal\s+credit)\s+not\s+accepted/i,
+  /(not|do\s+not|don't)\s+accept\s+(dss|benefits|housing\s+benefit|universal\s+credit)/i,
+  /professionals\s+only/i, // Can be indirect discrimination
+  /working\s+people\s+only/i,
+
+  // Family / Children
+  /no\s+(kids|children|families)/i,
+  /(kids|children|families)\s+not\s+allowed/i,
+  /(not|do\s+not|don't)\s+allow\s+(kids|children|families)/i,
+  /adults\s+only/i,
+  /child\s+free/i,
+  /not\s+suitable\s+for\s+children/i, // Unless specific safety reason given (hard to validate automatically, but flagging is good)
 ];
 
 /**
@@ -110,6 +131,23 @@ export function validateMessage(
       isValid: false,
       error: 'This message violates the Renters\' Rights Act 2025. Landlords cannot request or accept rent above the advertised price. This is known as "rent bidding" and is illegal.',
       bannedPhrases: detectedPhrases,
+    };
+  }
+
+  // Check for discriminatory patterns
+  const detectedDiscriminatoryPhrases: string[] = [];
+  for (const pattern of DISCRIMINATORY_PATTERNS) {
+    const match = message.match(pattern);
+    if (match) {
+      detectedDiscriminatoryPhrases.push(match[0]);
+    }
+  }
+
+  if (detectedDiscriminatoryPhrases.length > 0) {
+    return {
+      isValid: false,
+      error: 'This message contains phrases that may violate the Equality Act 2010 and RRA 2025. Discrimination against families or benefit recipients is illegal.',
+      bannedPhrases: detectedDiscriminatoryPhrases,
     };
   }
 

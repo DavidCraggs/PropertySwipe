@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Heart, MessageCircle, MapPin, Calendar, Clock, CheckCircle, Star } from 'lucide-react';
+import { Heart, MessageCircle, MapPin, Calendar, Clock, CheckCircle, Star, AlertTriangle } from 'lucide-react';
 import { useAppStore, useAuthStore } from '../hooks';
 import { formatRelativeTime } from '../utils/formatters';
 import { Badge } from '../components/atoms/Badge';
@@ -175,7 +175,7 @@ export const MatchesPage: React.FC = () => {
                           <span className="text-xs font-medium">Viewing Request Sent</span>
                         </div>
                         <p className="text-xs text-secondary-900">
-                          {match.viewingPreference.flexibility} • {match.viewingPreference.preferredTimes.length} time{match.viewingPreference.preferredTimes.length !== 1 ? 's' : ''}
+                          {match.viewingPreference.flexibility} • {match.viewingPreference.preferredTimes?.length || 0} time{(match.viewingPreference.preferredTimes?.length || 0) !== 1 ? 's' : ''}
                         </p>
                       </div>
                     )}
@@ -280,26 +280,150 @@ export const MatchesPage: React.FC = () => {
         )}
       </main>
 
-      {/* Simple modal placeholder for conversation view */}
+      {/* Conversation View Modal */}
       {selectedMatch && (
         <div
           className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
           onClick={() => setSelectedMatch(null)}
         >
           <div
-            className="bg-white rounded-2xl p-6 max-w-md w-full"
+            className="bg-white rounded-2xl w-full max-w-2xl h-[600px] flex flex-col shadow-2xl overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="text-xl font-bold mb-4">Conversation View</h3>
-            <p className="text-neutral-600 mb-4">
-              Full messaging interface will be implemented in the next section!
-            </p>
-            <button
-              onClick={() => setSelectedMatch(null)}
-              className="w-full bg-primary-500 text-white py-2 rounded-lg"
-            >
-              Close
-            </button>
+            {/* Header */}
+            <div className="p-4 border-b border-neutral-200 flex justify-between items-center bg-neutral-50">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center text-primary-600 font-bold">
+                  {matches.find(m => m.id === selectedMatch)?.landlordName.charAt(0) || 'L'}
+                </div>
+                <div>
+                  <h3 className="font-bold text-neutral-900">
+                    {matches.find(m => m.id === selectedMatch)?.landlordName}
+                  </h3>
+                  <p className="text-xs text-neutral-500">
+                    {matches.find(m => m.id === selectedMatch)?.property.address.street}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedMatch(null)}
+                className="p-2 hover:bg-neutral-200 rounded-full transition-colors"
+              >
+                <span className="sr-only">Close</span>
+                ✕
+              </button>
+            </div>
+
+            {/* Messages Area */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-neutral-50">
+              {matches.find(m => m.id === selectedMatch)?.messages.map((msg) => (
+                <div
+                  key={msg.id}
+                  className={`flex ${msg.senderType === (userType === 'renter' ? 'renter' : 'landlord') ? 'justify-end' : 'justify-start'}`}
+                >
+                  <div
+                    className={`max-w-[80%] p-3 rounded-2xl ${msg.senderType === (userType === 'renter' ? 'renter' : 'landlord')
+                      ? 'bg-primary-500 text-white rounded-tr-none'
+                      : 'bg-white border border-neutral-200 text-neutral-800 rounded-tl-none shadow-sm'
+                      }`}
+                  >
+                    <p className="text-sm">{msg.content}</p>
+                    <p className={`text-[10px] mt-1 ${msg.senderType === (userType === 'renter' ? 'renter' : 'landlord') ? 'text-primary-100' : 'text-neutral-400'}`}>
+                      {formatRelativeTime(msg.timestamp)}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Pet Request Status Banner */}
+            {(() => {
+              const match = matches.find(m => m.id === selectedMatch);
+              if (!match) return null;
+
+              if (match.petRequestStatus === 'requested') {
+                return (
+                  <div className="bg-secondary-50 border-t border-secondary-200 p-3 flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-secondary-800">
+                      <Clock size={16} />
+                      <span className="text-sm font-medium">Pet Request Pending</span>
+                    </div>
+                    <span className="text-xs text-secondary-600">Landlord reviewing...</span>
+                  </div>
+                );
+              }
+              if (match.petRequestStatus === 'approved') {
+                return (
+                  <div className="bg-success-50 border-t border-success-200 p-3 flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-success-800">
+                      <CheckCircle size={16} />
+                      <span className="text-sm font-medium">Pet Request Approved! 🐾</span>
+                    </div>
+                  </div>
+                );
+              }
+              if (match.petRequestStatus === 'refused') {
+                return (
+                  <div className="bg-danger-50 border-t border-danger-200 p-3">
+                    <div className="flex items-center gap-2 text-danger-800 mb-1">
+                      <AlertTriangle size={16} />
+                      <span className="text-sm font-medium">Pet Request Refused</span>
+                    </div>
+                    <p className="text-xs text-danger-700">Reason: {match.petRefusalReason}</p>
+                  </div>
+                );
+              }
+              return null;
+            })()}
+
+            {/* Action Bar */}
+            <div className="p-4 bg-white border-t border-neutral-200">
+              <div className="flex gap-2 mb-3 overflow-x-auto pb-2">
+                {/* Pet Request Button (RRA 2025) */}
+                {userType === 'renter' && matches.find(m => m.id === selectedMatch)?.petRequestStatus === 'none' && (
+                  <button
+                    onClick={() => {
+                      const details = prompt('Please describe your pet(s) (Type, Breed, Age):');
+                      if (details) {
+                        const match = matches.find(m => m.id === selectedMatch);
+                        if (match) {
+                          // Use the new store action
+                          useAppStore.getState().requestPet(match.id, details);
+                        }
+                      }
+                    }}
+                    className="flex items-center gap-1 px-3 py-1.5 bg-secondary-100 text-secondary-700 rounded-full text-xs font-medium hover:bg-secondary-200 transition-colors whitespace-nowrap"
+                  >
+                    🐾 Request Pet
+                  </button>
+                )}
+
+                <button className="flex items-center gap-1 px-3 py-1.5 bg-neutral-100 text-neutral-700 rounded-full text-xs font-medium hover:bg-neutral-200 transition-colors whitespace-nowrap">
+                  📅 Request Viewing
+                </button>
+              </div>
+
+              {/* Message Input */}
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Type a message..."
+                  className="flex-1 border border-neutral-300 rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && e.currentTarget.value.trim()) {
+                      const match = matches.find(m => m.id === selectedMatch);
+                      if (match) {
+                        useAppStore.getState().sendMessage(match.id, e.currentTarget.value);
+                        e.currentTarget.value = '';
+                      }
+                    }
+                  }}
+                />
+                <button className="bg-primary-500 text-white p-2 rounded-full hover:bg-primary-600 transition-colors">
+                  <MessageCircle size={20} />
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

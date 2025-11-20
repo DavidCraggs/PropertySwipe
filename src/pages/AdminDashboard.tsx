@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useAuthStore } from '../hooks/useAuthStore';
 import {
   Shield,
@@ -8,9 +8,11 @@ import {
   Briefcase,
   ChevronRight,
   LogOut,
-  Activity
+  Activity,
+  Database
 } from 'lucide-react';
 import type { UserType } from '../types';
+import { SeedDataModal } from '../components/organisms/SeedDataModal';
 
 interface RoleCard {
   type: Exclude<UserType, 'admin'>;
@@ -61,6 +63,7 @@ const roleCards: RoleCard[] = [
  */
 export const AdminDashboard: React.FC = () => {
   const { switchToRole, logout, adminProfile, impersonatedRole } = useAuthStore();
+  const [isSeedModalOpen, setIsSeedModalOpen] = useState(false);
 
   const handleRoleSelect = async (roleType: Exclude<UserType, 'admin'>) => {
     await switchToRole(roleType);
@@ -90,13 +93,23 @@ export const AdminDashboard: React.FC = () => {
               </div>
             </div>
 
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-white transition"
-            >
-              <LogOut className="w-4 h-4" />
-              <span>Logout</span>
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setIsSeedModalOpen(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 border border-primary-500 rounded-lg text-white transition"
+              >
+                <Database className="w-4 h-4" />
+                <span>Seed Test Data</span>
+              </button>
+
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-white transition"
+              >
+                <LogOut className="w-4 h-4" />
+                <span>Logout</span>
+              </button>
+            </div>
           </div>
         </div>
       </header>
@@ -174,6 +187,12 @@ export const AdminDashboard: React.FC = () => {
           </p>
         </div>
       </main>
+
+      {/* Seed Data Modal */}
+      <SeedDataModal
+        isOpen={isSeedModalOpen}
+        onClose={() => setIsSeedModalOpen(false)}
+      />
     </div>
   );
 };
