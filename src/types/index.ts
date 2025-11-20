@@ -255,6 +255,10 @@ export interface Property {
   // Landlord
   landlordId: string;
 
+  // Agency relationships (optional)
+  managingAgencyId?: string;
+  marketingAgentId?: string;
+
   // Availability
   isAvailable: boolean;
   canBeMarketed: boolean; // Calculated: requires PRS registration + compliance

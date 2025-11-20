@@ -27,6 +27,8 @@ export async function createProperty1(): Promise<Property> {
     const property: Omit<Property, 'id'> & { seed_tag: string } = {
         seed_tag: SEED_CONSTANTS.PROPERTY_1_TAG,
         landlordId: GENERATED_IDS.landlordId,
+        managingAgencyId: GENERATED_IDS.managementAgencyId,
+        marketingAgentId: GENERATED_IDS.estateAgentId,
         address: {
             street: '12 Duke Street',
             city: 'Liverpool',
@@ -93,6 +95,8 @@ export async function createProperty2(): Promise<Property> {
     const property: Omit<Property, 'id'> & { seed_tag: string } = {
         seed_tag: SEED_CONSTANTS.PROPERTY_2_TAG,
         landlordId: GENERATED_IDS.landlordId,
+        managingAgencyId: GENERATED_IDS.managementAgencyId,
+        marketingAgentId: GENERATED_IDS.estateAgentId,
         address: {
             street: '45 Bold Street',
             city: 'Liverpool',
@@ -157,6 +161,8 @@ export async function createProperty3(): Promise<Property> {
     const property: Omit<Property, 'id'> & { seed_tag: string } = {
         seed_tag: SEED_CONSTANTS.PROPERTY_3_TAG,
         landlordId: GENERATED_IDS.landlordId,
+        managingAgencyId: GENERATED_IDS.managementAgencyId,
+        marketingAgentId: GENERATED_IDS.estateAgentId,
         address: {
             street: '78 Water Street',
             city: 'Liverpool',
@@ -222,6 +228,8 @@ export async function createProperty4(): Promise<Property> {
     const property: Omit<Property, 'id'> & { seed_tag: string } = {
         seed_tag: SEED_CONSTANTS.PROPERTY_4_TAG,
         landlordId: GENERATED_IDS.landlordId,
+        managingAgencyId: GENERATED_IDS.managementAgencyId,
+        marketingAgentId: GENERATED_IDS.estateAgentId,
         address: {
             street: '23 Penny Lane',
             city: 'Liverpool',
@@ -289,6 +297,8 @@ export async function createProperty5(): Promise<Property> {
     const property: Omit<Property, 'id'> & { seed_tag: string } = {
         seed_tag: SEED_CONSTANTS.PROPERTY_5_TAG,
         landlordId: GENERATED_IDS.landlordId,
+        managingAgencyId: GENERATED_IDS.managementAgencyId,
+        marketingAgentId: GENERATED_IDS.estateAgentId,
         address: {
             street: '56 Rodney Street',
             city: 'Liverpool',

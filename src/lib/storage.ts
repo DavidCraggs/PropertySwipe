@@ -458,53 +458,60 @@ export const getAgencyProfile = async (id: string): Promise<AgencyProfile | null
 // RENTAL PROPERTIES
 // =====================================================
 
-export const saveProperty = async (property: Property): Promise<Property> => {
+export const saveProperty = async (property: any): Promise<Property> => {
   if (isSupabaseConfigured()) {
-    const propertyData = {
-      landlord_id: property.landlordId || null, // NULL instead of empty string
-      street: property.address.street,
-      city: property.address.city,
-      postcode: property.address.postcode,
-      council: property.address.council,
+    const propertyData: any = {
+      landlord_id: property.landlord_id || property.landlordId || null,
+      managing_agency_id: property.managing_agency_id || property.managingAgencyId || null,
+      marketing_agent_id: property.marketing_agent_id || property.marketingAgentId || null,
+      street: property.address?.street || property.street,
+      city: property.address?.city || property.city,
+      postcode: property.address?.postcode || property.postcode,
+      council: property.address?.council || property.council,
 
       // Rental pricing (not purchase price)
-      rent_pcm: property.rentPcm,
+      rent_pcm: property.rentPcm || property.rent_pcm,
       deposit: property.deposit,
 
       bedrooms: property.bedrooms,
       bathrooms: property.bathrooms,
-      property_type: property.propertyType,
-      year_built: property.yearBuilt,
+      property_type: property.propertyType || property.property_type,
+      year_built: property.yearBuilt || property.year_built,
       description: property.description,
-      epc_rating: property.epcRating,
+      epc_rating: property.epcRating || property.epc_rating,
       images: property.images,
       features: property.features,
 
       // Rental-specific fields
       furnishing: property.furnishing,
-      available_from: property.availableFrom,
-      tenancy_type: property.tenancyType || 'Periodic', // RRA 2025
-      max_occupants: property.maxOccupants,
-      pets_policy: property.petsPolicy,
+      available_from: property.availableFrom || property.available_from,
+      tenancy_type: property.tenancyType || property.tenancy_type || 'Periodic', // RRA 2025
+      max_occupants: property.maxOccupants || property.max_occupants,
+      pets_policy: property.petsPolicy || property.pets_policy,
 
       // Bills
-      council_tax_band: property.bills?.councilTaxBand,
-      gas_electric_included: property.bills?.gasElectricIncluded || false,
-      water_included: property.bills?.waterIncluded || false,
-      internet_included: property.bills?.internetIncluded || false,
+      council_tax_band: property.bills?.councilTaxBand || property.council_tax_band,
+      gas_electric_included: property.bills?.gasElectricIncluded ?? property.gas_electric_included ?? false,
+      water_included: property.bills?.waterIncluded ?? property.water_included ?? false,
+      internet_included: property.bills?.internetIncluded ?? property.internet_included ?? false,
 
       // RRA 2025 Compliance
-      meets_decent_homes_standard: property.meetsDecentHomesStandard,
-      awaabs_law_compliant: property.awaabsLawCompliant,
-      last_safety_inspection_date: property.lastSafetyInspectionDate,
-      prs_property_registration_number: property.prsPropertyRegistrationNumber,
-      prs_property_registration_status: property.prsPropertyRegistrationStatus,
+      meets_decent_homes_standard: property.meetsDecentHomesStandard ?? property.meets_decent_homes_standard,
+      awaabs_law_compliant: property.awaabsLawCompliant ?? property.awaabs_law_compliant,
+      last_safety_inspection_date: property.lastSafetyInspectionDate || property.last_safety_inspection_date,
+      prs_property_registration_number: property.prsPropertyRegistrationNumber || property.prs_property_registration_number,
+      prs_property_registration_status: property.prsPropertyRegistrationStatus || property.prs_property_registration_status,
 
-      is_available: property.isAvailable,
-      listing_date: property.listingDate,
-      preferred_minimum_stay: property.preferredMinimumStay,
-      accepts_short_term_tenants: property.acceptsShortTermTenants,
+      is_available: property.isAvailable ?? property.is_available,
+      listing_date: property.listingDate || property.listing_date,
+      preferred_minimum_stay: property.preferredMinimumStay ?? property.preferred_minimum_stay,
+      accepts_short_term_tenants: property.acceptsShortTermTenants ?? property.accepts_short_term_tenants,
     };
+
+    // Add seed_tag if present
+    if (property.seed_tag) {
+      propertyData.seed_tag = property.seed_tag;
+    }
 
     // Check if property has a valid UUID (for updates) or needs to be inserted
     const isValidUUID = property.id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(property.id);
@@ -677,27 +684,34 @@ export const deleteProperty = async (id: string): Promise<void> => {
 // RENTAL MATCHES (Landlord ↔ Renter)
 // =====================================================
 
-export const saveMatch = async (match: Match): Promise<Match> => {
+export const saveMatch = async (match: any): Promise<Match> => {
   if (isSupabaseConfigured()) {
-    const matchData = {
-      property_id: match.propertyId,
-      landlord_id: match.landlordId,
-      renter_id: match.renterId,
-      renter_name: match.renterName,
-      renter_profile: match.renterProfile,
+    const matchData: any = {
+      property_id: match.property_id || match.propertyId,
+      landlord_id: match.landlord_id || match.landlordId,
+      renter_id: match.renter_id || match.renterId,
+      managing_agency_id: match.managing_agency_id || match.managingAgencyId || null,
+      marketing_agent_id: match.marketing_agent_id || match.marketingAgentId || null,
+      renter_name: match.renter_name || match.renterName,
+      renter_profile: match.renter_profile || match.renterProfile,
       messages: match.messages,
-      last_message_at: match.lastMessageAt,
-      unread_count: match.unreadCount,
-      has_viewing_scheduled: match.hasViewingScheduled,
-      confirmed_viewing_date: match.confirmedViewingDate,
-      viewing_preference: match.viewingPreference,
-      tenancy_start_date: match.tenancyStartDate,
-      can_rate: match.canRate,
-      has_landlord_rated: match.hasLandlordRated,
-      has_renter_rated: match.hasRenterRated,
-      landlord_rating_id: match.landlordRatingId,
-      renter_rating_id: match.renterRatingId,
+      last_message_at: match.last_message_at || match.lastMessageAt,
+      unread_count: match.unread_count ?? match.unreadCount,
+      has_viewing_scheduled: match.has_viewing_scheduled ?? match.hasViewingScheduled,
+      confirmed_viewing_date: match.confirmed_viewing_date || match.confirmedViewingDate,
+      viewing_preference: match.viewing_preference || match.viewingPreference,
+      tenancy_start_date: match.tenancy_start_date || match.tenancyStartDate,
+      can_rate: match.can_rate ?? match.canRate,
+      has_landlord_rated: match.has_landlord_rated ?? match.hasLandlordRated,
+      has_renter_rated: match.has_renter_rated ?? match.hasRenterRated,
+      landlord_rating_id: match.landlord_rating_id || match.landlordRatingId,
+      renter_rating_id: match.renter_rating_id || match.renterRatingId,
     };
+
+    // Add seed_tag if present
+    if (match.seed_tag) {
+      matchData.seed_tag = match.seed_tag;
+    }
 
     // Check if match has a valid UUID
     const isValidUUID = match.id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(match.id);

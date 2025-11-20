@@ -5,6 +5,62 @@ import type {
   RenterStatus,
 } from '../types';
 import { hashPassword } from './validation';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
+
+/**
+ * Seed tag constants for test profiles
+ */
+const SEED_TAGS = {
+  RENTER: 'seed-renter-001',
+  LANDLORD: 'seed-landlord-001',
+  ESTATE_AGENT: 'seed-agent-001',
+  MANAGEMENT_AGENCY: 'seed-mgmt-001',
+} as const;
+
+/**
+ * Resolve the actual UUID for a test profile from Supabase using its seed_tag
+ * @param seedTag - The seed_tag to look up
+ * @param profileType - The type of profile (landlord, renter, or agency)
+ * @returns The UUID if found, null otherwise
+ */
+export const resolveTestProfileUUID = async (
+  seedTag: string,
+  profileType: 'landlord' | 'renter' | 'agency'
+): Promise<string | null> => {
+  if (!isSupabaseConfigured()) {
+    console.warn('[Admin] Supabase not configured, cannot resolve UUID');
+    return null;
+  }
+
+  try {
+    const tableName = profileType === 'landlord'
+      ? 'landlord_profiles'
+      : profileType === 'renter'
+        ? 'renter_profiles'
+        : 'agency_profiles';
+
+    const { data, error } = await supabase
+      .from(tableName)
+      .select('id')
+      .eq('seed_tag', seedTag)
+      .single();
+
+    if (error) {
+      console.warn(`[Admin] Could not resolve UUID for ${profileType} with seed_tag ${seedTag}:`, error.message);
+      return null;
+    }
+
+    if (data?.id) {
+      console.log(`[Admin] Resolved ${profileType} UUID: ${data.id} from seed_tag: ${seedTag}`);
+      return data.id;
+    }
+
+    return null;
+  } catch (error) {
+    console.error(`[Admin] Error resolving UUID for ${profileType}:`, error);
+    return null;
+  }
+};
 
 /**
  * Generates a complete test renter profile for admin role switching
@@ -13,8 +69,11 @@ import { hashPassword } from './validation';
 export const generateTestRenter = async (): Promise<RenterProfile> => {
   const passwordHash = await hashPassword('Test1234!');
 
+  // Try to resolve the actual UUID from Supabase
+  const resolvedId = await resolveTestProfileUUID(SEED_TAGS.RENTER, 'renter');
+
   return {
-    id: 'test-renter-001',
+    id: resolvedId || 'test-renter-001', // Fallback to hardcoded ID if not found
     email: 'test.renter@geton.com',
     passwordHash,
     names: 'Test Renter',
@@ -45,8 +104,11 @@ export const generateTestRenter = async (): Promise<RenterProfile> => {
 export const generateTestLandlord = async (): Promise<LandlordProfile> => {
   const passwordHash = await hashPassword('Test1234!');
 
+  // Try to resolve the actual UUID from Supabase
+  const resolvedId = await resolveTestProfileUUID(SEED_TAGS.LANDLORD, 'landlord');
+
   return {
-    id: 'test-landlord-001',
+    id: resolvedId || 'test-landlord-001', // Fallback to hardcoded ID if not found
     email: 'test.landlord@geton.com',
     passwordHash,
     names: 'Test Landlord',
@@ -78,8 +140,11 @@ export const generateTestLandlord = async (): Promise<LandlordProfile> => {
 export const generateTestEstateAgent = async (): Promise<AgencyProfile> => {
   const passwordHash = await hashPassword('Test1234!');
 
+  // Try to resolve the actual UUID from Supabase
+  const resolvedId = await resolveTestProfileUUID(SEED_TAGS.ESTATE_AGENT, 'agency');
+
   return {
-    id: 'test-estate-agent-001',
+    id: resolvedId || 'test-estate-agent-001', // Fallback to hardcoded ID if not found
     email: 'test.estateagent@geton.com',
     passwordHash,
     agencyType: 'estate_agent',
@@ -123,8 +188,11 @@ export const generateTestEstateAgent = async (): Promise<AgencyProfile> => {
 export const generateTestManagementAgency = async (): Promise<AgencyProfile> => {
   const passwordHash = await hashPassword('Test1234!');
 
+  // Try to resolve the actual UUID from Supabase
+  const resolvedId = await resolveTestProfileUUID(SEED_TAGS.MANAGEMENT_AGENCY, 'agency');
+
   return {
-    id: 'test-management-agency-001',
+    id: resolvedId || 'test-management-agency-001', // Fallback to hardcoded ID if not found
     email: 'test.managementagency@geton.com',
     passwordHash,
     agencyType: 'management_agency',
@@ -164,6 +232,7 @@ export const generateTestManagementAgency = async (): Promise<AgencyProfile> => 
 
 /**
  * Initialize all test profiles and store them
+ * This will resolve UUIDs from Supabase if available
  */
 export const initializeTestProfiles = async (): Promise<void> => {
   const testProfiles = {
@@ -174,7 +243,7 @@ export const initializeTestProfiles = async (): Promise<void> => {
   };
 
   localStorage.setItem('get-on-admin-test-profiles', JSON.stringify(testProfiles));
-  console.log('[Admin] Test profiles initialized');
+  console.log('[Admin] Test profiles initialized with resolved UUIDs');
 };
 
 /**
@@ -189,3 +258,4 @@ export const getTestProfile = (
   const profiles = JSON.parse(profilesJson);
   return profiles[userType] || null;
 };
+

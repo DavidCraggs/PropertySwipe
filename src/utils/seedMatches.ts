@@ -38,13 +38,15 @@ async function createCompleteMatch(matchData: Partial<Match> & { seed_tag: strin
     const renterProfile = await getRenterProfile(matchData.renterId!);
     const renterName = renterProfile?.names || 'Unknown Renter';
 
-    // Create complete match object
+    // Create complete match object with agency IDs
     const completeMatch: Match = {
         ...matchData,
         property,
         landlordName,
         renterName,
         renterProfile,
+        managingAgencyId: GENERATED_IDS.managementAgencyId,
+        marketingAgentId: GENERATED_IDS.estateAgentId,
     } as Match;
 
     return await saveMatch(completeMatch);
