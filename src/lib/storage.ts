@@ -318,29 +318,55 @@ export const getBuyerProfile = getRenterProfile as unknown as (id: string) => Pr
 // AGENCY PROFILES (Estate Agents & Management Agencies)
 // =====================================================
 
-export const saveAgencyProfile = async (profile: AgencyProfile): Promise<AgencyProfile> => {
+export const saveAgencyProfile = async (profile: any): Promise<AgencyProfile> => {
   if (isSupabaseConfigured()) {
-    const profileData = {
+    // Handle both camelCase TypeScript objects and snake_case database objects
+    const profileData: any = {
       email: profile.email,
-      password_hash: profile.passwordHash,
-      agency_type: profile.agencyType,
-      company_name: profile.companyName,
-      registration_number: profile.registrationNumber,
-      primary_contact_name: profile.primaryContactName,
+      password_hash: profile.password_hash || profile.passwordHash,
+      agency_type: profile.agency_type || profile.agencyType,
+      company_name: profile.company_name || profile.companyName,
+      registration_number: profile.registration_number || profile.registrationNumber,
+      primary_contact_name: profile.primary_contact_name || profile.primaryContactName,
       phone: profile.phone,
-      address: profile.address,
-      service_areas: profile.serviceAreas,
-      managed_property_ids: profile.managedPropertyIds,
-      landlord_client_ids: profile.landlordClientIds,
-      active_tenants_count: profile.activeTenantsCount,
-      total_properties_managed: profile.totalPropertiesManaged,
-      sla_configuration: profile.slaConfiguration,
-      performance_metrics: profile.performanceMetrics,
-      property_ombudsman_member: profile.propertyOmbudsmanMember,
-      insurance_details: profile.insuranceDetails,
-      is_active: profile.isActive,
-      is_complete: profile.onboardingComplete,
+      service_areas: profile.service_areas || profile.serviceAreas,
+      managed_property_ids: profile.managed_property_ids || profile.managedPropertyIds,
+      landlord_client_ids: profile.landlord_client_ids || profile.landlordClientIds,
+      active_tenants_count: profile.active_tenants_count ?? profile.activeTenantsCount,
+      total_properties_managed: profile.total_properties_managed ?? profile.totalPropertiesManaged,
+      property_ombudsman_member: profile.property_ombudsman_member ?? profile.propertyOmbudsmanMember,
+      is_active: profile.is_active ?? profile.isActive,
+      is_complete: profile.is_complete ?? profile.onboardingComplete,
     };
+
+    // Handle address - either flat fields or nested object
+    if (profile.address_street || profile.address) {
+      profileData.address_street = profile.address_street || profile.address?.street;
+      profileData.address_city = profile.address_city || profile.address?.city;
+      profileData.address_postcode = profile.address_postcode || profile.address?.postcode;
+    }
+
+    // Handle SLA configuration - either flat fields or nested object
+    if (profile.sla_emergency_response_hours !== undefined || profile.slaConfiguration) {
+      profileData.sla_emergency_response_hours = profile.sla_emergency_response_hours ?? profile.slaConfiguration?.emergencyResponseHours;
+      profileData.sla_urgent_response_hours = profile.sla_urgent_response_hours ?? profile.slaConfiguration?.urgentResponseHours;
+      profileData.sla_routine_response_hours = profile.sla_routine_response_hours ?? profile.slaConfiguration?.routineResponseHours;
+      profileData.sla_maintenance_response_days = profile.sla_maintenance_response_days ?? profile.slaConfiguration?.maintenanceResponseDays;
+    }
+
+    // Handle performance metrics - either flat fields or nested object
+    if (profile.avg_response_time_hours !== undefined || profile.performanceMetrics) {
+      profileData.avg_response_time_hours = profile.avg_response_time_hours ?? profile.performanceMetrics?.averageResponseTimeHours;
+      profileData.sla_compliance_rate = profile.sla_compliance_rate ?? profile.performanceMetrics?.slaComplianceRate;
+      profileData.total_issues_resolved = profile.total_issues_resolved ?? profile.performanceMetrics?.totalIssuesResolved;
+      profileData.total_issues_raised = profile.total_issues_raised ?? profile.performanceMetrics?.totalIssuesRaised;
+      profileData.current_open_issues = profile.current_open_issues ?? profile.performanceMetrics?.currentOpenIssues;
+    }
+
+    // Add seed_tag if present
+    if (profile.seed_tag) {
+      profileData.seed_tag = profile.seed_tag;
+    }
 
     if (profile.id) {
       // Update existing profile
