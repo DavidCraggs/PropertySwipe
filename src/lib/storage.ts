@@ -903,22 +903,12 @@ export const saveRating = async (rating: any): Promise<any> => {
   if (isSupabaseConfigured()) {
     const ratingData: any = {
       match_id: rating.match_id || rating.matchId,
-      from_user_id: rating.from_user_id || rating.fromUserId,
-      from_user_type: rating.from_user_type || rating.fromUserType,
-      to_user_id: rating.to_user_id || rating.toUserId,
-      to_user_type: rating.to_user_type || rating.toUserType,
-      property_id: rating.property_id || rating.propertyId,
-      overall_score: rating.overall_score ?? rating.overallScore,
-      communication_score: rating.categoryScores?.communication,
-      cleanliness_score: rating.categoryScores?.cleanliness,
-      reliability_score: rating.categoryScores?.reliability,
-      property_condition_score: rating.categoryScores?.property_condition,
-      respect_for_property_score: rating.categoryScores?.respect_for_property,
-      review: rating.review,
-      would_recommend: rating.would_recommend ?? rating.wouldRecommend,
-      tenancy_start_date: rating.tenancy_start_date || rating.tenancyStartDate,
-      tenancy_end_date: rating.tenancy_end_date || rating.tenancyEndDate,
-      is_verified: rating.is_verified ?? rating.isVerified,
+      rated_user_id: rating.rated_user_id || rating.toUserId,
+      rated_user_type: rating.rated_user_type || rating.toUserType,
+      rater_user_id: rating.rater_user_id || rating.fromUserId,
+      rater_user_type: rating.rater_user_type || rating.fromUserType,
+      rating: Math.round(rating.rating ?? rating.overallScore ?? 5),
+      comment: rating.comment || rating.review,
     };
 
     // Add seed_tag if present
