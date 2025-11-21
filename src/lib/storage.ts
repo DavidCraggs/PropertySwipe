@@ -607,6 +607,8 @@ export const getAllProperties = async (): Promise<Property[]> => {
     return (data || []).map(d => ({
       id: d.id,
       landlordId: d.landlord_id || '',
+      managingAgencyId: d.managing_agency_id || undefined,  // CRITICAL FIX: Return agency IDs
+      marketingAgentId: d.marketing_agent_id || undefined,  // CRITICAL FIX: Return agency IDs
       address: {
         street: d.street,
         city: d.city,
@@ -766,9 +768,13 @@ export const getAllMatches = async (): Promise<Match[]> => {
     return (data || []).map(d => ({
       id: d.id,
       propertyId: d.property_id,
+      managingAgencyId: d.managing_agency_id || undefined,  // CRITICAL FIX: Return match agency IDs
+      marketingAgentId: d.marketing_agent_id || undefined,  // CRITICAL FIX: Return match agency IDs
       property: d.property ? {
         id: d.property.id,
         landlordId: d.property.landlord_id || '',
+        managingAgencyId: d.property.managing_agency_id || undefined,  // CRITICAL FIX: Return property agency IDs
+        marketingAgentId: d.property.marketing_agent_id || undefined,  // CRITICAL FIX: Return property agency IDs
         address: {
           street: d.property.street,
           city: d.property.city,

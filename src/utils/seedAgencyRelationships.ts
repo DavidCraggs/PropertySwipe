@@ -74,6 +74,47 @@ export async function seedAgencyRelationships(verbose: boolean = false): Promise
             console.log(`[Seed] ✓ Created ${data?.length || 0} agency property links`);
         }
 
+        // CRITICAL FIX: Update Agency Profiles with denormalized data
+        // The dashboards rely on these arrays being populated
+        if (verbose) console.log('[Seed] Updating agency profile arrays...');
+
+        const allPropertyIds = propertyIds;
+        const landlordIds = [GENERATED_IDS.landlordId];
+
+        // Update Management Agency
+        await supabase
+            .from('agency_profiles')
+            .update({
+                managed_property_ids: allPropertyIds,
+                landlord_client_ids: landlordIds,
+                total_properties_managed: allPropertyIds.length,
+                active_tenants_count: 0 // No active tenants in seed data yet
+            })
+            .eq('id', GENERATED_IDS.managementAgencyId);
+
+        // Update Estate Agent
+        await supabase
+            .from('agency_profiles')
+            .update({
+                managed_property_ids: allPropertyIds,
+                landlord_client_ids: landlordIds,
+                total_properties_managed: allPropertyIds.length,
+                active_tenants_count: 0
+            })
+            .eq('id', GENERATED_IDS.estateAgentId);
+
+        // CRITICAL FIX: Update Landlord Profile with agency links and primary property
+        if (verbose) console.log('[Seed] Updating landlord profile links...');
+
+        await supabase
+            .from('landlord_profiles')
+            .update({
+                property_id: PROPERTY_IDS.property1Id, // Set primary property
+                management_agency_id: GENERATED_IDS.managementAgencyId,
+                estate_agent_id: GENERATED_IDS.estateAgentId
+            })
+            .eq('id', GENERATED_IDS.landlordId);
+
         return data?.length || 0;
     } catch (error) {
         console.error('[Seed] Failed to create agency relationships:', error);
