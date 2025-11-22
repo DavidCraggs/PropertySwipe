@@ -136,15 +136,72 @@ export const generateTestLandlord = async (): Promise<LandlordProfile> => {
 
 /**
  * Generates test estate agent profile
+ * CRITICAL: Fetches FULL profile from Supabase to get managedPropertyIds
  */
 export const generateTestEstateAgent = async (): Promise<AgencyProfile> => {
   const passwordHash = await hashPassword('Test1234!');
 
-  // Try to resolve the actual UUID from Supabase
+  // NEW: Fetch the FULL profile from Supabase if it exists
+  if (isSupabaseConfigured()) {
+    try {
+      const { data, error } = await supabase
+        .from('agency_profiles')
+        .select('*')
+        .eq('seed_tag', SEED_TAGS.ESTATE_AGENT)
+        .single();
+
+      if (!error && data) {
+        console.log('[Admin] Fetched full estate agent profile from Supabase with', data.managed_property_ids?.length || 0, 'properties');
+        // Return the Supabase data with snake_case converted to camelCase
+        return {
+          id: data.id,
+          email: data.email,
+          passwordHash: data.password_hash || passwordHash,
+          agencyType: data.agency_type,
+          companyName: data.company_name,
+          registrationNumber: data.registration_number,
+          primaryContactName: data.primary_contact_name,
+          phone: data.phone,
+          address: {
+            street: data.address_street,
+            city: data.address_city,
+            postcode: data.address_postcode,
+          },
+          serviceAreas: data.service_areas || [],
+          isActive: data.is_active,
+          managedPropertyIds: data.managed_property_ids || [],  // CRITICAL: Real data from DB
+          landlordClientIds: data.landlord_client_ids || [],    // CRITICAL: Real data from DB
+          activeTenantsCount: data.active_tenants_count || 0,
+          totalPropertiesManaged: data.total_properties_managed || 0,
+          slaConfiguration: {
+            emergencyResponseHours: data.sla_emergency_response_hours,
+            urgentResponseHours: data.sla_urgent_response_hours,
+            routineResponseHours: data.sla_routine_response_hours,
+            maintenanceResponseDays: data.sla_maintenance_response_days,
+          },
+          performanceMetrics: {
+            averageResponseTimeHours: data.avg_response_time_hours,
+            slaComplianceRate: data.sla_compliance_rate,
+            totalIssuesResolved: data.total_issues_resolved,
+            totalIssuesRaised: data.total_issues_raised,
+            currentOpenIssues: data.current_open_issues,
+          },
+          propertyOmbudsmanMember: data.property_ombudsman_member,
+          onboardingComplete: data.is_complete,
+          createdAt: new Date(data.created_at),
+        };
+      }
+    } catch (error) {
+      console.error('[Admin] Error fetching estate agent from Supabase:', error);
+    }
+  }
+
+  // Fallback to template if Supabase fetch fails
   const resolvedId = await resolveTestProfileUUID(SEED_TAGS.ESTATE_AGENT, 'agency');
+  console.warn('[Admin] Using fallback template for estate agent (Supabase fetch failed)');
 
   return {
-    id: resolvedId || 'test-estate-agent-001', // Fallback to hardcoded ID if not found
+    id: resolvedId || 'test-estate-agent-001',
     email: 'test.estateagent@geton.com',
     passwordHash,
     agencyType: 'estate_agent',
@@ -184,15 +241,72 @@ export const generateTestEstateAgent = async (): Promise<AgencyProfile> => {
 
 /**
  * Generates test management agency profile
+ * CRITICAL: Fetches FULL profile from Supabase to get managedPropertyIds
  */
 export const generateTestManagementAgency = async (): Promise<AgencyProfile> => {
   const passwordHash = await hashPassword('Test1234!');
 
-  // Try to resolve the actual UUID from Supabase
+  // NEW: Fetch the FULL profile from Supabase if it exists
+  if (isSupabaseConfigured()) {
+    try {
+      const { data, error } = await supabase
+        .from('agency_profiles')
+        .select('*')
+        .eq('seed_tag', SEED_TAGS.MANAGEMENT_AGENCY)
+        .single();
+
+      if (!error && data) {
+        console.log('[Admin] Fetched full management agency profile from Supabase with', data.managed_property_ids?.length || 0, 'properties');
+        // Return the Supabase data with snake_case converted to camelCase
+        return {
+          id: data.id,
+          email: data.email,
+          passwordHash: data.password_hash || passwordHash,
+          agencyType: data.agency_type,
+          companyName: data.company_name,
+          registrationNumber: data.registration_number,
+          primaryContactName: data.primary_contact_name,
+          phone: data.phone,
+          address: {
+            street: data.address_street,
+            city: data.address_city,
+            postcode: data.address_postcode,
+          },
+          serviceAreas: data.service_areas || [],
+          isActive: data.is_active,
+          managedPropertyIds: data.managed_property_ids || [],  // CRITICAL: Real data from DB
+          landlordClientIds: data.landlord_client_ids || [],    // CRITICAL: Real data from DB
+          activeTenantsCount: data.active_tenants_count || 0,
+          totalPropertiesManaged: data.total_properties_managed || 0,
+          slaConfiguration: {
+            emergencyResponseHours: data.sla_emergency_response_hours,
+            urgentResponseHours: data.sla_urgent_response_hours,
+            routineResponseHours: data.sla_routine_response_hours,
+            maintenanceResponseDays: data.sla_maintenance_response_days,
+          },
+          performanceMetrics: {
+            averageResponseTimeHours: data.avg_response_time_hours,
+            slaComplianceRate: data.sla_compliance_rate,
+            totalIssuesResolved: data.total_issues_resolved,
+            totalIssuesRaised: data.total_issues_raised,
+            currentOpenIssues: data.current_open_issues,
+          },
+          propertyOmbudsmanMember: data.property_ombudsman_member,
+          onboardingComplete: data.is_complete,
+          createdAt: new Date(data.created_at),
+        };
+      }
+    } catch (error) {
+      console.error('[Admin] Error fetching management agency from Supabase:', error);
+    }
+  }
+
+  // Fallback to template if Supabase fetch fails
   const resolvedId = await resolveTestProfileUUID(SEED_TAGS.MANAGEMENT_AGENCY, 'agency');
+  console.warn('[Admin] Using fallback template for management agency (Supabase fetch failed)');
 
   return {
-    id: resolvedId || 'test-management-agency-001', // Fallback to hardcoded ID if not found
+    id: resolvedId || 'test-management-agency-001',
     email: 'test.managementagency@geton.com',
     passwordHash,
     agencyType: 'management_agency',
