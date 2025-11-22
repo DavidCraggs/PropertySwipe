@@ -71,6 +71,7 @@ export const generateTestRenter = async (): Promise<RenterProfile> => {
 
   // Try to resolve the actual UUID from Supabase
   const resolvedId = await resolveTestProfileUUID(SEED_TAGS.RENTER, 'renter');
+  const landlordId = await resolveTestProfileUUID(SEED_TAGS.LANDLORD, 'landlord');
 
   return {
     id: resolvedId || 'test-renter-001', // Fallback to hardcoded ID if not found
@@ -83,7 +84,11 @@ export const generateTestRenter = async (): Promise<RenterProfile> => {
     employmentStatus: 'Employed Full-Time',
     monthlyIncome: 2500,
     situation: 'Single',
-    status: 'prospective' as RenterStatus,
+    status: 'current' as RenterStatus,  // Changed from 'prospective' to 'current'
+    // Add current tenancy fields so issue reporter works
+    currentPropertyId: 'seed-test-property', // Links to seeded property
+    currentLandlordId: landlordId || 'test-landlord-001',
+    currentAgencyId: undefined, // No agency for test landlord
     preferredMoveInDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
     hasPets: false,
     smokingStatus: 'Non-Smoker',

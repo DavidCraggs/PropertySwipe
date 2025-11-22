@@ -4,28 +4,22 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { createIssue } from '../../src/lib/storage';
-import * as supabaseModule from '../../src/lib/supabase';
-import type { Issue, IssueCategory, IssuePriority, AgencyProfile } from '../../src/types';
+import * as storageModule from '../../../src/lib/storage';
+import * as supabaseModule from '../../../src/lib/supabase';
+import type { Issue, IssueCategory, IssuePriority, AgencyProfile } from '../../../src/types';
 
 // Mock Supabase
-vi.mock('../../src/lib/supabase', () => ({
+vi.mock('../../../src/lib/supabase', () => ({
     supabase: {
         from: vi.fn(),
     },
     isSupabaseConfigured: vi.fn(() => false), // Start with localStorage mode
 }));
 
-// Mock getAgencyProfile
-vi.mock('../../src/lib/storage', async () => {
-    const actual = await vi.importActual('../../src/lib/storage');
-    return {
-        ...actual,
-        getAgencyProfile: vi.fn(),
-    };
-});
+const { createIssue } = storageModule;
 
-import { getAgencyProfile } from '../../src/lib/storage';
+// Spy on getAgencyProfile
+const getAgencyProfileSpy = vi.spyOn(storageModule, 'getAgencyProfile');
 
 describe('createIssue', () => {
     beforeEach(() => {
@@ -296,7 +290,7 @@ describe('createIssue', () => {
                 createdAt: new Date(),
             };
 
-            vi.mocked(getAgencyProfile).mockResolvedValue(mockAgency);
+            getAgencyProfileSpy.mockResolvedValue(mockAgency);
 
             const now = new Date();
             const issueData: any = {
@@ -320,11 +314,11 @@ describe('createIssue', () => {
             const timeDiff = Math.abs(result.slaDeadline.getTime() - expectedDeadline.getTime());
 
             expect(timeDiff).toBeLessThan(100);
-            expect(getAgencyProfile).toHaveBeenCalledWith('agency-123');
+            expect(getAgencyProfileSpy).toHaveBeenCalledWith('agency-123');
         });
 
         it('should fallback to default SLA if agency fetch fails', async () => {
-            vi.mocked(getAgencyProfile).mockRejectedValue(new Error('Network error'));
+            getAgencyProfileSpy.mockRejectedValue(new Error('Network error'));
 
             const now = new Date();
             const issueData: any = {
@@ -533,7 +527,7 @@ describe('createIssue', () => {
     });
 
     describe('Edge Cases', () => {
-        it('should trim whitespace from subject and description', async () => {
+        it('should preserve whitespace in subject and description', async () => {
             const issueData: any = {
                 propertyId: 'property-123',
                 renterId: 'renter-123',
