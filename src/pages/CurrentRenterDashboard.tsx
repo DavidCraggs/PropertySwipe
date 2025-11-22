@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Home, MessageCircle, AlertTriangle, Clock, CheckCircle2, Package } from 'lucide-react';
 import { useAuthStore } from '../hooks/useAuthStore';
 import { Button } from '../components/atoms/Button';
-import type { RenterProfile, Property, AgencyProfile, Issue } from '../types';
-import { getAllProperties, getAgencyProfile, getIssuesForMatch } from '../lib/storage';
+import type { RenterProfile, Property, AgencyProfile, Issue, IssueCategory, IssuePriority } from '../types';
+import { getAllProperties, getAgencyProfile, getIssuesForMatch, createIssue } from '../lib/storage';
 import { useAppStore } from '../hooks';
 
 /**
@@ -364,9 +364,144 @@ interface RenterIssueReporterProps {
 }
 
 const RenterIssueReporter: React.FC<RenterIssueReporterProps> = ({
+  propertyId,
+  landlordId,
   agencyId,
 }) => {
+  const { currentUser } = useAuthStore();
+  const renterProfile = currentUser as RenterProfile;
+
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
+
+  const [formData, setFormData] = useState<{
+    category: IssueCategory | '';
+    priority: IssuePriority;
+    subject: string;
+    description: string;
+  }>({
+    category: '',
+    priority: 'routine',
+    subject: '',
+    description: '',
+  });
+
+  const [validationErrors, setValidationErrors] = useState<{
+    category?: string;
+    subject?: string;
+    description?: string;
+  }>({});
+
+  /**
+   * Validate form fields
+   */
+  const validateForm = (): boolean => {
+    const errors: typeof validationErrors = {};
+
+    if (!formData.category) {
+      errors.category = 'Please select an issue type';
+    }
+
+    if (!formData.subject || formData.subject.trim().length < 5) {
+      errors.subject = 'Subject must be at least 5 characters';
+    } else if (formData.subject.trim().length > 100) {
+      errors.subject = 'Subject must not exceed 100 characters';
+    }
+
+    if (!formData.description || formData.description.trim().length < 20) {
+      errors.description = 'Description must be at least 20 characters';
+    } else if (formData.description.trim().length > 2000) {
+      errors.description = 'Description must not exceed 2000 characters';
+    }
+
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  /**
+   * Handle form submission
+   */
+  const handleSubmit = async () => {
+    // Clear previous states
+    setSubmitError(null);
+    setSubmitSuccess(false);
+
+    // Validate form
+    if (!validateForm()) {
+      return;
+    }
+
+    // Check required props
+    if (!propertyId || !landlordId) {
+      setSubmitError('Missing property or landlord information. Please try again later.');
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      await createIssue({
+        propertyId,
+        renterId: renterProfile.id,
+        landlordId,
+        agencyId,
+        category: formData.category as IssueCategory,
+        priority: formData.priority,
+        subject: formData.subject.trim(),
+        description: formData.description.trim(),
+        images: [],
+        status: 'open',
+        raisedAt: new Date(),
+      });
+
+      // Success!
+      setSubmitSuccess(true);
+
+      // Reset form
+      setFormData({
+        category: '',
+        priority: 'routine',
+        subject: '',
+        description: '',
+      });
+      setValidationErrors({});
+
+      // Collapse form after brief delay
+      setTimeout(() => {
+        setIsExpanded(false);
+        setSubmitSuccess(false);
+        // Trigger page refresh to show new issue
+        window.location.reload();
+      }, 2000);
+    } catch (error) {
+      console.error('Failed to create issue:', error);
+      setSubmitError(
+        error instanceof Error
+          ? error.message
+          : 'Failed to submit issue. Please try again.'
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  /**
+   * Reset form and close
+   */
+  const handleCancel = () => {
+    setFormData({
+      category: '',
+      priority: 'routine',
+      subject: '',
+      description: '',
+    });
+    setValidationErrors({});
+    setSubmitError(null);
+    setSubmitSuccess(false);
+    setIsExpanded(false);
+  };
 
   if (!isExpanded) {
     return (
@@ -388,14 +523,54 @@ const RenterIssueReporter: React.FC<RenterIssueReporterProps> = ({
       <h3 className="text-xl font-bold text-neutral-900 mb-4">Report an Issue</h3>
       <p className="text-sm text-neutral-600 mb-4">
         Describe the issue you're experiencing. Your {agencyId ? 'managing agency' : 'landlord'}{' '}
-        will be notified.
+        will be notified immediately.
       </p>
 
-      {/* TODO: Implement full issue reporting form with storage integration */}
+      {/* Success Message */}
+      {submitSuccess && (
+        <div className="mb-4 p-4 bg-success-50 border border-success-200 rounded-lg flex items-start gap-3">
+          <CheckCircle2 size={20} className="text-success-600 mt-0.5 flex-shrink-0" />
+          <div>
+            <p className="font-medium text-success-900">Issue Reported Successfully</p>
+            <p className="text-sm text-success-700 mt-1">
+              Your issue has been submitted and the relevant parties have been notified.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Error Message */}
+      {submitError && (
+        <div className="mb-4 p-4 bg-danger-50 border border-danger-200 rounded-lg flex items-start gap-3">
+          <AlertTriangle size={20} className="text-danger-600 mt-0.5 flex-shrink-0" />
+          <div>
+            <p className="font-medium text-danger-900">Submission Failed</p>
+            <p className="text-sm text-danger-700 mt-1">{submitError}</p>
+          </div>
+        </div>
+      )}
+
       <div className="space-y-4">
+        {/* Category */}
         <div>
-          <label className="block text-sm font-medium text-neutral-700 mb-2">Issue Type</label>
-          <select className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+          <label
+            htmlFor="issue-category"
+            className="block text-sm font-medium text-neutral-700 mb-2"
+          >
+            Issue Type <span className="text-danger-500">*</span>
+          </label>
+          <select
+            id="issue-category"
+            value={formData.category}
+            onChange={(e) => {
+              setFormData({ ...formData, category: e.target.value as IssueCategory });
+              setValidationErrors({ ...validationErrors, category: undefined });
+            }}
+            className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${validationErrors.category ? 'border-danger-500' : 'border-neutral-300'
+              }`}
+            disabled={isSubmitting}
+            aria-describedby={validationErrors.category ? 'category-error' : undefined}
+          >
             <option value="">Select type...</option>
             <option value="maintenance">Maintenance</option>
             <option value="repair">Repair</option>
@@ -403,11 +578,28 @@ const RenterIssueReporter: React.FC<RenterIssueReporterProps> = ({
             <option value="query">Query</option>
             <option value="hazard">Hazard</option>
           </select>
+          {validationErrors.category && (
+            <p id="category-error" className="mt-1 text-sm text-danger-600">
+              {validationErrors.category}
+            </p>
+          )}
         </div>
 
+        {/* Priority */}
         <div>
-          <label className="block text-sm font-medium text-neutral-700 mb-2">Priority</label>
-          <select className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+          <label
+            htmlFor="issue-priority"
+            className="block text-sm font-medium text-neutral-700 mb-2"
+          >
+            Priority <span className="text-danger-500">*</span>
+          </label>
+          <select
+            id="issue-priority"
+            value={formData.priority}
+            onChange={(e) => setFormData({ ...formData, priority: e.target.value as IssuePriority })}
+            className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            disabled={isSubmitting}
+          >
             <option value="low">Low - Can wait</option>
             <option value="routine">Routine - Within a week</option>
             <option value="urgent">Urgent - Within 24 hours</option>
@@ -415,20 +607,101 @@ const RenterIssueReporter: React.FC<RenterIssueReporterProps> = ({
           </select>
         </div>
 
+        {/* Subject */}
         <div>
-          <label className="block text-sm font-medium text-neutral-700 mb-2">Description</label>
-          <textarea
-            className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-            rows={4}
-            placeholder="Please describe the issue in detail..."
+          <label
+            htmlFor="issue-subject"
+            className="block text-sm font-medium text-neutral-700 mb-2"
+          >
+            Subject <span className="text-danger-500">*</span>
+          </label>
+          <input
+            id="issue-subject"
+            type="text"
+            value={formData.subject}
+            onChange={(e) => {
+              setFormData({ ...formData, subject: e.target.value });
+              setValidationErrors({ ...validationErrors, subject: undefined });
+            }}
+            className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${validationErrors.subject ? 'border-danger-500' : 'border-neutral-300'
+              }`}
+            placeholder="Brief summary of the issue"
+            maxLength={100}
+            disabled={isSubmitting}
+            aria-describedby={validationErrors.subject ? 'subject-error' : undefined}
           />
+          <div className="mt-1 flex justify-between items-center">
+            {validationErrors.subject ? (
+              <p id="subject-error" className="text-sm text-danger-600">
+                {validationErrors.subject}
+              </p>
+            ) : (
+              <p className="text-xs text-neutral-500">
+                {formData.subject.length}/100 characters
+              </p>
+            )}
+          </div>
         </div>
 
-        <div className="flex gap-3">
-          <Button variant="primary" className="flex-1" disabled>
-            Submit Issue
+        {/* Description */}
+        <div>
+          <label
+            htmlFor="issue-description"
+            className="block text-sm font-medium text-neutral-700 mb-2"
+          >
+            Description <span className="text-danger-500">*</span>
+          </label>
+          <textarea
+            id="issue-description"
+            value={formData.description}
+            onChange={(e) => {
+              setFormData({ ...formData, description: e.target.value });
+              setValidationErrors({ ...validationErrors, description: undefined });
+            }}
+            className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${validationErrors.description ? 'border-danger-500' : 'border-neutral-300'
+              }`}
+            rows={4}
+            placeholder="Please describe the issue in detail (minimum 20 characters)..."
+            maxLength={2000}
+            disabled={isSubmitting}
+            aria-describedby={validationErrors.description ? 'description-error' : undefined}
+          />
+          <div className="mt-1 flex justify-between items-center">
+            {validationErrors.description ? (
+              <p id="description-error" className="text-sm text-danger-600">
+                {validationErrors.description}
+              </p>
+            ) : (
+              <p className="text-xs text-neutral-500">
+                {formData.description.length}/2000 characters
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex gap-3 pt-2">
+          <Button
+            variant="primary"
+            className="flex-1"
+            onClick={handleSubmit}
+            disabled={isSubmitting || submitSuccess}
+            aria-label="Submit issue report"
+          >
+            {isSubmitting ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                Submitting...
+              </>
+            ) : (
+              'Submit Issue'
+            )}
           </Button>
-          <Button variant="outline" onClick={() => setIsExpanded(false)}>
+          <Button
+            variant="outline"
+            onClick={handleCancel}
+            disabled={isSubmitting}
+          >
             Cancel
           </Button>
         </div>
