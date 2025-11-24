@@ -2,8 +2,11 @@
 -- Date: 2025-11-21
 -- Description: Creates the agency_link_invitations table for tracking invitation workflow between agencies and landlords
 
+-- Drop the table if it exists (in case it was created without seed_tag column)
+DROP TABLE IF EXISTS agency_link_invitations CASCADE;
+
 -- Create the agency_link_invitations table
-CREATE TABLE IF NOT EXISTS agency_link_invitations (
+CREATE TABLE agency_link_invitations (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     agency_id UUID NOT NULL REFERENCES agency_profiles(id) ON DELETE CASCADE,
     landlord_id UUID NOT NULL REFERENCES landlord_profiles(id) ON DELETE CASCADE,
@@ -17,10 +20,10 @@ CREATE TABLE IF NOT EXISTS agency_link_invitations (
 );
 
 -- Create indexes for better query performance
-CREATE INDEX IF NOT EXISTS idx_agency_link_invitations_agency_id ON agency_link_invitations(agency_id);
-CREATE INDEX IF NOT EXISTS idx_agency_link_invitations_landlord_id ON agency_link_invitations(landlord_id);
-CREATE INDEX IF NOT EXISTS idx_agency_link_invitations_status ON agency_link_invitations(status);
-CREATE INDEX IF NOT EXISTS idx_agency_link_invitations_seed_tag ON agency_link_invitations(seed_tag) WHERE seed_tag IS NOT NULL;
+CREATE INDEX idx_agency_link_invitations_agency_id ON agency_link_invitations(agency_id);
+CREATE INDEX idx_agency_link_invitations_landlord_id ON agency_link_invitations(landlord_id);
+CREATE INDEX idx_agency_link_invitations_status ON agency_link_invitations(status);
+CREATE INDEX idx_agency_link_invitations_seed_tag ON agency_link_invitations(seed_tag) WHERE seed_tag IS NOT NULL;
 
 -- Add table and column comments for documentation
 COMMENT ON TABLE agency_link_invitations IS 'Tracks invitation workflow between agencies and landlords for property management and marketing services';
