@@ -2308,3 +2308,313 @@ export const getMessagesForMatch = async (matchId: string): Promise<Message[]> =
     return match ? match.messages || [] : [];
   }
 };
+
+// =====================================================
+// RENTER INVITE SYSTEM
+// =====================================================
+
+/**
+ * Generate a unique 8-character invite code (alphanumeric uppercase)
+ * Excludes similar characters (0/O, 1/I) for clarity
+ */
+function generateInviteCode(): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Exclude 0/O, 1/I
+  let code = '';
+  for (let i = 0; i < 8; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return code;
+}
+
+/**
+ * Transform Supabase property data (snake_case) to app format (camelCase)
+ */
+function transformSupabasePropertyToApp(data: any): Property {
+  return {
+    id: data.id,
+    landlordId: data.landlord_id,
+    managingAgencyId: data.managing_agency_id,
+    marketingAgentId: data.marketing_agent_id,
+    address: {
+      street: data.street,
+      city: data.city,
+      postcode: data.postcode,
+    },
+    propertyType: data.property_type,
+    bedrooms: data.bedrooms,
+    bathrooms: data.bathrooms,
+    rentPcm: data.rent_pcm,
+    depositAmount: data.deposit_amount,
+    furnishing: data.furnishing,
+    images: data.images || [],
+    epcRating: data.epc_rating,
+    epcCertificateUrl: data.epc_certificate_url,
+    councilTaxBand: data.council_tax_band,
+    isAvailable: data.is_available,
+    listingDate: data.listing_date,
+    preferredMinimumStay: data.preferred_minimum_stay,
+    acceptsShortTermTenants: data.accepts_short_term_tenants,
+    features: data.features || [],
+    tenancyType: 'Periodic',
+    landlordPaysUtilities: data.landlord_pays_utilities || false,
+    petsPolicy: data.pets_policy,
+    prsPropertyRegistrationNumber: data.prs_property_registration_number,
+    prsPropertyRegistrationStatus: data.prs_property_registration_status,
+    canBeMarketed: data.can_be_marketed,
+  };
+}
+
+/**
+ * Create a new renter invite
+ */
+export const createRenterInvite = async (
+  invite: Omit<RenterInvite, 'id' | 'code' | 'status' | 'expiresAt' | 'createdAt' | 'updatedAt'>
+): Promise<RenterInvite> => {
+  const code = generateInviteCode();
+  const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
+
+  if (isSupabaseConfigured()) {
+    const { data, error } = await supabase
+      .from('renter_invites')
+      .insert({
+        code,
+        created_by_id: invite.createdById,
+        created_by_type: invite.createdByType,
+        property_id: invite.propertyId,
+        landlord_id: invite.landlordId,
+        managing_agency_id: invite.managingAgencyId || null,
+        proposed_rent_pcm: invite.proposedRentPcm,
+        proposed_deposit_amount: invite.proposedDepositAmount,
+        proposed_move_in_date: invite.proposedMoveInDate?.toISOString().split('T')[0],
+        special_terms: invite.specialTerms,
+        status: 'pending',
+        expires_at: expiresAt.toISOString(),
+      })
+      .select('*')
+      .single();
+
+    if (error) throw new Error(`Failed to create invite: ${error.message}`);
+
+    return {
+      id: data.id,
+      code: data.code,
+      createdById: data.created_by_id,
+      createdByType: data.created_by_type,
+      propertyId: data.property_id,
+      landlordId: data.landlord_id,
+      managingAgencyId: data.managing_agency_id,
+      proposedRentPcm: data.proposed_rent_pcm,
+      proposedDepositAmount: data.proposed_deposit_amount,
+      proposedMoveInDate: data.proposed_move_in_date ? new Date(data.proposed_move_in_date) : undefined,
+      specialTerms: data.special_terms,
+      status: data.status,
+      expiresAt: new Date(data.expires_at),
+      createdAt: new Date(data.created_at),
+      updatedAt: new Date(data.updated_at),
+    };
+  } else {
+    // localStorage fallback
+    const newInvite: RenterInvite = {
+      id: `invite-${Date.now()}`,
+      code,
+      ...invite,
+      status: 'pending',
+      expiresAt,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    const stored = localStorage.getItem('renter-invites');
+    const invites: RenterInvite[] = stored ? JSON.parse(stored) : [];
+    invites.push(newInvite);
+    localStorage.setItem('renter-invites', JSON.stringify(invites));
+
+    return newInvite;
+  }
+};
+
+/**
+ * Validate an invite code
+ */
+export const validateInviteCode = async (code: string): Promise<InviteValidationResult> => {
+  const upperCode = code.toUpperCase().trim();
+
+  if (isSupabaseConfigured()) {
+    const { data, error } = await supabase
+      .from('renter_invites')
+      .select('*, property:properties(*)')
+      .eq('code', upperCode)
+      .single();
+
+    if (error || !data) {
+      return { isValid: false, error: 'not_found' };
+    }
+
+    const invite: RenterInvite = {
+      id: data.id,
+      code: data.code,
+      createdById: data.created_by_id,
+      createdByType: data.created_by_type,
+      propertyId: data.property_id,
+      landlordId: data.landlord_id,
+      managingAgencyId: data.managing_agency_id,
+      proposedRentPcm: data.proposed_rent_pcm,
+      proposedDepositAmount: data.proposed_deposit_amount,
+      proposedMoveInDate: data.proposed_move_in_date ? new Date(data.proposed_move_in_date) : undefined,
+      specialTerms: data.special_terms,
+      status: data.status,
+      expiresAt: new Date(data.expires_at),
+      acceptedAt: data.accepted_at ? new Date(data.accepted_at) : undefined,
+      acceptedByRenterId: data.accepted_by_renter_id,
+      createdMatchId: data.created_match_id,
+      createdAt: new Date(data.created_at),
+      updatedAt: new Date(data.updated_at),
+    };
+
+    if (invite.status === 'revoked') {
+      return { isValid: false, error: 'revoked', invite };
+    }
+
+    if (invite.status === 'accepted') {
+      return { isValid: false, error: 'already_used', invite };
+    }
+
+    if (new Date() > invite.expiresAt || invite.status === 'expired') {
+      return { isValid: false, error: 'expired', invite };
+    }
+
+    // Transform property data
+    const property = data.property ? transformSupabasePropertyToApp(data.property) : undefined;
+
+    return { isValid: true, invite, property };
+  } else {
+    // localStorage fallback
+    const stored = localStorage.getItem('renter-invites');
+    const invites: RenterInvite[] = stored ? JSON.parse(stored) : [];
+    const invite = invites.find((i) => i.code === upperCode);
+
+    if (!invite) {
+      return { isValid: false, error: 'not_found' };
+    }
+
+    if (invite.status === 'revoked') {
+      return { isValid: false, error: 'revoked', invite };
+    }
+
+    if (invite.status === 'accepted') {
+      return { isValid: false, error: 'already_used', invite };
+    }
+
+    if (new Date() > new Date(invite.expiresAt) || invite.status === 'expired') {
+      return { isValid: false, error: 'expired', invite };
+    }
+
+    // Get property from localStorage
+    const properties = await getAllProperties();
+    const property = properties.find((p) => p.id === invite.propertyId);
+
+    return { isValid: true, invite, property };
+  }
+};
+
+/**
+ * Redeem an invite code (mark as accepted and create Match)
+ */
+export const redeemInviteCode = async (
+  inviteId: string,
+  renterId: string,
+  renterProfile: RenterProfile
+): Promise<Match> => {
+  // First, get the invite to validate and get the code
+  let inviteCode = '';
+
+  if (isSupabaseConfigured()) {
+    const { data } = await supabase
+      .from('renter_invites')
+      .select('code')
+      .eq('id', inviteId)
+      .single();
+    inviteCode = data?.code || '';
+  } else {
+    const stored = localStorage.getItem('renter-invites');
+    const invites: RenterInvite[] = stored ? JSON.parse(stored) : [];
+    const invite = invites.find((i: RenterInvite) => i.id === inviteId);
+    inviteCode = invite?.code || '';
+  }
+
+  // Validate invite is still pending
+  const validation = await validateInviteCode(inviteCode);
+
+  if (!validation.isValid || !validation.invite) {
+    throw new Error(`Invalid invite: ${validation.error}`);
+  }
+
+  const invite = validation.invite;
+
+  // Create Match
+  const match: Partial<Match> = {
+    propertyId: invite.propertyId,
+    landlordId: invite.landlordId,
+    renterId,
+    renterName: renterProfile.names,
+    renterProfile,
+    managingAgencyId: invite.managingAgencyId,
+    timestamp: new Date().toISOString(),
+    messages: [],
+    unreadCount: 0,
+    hasViewingScheduled: false,
+    applicationStatus: 'application_submitted',
+    applicationSubmittedAt: new Date(),
+    tenancyStatus: 'prospective',
+    canRate: false,
+    hasRenterRated: false,
+    hasLandlordRated: false,
+    isUnderEvictionProceedings: false,
+    activeIssueIds: [],
+    totalIssuesRaised: 0,
+    totalIssuesResolved: 0,
+  };
+
+  const createdMatch = await saveMatch(match as any);
+
+  // Mark invite as accepted
+  if (isSupabaseConfigured()) {
+    await supabase
+      .from('renter_invites')
+      .update({
+        status: 'accepted',
+        accepted_at: new Date().toISOString(),
+        accepted_by_renter_id: renterId,
+        created_match_id: createdMatch.id,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', inviteId);
+  } else {
+    const stored = localStorage.getItem('renter-invites');
+    const invites: RenterInvite[] = stored ? JSON.parse(stored) : [];
+    const index = invites.findIndex((i) => i.id === inviteId);
+    if (index >= 0) {
+      invites[index] = {
+        ...invites[index],
+        status: 'accepted',
+        acceptedAt: new Date(),
+        acceptedByRenterId: renterId,
+        createdMatchId: createdMatch.id,
+        updatedAt: new Date(),
+      };
+      localStorage.setItem('renter-invites', JSON.stringify(invites));
+    }
+  }
+
+  // Update renter profile to 'current' status with property links
+  await saveRenterProfile({
+    ...renterProfile,
+    status: 'current',
+    currentPropertyId: invite.propertyId,
+    currentLandlordId: invite.landlordId,
+    currentAgencyId: invite.managingAgencyId,
+  });
+
+  return createdMatch;
+};
+
