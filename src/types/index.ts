@@ -994,3 +994,51 @@ export interface User {
   createdAt: string;
   hasCompletedOnboarding: boolean;
 }
+
+// =====================================================
+// RENTER INVITE SYSTEM
+// =====================================================
+
+/**
+ * Renter invite code for pre-configured onboarding
+ * Allows landlords/agencies to invite renters with property details pre-filled
+ */
+export interface RenterInvite {
+  id: string;
+  code: string;
+  createdById: string;
+  createdByType: 'landlord' | 'management_agency' | 'estate_agent';
+
+  /** Target configuration */
+  propertyId: string;
+  landlordId: string;
+  managingAgencyId?: string;
+
+  /** Tenancy pre-configuration */
+  proposedRentPcm: number;
+  proposedDepositAmount?: number;
+  proposedMoveInDate?: Date;
+  specialTerms?: string;
+
+  /** Status tracking */
+  status: 'pending' | 'accepted' | 'expired' | 'revoked';
+  expiresAt: Date;
+  acceptedAt?: Date;
+  acceptedByRenterId?: string;
+  createdMatchId?: string;
+
+  /** Audit timestamps */
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+/**
+ * Result of validating an invite code
+ * Returns validation status, invite details, and property preview
+ */
+export interface InviteValidationResult {
+  isValid: boolean;
+  invite?: RenterInvite;
+  error?: 'not_found' | 'expired' | 'already_used' | 'revoked';
+  property?: Property; // Property preview for valid invites
+}
