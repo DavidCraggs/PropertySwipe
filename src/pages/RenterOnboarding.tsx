@@ -6,9 +6,11 @@ import { RadioCardGroup } from '../components/molecules/RadioCardGroup';
 import { FormField } from '../components/molecules/FormField';
 import { PasswordInput } from '../components/molecules/PasswordInput';
 import { LoginButton } from '../components/molecules/LoginButton';
-import type { RenterProfile, RenterSituation, LocalArea, RenterType, EmploymentStatus, FurnishingType } from '../types';
+import { InviteCodePrompt } from '../components/organisms/InviteCodePrompt';
+import type { RenterProfile, RenterSituation, LocalArea, RenterType, EmploymentStatus, FurnishingType, InviteValidationResult } from '../types';
 import { useAuthStore } from '../hooks/useAuthStore';
 import { validatePassword, hashPassword } from '../utils/validation';
+import { redeemInviteCode } from '../lib/storage';
 
 interface RenterOnboardingProps {
   onComplete: () => void;
@@ -36,6 +38,10 @@ export function RenterOnboarding({ onComplete, onLogin }: RenterOnboardingProps)
   const { login } = useAuthStore();
   const [currentStep, setCurrentStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Invite flow state
+  const [inviteValidation, setInviteValidation] = useState<InviteValidationResult | null>(null);
+  const [showInvitePrompt, setShowInvitePrompt] = useState(true);
 
   // Email and password state (separate from formData for security)
   const [email, setEmail] = useState('');
@@ -183,7 +189,7 @@ export function RenterOnboarding({ onComplete, onLogin }: RenterOnboardingProps)
         id: '', // Will be set by Supabase
         email: email.toLowerCase().trim(),
         passwordHash,
-        status: 'prospective', // New renters start as prospective
+        status: inviteValidation ? 'current' : 'prospective', // Set to 'current' if invite present
         situation: formData.situation,
         names: formData.names.trim(),
         ages: formData.ages.trim(),
@@ -205,6 +211,16 @@ export function RenterOnboarding({ onComplete, onLogin }: RenterOnboardingProps)
       };
 
       await login('renter', profile);
+
+      // Redeem invite if present
+      if (inviteValidation?.invite) {
+        await redeemInviteCode(
+          inviteValidation.invite.id,
+          profile.id,
+          profile
+        );
+      }
+
       localStorage.removeItem('renter-onboarding-draft');
 
       setIsSubmitting(false);
@@ -269,6 +285,19 @@ export function RenterOnboarding({ onComplete, onLogin }: RenterOnboardingProps)
       updateField('preferredFurnishing', [...current, value]);
     }
   };
+
+  // Show invite prompt first if not dismissed
+  if (showInvitePrompt) {
+    return (
+      <InviteCodePrompt
+        onContinueAsNew={() => setShowInvitePrompt(false)}
+        onContinueWithInvite={(validation) => {
+          setInviteValidation(validation);
+          setShowInvitePrompt(false);
+        }}
+      />
+    );
+  }
 
   const steps = [
     // Step 0: Personal Info
@@ -555,11 +584,10 @@ export function RenterOnboarding({ onComplete, onLogin }: RenterOnboardingProps)
             {(['Furnished', 'Unfurnished', 'Part-furnished'] as FurnishingType[]).map((type) => (
               <label
                 key={type}
-                className={`flex items-center gap-3 p-4 border-2 rounded-xl cursor-pointer transition-all ${
-                  formData.preferredFurnishing.includes(type)
+                className={`flex items-center gap-3 p-4 border-2 rounded-xl cursor-pointer transition-all ${formData.preferredFurnishing.includes(type)
                     ? 'border-primary-500 bg-primary-50'
                     : 'border-neutral-200 hover:border-neutral-300'
-                }`}
+                  }`}
               >
                 <input
                   type="checkbox"
@@ -640,8 +668,8 @@ export function RenterOnboarding({ onComplete, onLogin }: RenterOnboardingProps)
                 formData.hasPets === 'yes'
                   ? 'Yes'
                   : formData.hasPets === 'planning'
-                  ? 'Planning to get'
-                  : 'No',
+                    ? 'Planning to get'
+                    : 'No',
             },
             { label: 'Furnishing', value: formData.preferredFurnishing.join(', ') },
             { label: 'Move-in Date', value: new Date(formData.moveInDate).toLocaleDateString() },
