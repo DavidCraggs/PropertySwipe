@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Home, TrendingUp, Users, Heart, MessageSquare, Calendar, Eye, Clock, Edit, Trash2, LinkIcon, PlusCircle, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { Home, TrendingUp, Users, Heart, MessageSquare, Calendar, Eye, Clock, Edit, Trash2, LinkIcon, PlusCircle, AlertTriangle, CheckCircle2, UserPlus } from 'lucide-react';
 import { useAuthStore } from '../hooks/useAuthStore';
 import { useAppStore } from '../hooks';
 import type { LandlordProfile, Match } from '../types';
@@ -8,6 +8,7 @@ import { PropertyLinker } from '../components/organisms/PropertyLinker';
 import { PropertyForm } from '../components/organisms/PropertyForm';
 import { PropertyImage } from '../components/atoms/PropertyImage';
 import { AgencyLinkManager } from '../components/organisms/AgencyLinkManager';
+import { CreateRenterInviteModal } from '../components/organisms/CreateRenterInviteModal';
 import { useToastStore } from '../components/organisms/Toast';
 
 /**
@@ -32,6 +33,7 @@ export function VendorDashboard() {
   const [showPropertyCreator, setShowPropertyCreator] = useState(false);
   const [showPropertyEditor, setShowPropertyEditor] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showInviteModal, setShowInviteModal] = useState(false);
 
   const landlordProfile = currentUser as LandlordProfile;
 
@@ -159,29 +161,36 @@ export function VendorDashboard() {
             </div>
             <div className="p-6">
               <h3 className="text-2xl font-bold text-neutral-900 mb-2">
-                {landlordProperty.address.street}
+                {landlordProperty.address?.street || 'Property Address'}
               </h3>
               <p className="text-neutral-600 mb-4">
-                {landlordProperty.address.city}, {landlordProperty.address.postcode}
+                {landlordProperty.address?.city || 'City'}, {landlordProperty.address?.postcode || 'Postcode'}
               </p>
               <div className="flex flex-wrap gap-2 mb-4">
                 <span className="px-3 py-1 bg-neutral-100 rounded-full text-sm text-neutral-700">
-                  {landlordProperty.bedrooms} bed
+                  {landlordProperty.bedrooms || 0} bed
                 </span>
                 <span className="px-3 py-1 bg-neutral-100 rounded-full text-sm text-neutral-700">
-                  {landlordProperty.bathrooms} bath
+                  {landlordProperty.bathrooms || 0} bath
                 </span>
                 <span className="px-3 py-1 bg-neutral-100 rounded-full text-sm text-neutral-700">
-                  {landlordProperty.propertyType}
+                  {landlordProperty.propertyType || 'Property'}
                 </span>
                 <span className="px-3 py-1 bg-neutral-100 rounded-full text-sm text-neutral-700">
-                  EPC: {landlordProperty.epcRating}
+                  EPC: {landlordProperty.epcRating || 'N/A'}
                 </span>
               </div>
-              <p className="text-neutral-700 line-clamp-3 mb-4">{landlordProperty.description}</p>
+              <p className="text-neutral-700 line-clamp-3 mb-4">{landlordProperty.description || 'No description available'}</p>
 
               {/* Property Action Buttons */}
               <div className="flex gap-2 flex-wrap">
+                <button
+                  onClick={() => setShowInviteModal(true)}
+                  className="flex-1 min-w-[140px] px-4 py-2 bg-success-500 hover:bg-success-600 text-white rounded-lg font-medium text-sm transition-colors flex items-center justify-center gap-2"
+                >
+                  <UserPlus className="w-4 h-4" />
+                  Invite Renter
+                </button>
                 <button
                   onClick={() => setShowPropertyEditor(true)}
                   className="flex-1 min-w-[120px] px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-lg font-medium text-sm transition-colors flex items-center justify-center gap-2"
@@ -328,6 +337,18 @@ export function VendorDashboard() {
           </div>
         </div>
       </main>
+
+      {/* Create Renter Invite Modal */}
+      {showInviteModal && landlordProperty && landlordProfile && (
+        <CreateRenterInviteModal
+          isOpen={showInviteModal}
+          property={landlordProperty}
+          landlordId={landlordProfile.id}
+          managingAgencyId={landlordProfile.managementAgencyId}
+          createdByType="landlord"
+          onClose={() => setShowInviteModal(false)}
+        />
+      )}
 
       {/* Viewing Scheduler Modal */}
       {schedulingMatch && (
