@@ -28,12 +28,21 @@ export const usePropertyDeck = () => {
         ? (currentUser as RenterProfile).currentPropertyId
         : undefined;
 
-    return availableProperties.filter(
+    console.log('[usePropertyDeck] userType:', userType);
+    console.log('[usePropertyDeck] currentUser:', currentUser);
+    console.log('[usePropertyDeck] currentPropertyId:', currentPropertyId);
+    console.log('[usePropertyDeck] Available properties:', availableProperties.length);
+
+    const filtered = availableProperties.filter(
       (property) =>
         !likedProperties.includes(property.id) &&
         !passedProperties.includes(property.id) &&
         property.id !== currentPropertyId // Exclude renter's current property
     );
+
+    console.log('[usePropertyDeck] Unseen properties after filtering:', filtered.length);
+
+    return filtered;
   }, [availableProperties, likedProperties, passedProperties, currentUser, userType]);
 
   // Get current property

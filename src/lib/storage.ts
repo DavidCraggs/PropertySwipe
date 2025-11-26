@@ -191,6 +191,7 @@ export const saveRenterProfile = async (profile: RenterProfile): Promise<RenterP
     const profileData = {
       email: profile.email,
       password_hash: profile.passwordHash,
+      status: profile.status || 'prospective', // Add status field
       situation: profile.situation,
       names: profile.names,
       ages: profile.ages,
@@ -210,6 +211,10 @@ export const saveRenterProfile = async (profile: RenterProfile): Promise<RenterP
       receives_universal_credit: profile.receivesUniversalCredit,
       number_of_children: profile.numberOfChildren,
       is_complete: profile.onboardingComplete,
+      // Add current tenancy fields
+      current_property_id: profile.currentPropertyId || null,
+      current_landlord_id: profile.currentLandlordId || null,
+      current_agency_id: profile.currentAgencyId || null,
     };
 
     // Check if profile has a valid UUID
