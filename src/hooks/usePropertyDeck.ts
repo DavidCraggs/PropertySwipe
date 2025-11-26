@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { useAppStore } from './useAppStore';
-import type { Property } from '../types';
+import { useAuthStore } from './useAuthStore';
+import type { Property, RenterProfile } from '../types';
 
 /**
  * Custom hook for managing the rental property deck
@@ -17,13 +18,23 @@ export const usePropertyDeck = () => {
     loadNextProperties,
   } = useAppStore();
 
+  const { currentUser, userType } = useAuthStore();
+
   // Get properties that haven't been swiped yet
   const unseenProperties = useMemo(() => {
+    // Get renter's current property ID if they have an active tenancy
+    const currentPropertyId =
+      userType === 'renter' && (currentUser as RenterProfile)?.status === 'current'
+        ? (currentUser as RenterProfile).currentPropertyId
+        : undefined;
+
     return availableProperties.filter(
       (property) =>
-        !likedProperties.includes(property.id) && !passedProperties.includes(property.id)
+        !likedProperties.includes(property.id) &&
+        !passedProperties.includes(property.id) &&
+        property.id !== currentPropertyId // Exclude renter's current property
     );
-  }, [availableProperties, likedProperties, passedProperties]);
+  }, [availableProperties, likedProperties, passedProperties, currentUser, userType]);
 
   // Get current property
   const currentProperty = unseenProperties[0] || null;
