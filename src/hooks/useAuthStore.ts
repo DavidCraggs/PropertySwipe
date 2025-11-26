@@ -80,32 +80,78 @@ export const useAuthStore = create<AuthStore>()(
       // Login with password - finds user by email and verifies password
       loginWithPassword: async (email, password) => {
         try {
-          // Import password verification here to avoid circular dependency
+          // Import password verification and storage functions
           const { verifyPassword } = await import('../utils/validation');
+          const { isSupabaseConfigured } = await import('../lib/supabase');
+          const { supabase } = await import('../lib/supabase');
+          const { getRenterProfile, getLandlordProfile, getAgencyProfile } = await import('../lib/storage');
 
           // Try to find user in each collection
-          const allProfiles: Array<LandlordProfile | RenterProfile | AgencyProfile> = [];
+          let user: LandlordProfile | RenterProfile | AgencyProfile | null = null;
 
-          // Get all profiles from localStorage (in production this would query Supabase)
-          const landlordProfilesJson = localStorage.getItem('get-on-landlord-profiles');
-          const renterProfilesJson = localStorage.getItem('get-on-renter-profiles');
-          const agencyProfilesJson = localStorage.getItem('get-on-agency-profiles');
+          if (isSupabaseConfigured()) {
+            console.log('[Auth] Querying Supabase for profiles');
 
-          if (landlordProfilesJson) {
-            const landlordProfiles: LandlordProfile[] = JSON.parse(landlordProfilesJson);
-            allProfiles.push(...landlordProfiles);
-          }
-          if (renterProfilesJson) {
-            const renterProfiles: RenterProfile[] = JSON.parse(renterProfilesJson);
-            allProfiles.push(...renterProfiles);
-          }
-          if (agencyProfilesJson) {
-            const agencyProfiles: AgencyProfile[] = JSON.parse(agencyProfilesJson);
-            allProfiles.push(...agencyProfiles);
-          }
+            // Query landlord profiles
+            const { data: landlordData } = await supabase
+              .from('landlord_profiles')
+              .select('id')
+              .eq('email', email.toLowerCase())
+              .maybeSingle();
 
-          // Find user by email
-          const user = allProfiles.find(p => p.email.toLowerCase() === email.toLowerCase());
+            if (landlordData) {
+              user = await getLandlordProfile(landlordData.id);
+            }
+
+            // Query renter profiles if not found
+            if (!user) {
+              const { data: renterData } = await supabase
+                .from('renter_profiles')
+                .select('id')
+                .eq('email', email.toLowerCase())
+                .maybeSingle();
+
+              if (renterData) {
+                user = await getRenterProfile(renterData.id);
+              }
+            }
+
+            // Query agency profiles if not found
+            if (!user) {
+              const { data: agencyData } = await supabase
+                .from('agency_profiles')
+                .select('id')
+                .eq('email', email.toLowerCase())
+                .maybeSingle();
+
+              if (agencyData) {
+                user = await getAgencyProfile(agencyData.id);
+              }
+            }
+          } else {
+            // Fall back to localStorage
+            console.log('[Auth] Using localStorage for profiles');
+            const allProfiles: Array<LandlordProfile | RenterProfile | AgencyProfile> = [];
+
+            const landlordProfilesJson = localStorage.getItem('get-on-landlord-profiles');
+            const renterProfilesJson = localStorage.getItem('get-on-renter-profiles');
+            const agencyProfilesJson = localStorage.getItem('get-on-agency-profiles');
+
+            if (landlordProfilesJson) {
+              const landlordProfiles: LandlordProfile[] = JSON.parse(landlordProfilesJson);
+              allProfiles.push(...landlordProfiles);
+            }
+            if (renterProfilesJson) {
+              const renterProfiles: RenterProfile[] = JSON.parse(renterProfilesJson);
+              allProfiles.push(...renterProfiles);
+            }
+            if (agencyProfilesJson) {
+              const agencyProfiles: AgencyProfile[] = JSON.parse(agencyProfilesJson);
+              allProfiles.push(...agencyProfiles);
+            }
+
+            user = allProfiles.find(p => p.email.toLowerCase() === email.toLowerCase()) || null;
+          }
 
           if (!user) {
             console.log('[Auth] No user found with email:', email);
