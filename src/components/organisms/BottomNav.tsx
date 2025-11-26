@@ -1,4 +1,4 @@
-import { Home, Heart, User, LayoutDashboard } from 'lucide-react';
+import { Home, Heart, User, LayoutDashboard, HousePlus, HouseHeart } from 'lucide-react';
 import { useAppStore } from '../../hooks';
 import { useAuthStore } from '../../hooks/useAuthStore';
 import type { RenterProfile } from '../../types';
@@ -27,13 +27,13 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentPage, onNavigate })
     {
       id: 'tenancy' as const,
       label: 'My Tenancy',
-      icon: Home,
+      icon: HouseHeart,
       badge: null,
     },
     {
       id: 'swipe' as const,
       label: 'Swipe',
-      icon: Home,
+      icon: HousePlus,
       badge: null,
     },
     {
@@ -81,8 +81,8 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentPage, onNavigate })
               key={item.id}
               onClick={() => onNavigate(item.id)}
               className={`flex flex-col items-center justify-center py-2 px-4 rounded-xl transition-all min-w-[80px] ${isActive
-                  ? 'bg-primary-50 text-primary-600'
-                  : 'text-neutral-600 hover:bg-neutral-50'
+                ? 'bg-primary-50 text-primary-600'
+                : 'text-neutral-600 hover:bg-neutral-50'
                 }`}
               aria-label={item.label}
               aria-current={isActive ? 'page' : undefined}

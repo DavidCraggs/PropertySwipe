@@ -100,6 +100,11 @@ export const CurrentRenterDashboard: React.FC = () => {
     );
   }
 
+  const handleLogout = () => {
+    logout();
+    window.location.reload();
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-success-50 pb-24">
       {/* Header */}
