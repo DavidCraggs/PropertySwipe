@@ -2578,7 +2578,6 @@ export const redeemInviteCode = async (
     renterProfile,
     managingAgencyId: invite.managingAgencyId || undefined,
     marketingAgentId: undefined,
-    estateAgentId: undefined,
     timestamp: new Date().toISOString(),
     messages: [],
     unreadCount: 0,

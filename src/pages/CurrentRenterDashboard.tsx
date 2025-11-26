@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Home, MessageCircle, AlertTriangle, Clock, CheckCircle2, Package } from 'lucide-react';
+import { Home, MessageCircle, AlertTriangle, Clock, CheckCircle2, Package, LogOut } from 'lucide-react';
 import { useAuthStore } from '../hooks/useAuthStore';
 import { Button } from '../components/atoms/Button';
 import type { RenterProfile, Property, AgencyProfile, Issue, IssueCategory, IssuePriority } from '../types';
@@ -12,7 +12,7 @@ import { useAppStore } from '../hooks';
  * Phase 3: Current Renter Experience
  */
 export const CurrentRenterDashboard: React.FC = () => {
-  const { currentUser, userType } = useAuthStore();
+  const { currentUser, userType, logout } = useAuthStore();
   const { matches } = useAppStore();
   const [activeTab, setActiveTab] = useState<'overview' | 'issues'>('overview');
   const [currentProperty, setCurrentProperty] = useState<Property | null>(null);
@@ -104,9 +104,19 @@ export const CurrentRenterDashboard: React.FC = () => {
     <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-success-50 pb-24">
       {/* Header */}
       <header className="bg-white border-b border-neutral-200 px-4 py-6">
-        <div className="max-w-4xl mx-auto">
-          <h1 className="text-3xl font-bold text-neutral-900">My Tenancy</h1>
-          <p className="text-neutral-600 mt-1">Manage your current rental</p>
+        <div className="max-w-4xl mx-auto flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-neutral-900">My Tenancy</h1>
+            <p className="text-neutral-600 mt-1">Manage your current rental</p>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            icon={<LogOut size={18} />}
+            onClick={handleLogout}
+          >
+            Logout
+          </Button>
         </div>
       </header>
 
