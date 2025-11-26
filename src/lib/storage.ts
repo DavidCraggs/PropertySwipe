@@ -276,7 +276,7 @@ export const getRenterProfile = async (id: string): Promise<RenterProfile | null
       id: data.id,
       email: data.email,
       passwordHash: data.password_hash,
-      status: 'prospective', // Default to prospective for new renters
+      status: data.status || 'prospective', // Map status field
       situation: data.situation,
       names: data.names,
       ages: data.ages,
@@ -297,6 +297,10 @@ export const getRenterProfile = async (id: string): Promise<RenterProfile | null
       numberOfChildren: data.number_of_children,
       createdAt: new Date(data.created_at),
       onboardingComplete: data.is_complete,
+      // Map current tenancy fields
+      currentPropertyId: data.current_property_id || undefined,
+      currentLandlordId: data.current_landlord_id || undefined,
+      currentAgencyId: data.current_agency_id || undefined,
       ratingsSummary: data.average_rating ? {
         userId: data.id,
         userType: 'renter' as const,
