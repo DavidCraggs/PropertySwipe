@@ -1,10 +1,11 @@
 import { Home, Heart, User, LayoutDashboard } from 'lucide-react';
 import { useAppStore } from '../../hooks';
 import { useAuthStore } from '../../hooks/useAuthStore';
+import type { RenterProfile } from '../../types';
 
 interface BottomNavProps {
-  currentPage: 'swipe' | 'matches' | 'profile';
-  onNavigate: (page: 'swipe' | 'matches' | 'profile') => void;
+  currentPage: 'swipe' | 'matches' | 'profile' | 'tenancy';
+  onNavigate: (page: 'swipe' | 'matches' | 'profile' | 'tenancy') => void;
 }
 
 /**
@@ -12,15 +13,42 @@ interface BottomNavProps {
  * Fixed bottom navigation with active state indicators
  * Badge for unread matches
  * Shows different labels for landlords vs renters
+ * Shows "My Tenancy" tab for current renters
  */
 export const BottomNav: React.FC<BottomNavProps> = ({ currentPage, onNavigate }) => {
   const { matches } = useAppStore();
-  const { userType } = useAuthStore();
+  const { userType, currentUser } = useAuthStore();
   const unreadCount = matches.reduce((sum, match) => sum + (match.unreadCount || 0), 0);
 
   const isLandlord = userType === 'landlord';
+  const isCurrentRenter = userType === 'renter' && (currentUser as RenterProfile)?.status === 'current';
 
-  const navItems = [
+  const navItems = isCurrentRenter ? [
+    {
+      id: 'tenancy' as const,
+      label: 'My Tenancy',
+      icon: Home,
+      badge: null,
+    },
+    {
+      id: 'swipe' as const,
+      label: 'Swipe',
+      icon: Home,
+      badge: null,
+    },
+    {
+      id: 'matches' as const,
+      label: 'Matches',
+      icon: Heart,
+      badge: unreadCount > 0 ? unreadCount : null,
+    },
+    {
+      id: 'profile' as const,
+      label: 'Profile',
+      icon: User,
+      badge: null,
+    },
+  ] : [
     {
       id: 'swipe' as const,
       label: isLandlord ? 'Dashboard' : 'Swipe',
@@ -52,11 +80,10 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentPage, onNavigate })
             <button
               key={item.id}
               onClick={() => onNavigate(item.id)}
-              className={`flex flex-col items-center justify-center py-2 px-4 rounded-xl transition-all min-w-[80px] ${
-                isActive
+              className={`flex flex-col items-center justify-center py-2 px-4 rounded-xl transition-all min-w-[80px] ${isActive
                   ? 'bg-primary-50 text-primary-600'
                   : 'text-neutral-600 hover:bg-neutral-50'
-              }`}
+                }`}
               aria-label={item.label}
               aria-current={isActive ? 'page' : undefined}
             >
@@ -73,9 +100,8 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentPage, onNavigate })
                 )}
               </div>
               <span
-                className={`text-xs mt-1 font-medium ${
-                  isActive ? 'text-primary-600' : 'text-neutral-600'
-                }`}
+                className={`text-xs mt-1 font-medium ${isActive ? 'text-primary-600' : 'text-neutral-600'
+                  }`}
               >
                 {item.label}
               </span>

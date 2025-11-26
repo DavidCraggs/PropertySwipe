@@ -5,7 +5,7 @@ import { useAppStore } from '../hooks';
 import { useAuthStore } from '../hooks/useAuthStore';
 import { useToastStore } from '../components/organisms/Toast';
 import { RatingsSummaryCard } from '../components/molecules/RatingsSummaryCard';
-import { CurrentRenterDashboard } from './CurrentRenterDashboard';
+
 import type { RenterProfile, LandlordProfile, UserRatingsSummary } from '../types';
 import { calculateUserRatingsSummary } from '../utils/ratingCalculations';
 
@@ -77,10 +77,7 @@ export const ProfilePage: React.FC = () => {
   const renterProfile = isRenter ? (currentUser as RenterProfile) : null;
   const landlordProfile = userType === 'landlord' ? (currentUser as LandlordProfile) : null;
 
-  // Show CurrentRenterDashboard for renters with active tenancy
-  if (isRenter && renterProfile?.status === 'current') {
-    return <CurrentRenterDashboard />;
-  }
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-success-50 pb-24">

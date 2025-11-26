@@ -11,6 +11,7 @@ import { LandlordDashboard } from './pages/LandlordDashboard';
 import { AgencyDashboard } from './pages/AgencyDashboard';
 import { MatchesPage } from './pages/MatchesPage';
 import { ProfilePage } from './pages/ProfilePage';
+import { CurrentRenterDashboard } from './pages/CurrentRenterDashboard';
 import { AdminLoginPage } from './pages/AdminLoginPage';
 import { AdminDashboard } from './pages/AdminDashboard';
 import { AdminModeIndicator } from './components/AdminModeIndicator';
@@ -21,7 +22,7 @@ import { useAppStore } from './hooks/useAppStore';
 import type { UserType } from './types';
 
 type Route = 'welcome' | 'role-select' | 'login' | 'renter-onboarding' | 'landlord-onboarding' | 'agency-onboarding' | 'admin-login' | 'admin-dashboard' | 'app';
-type AppPage = 'swipe' | 'matches' | 'profile';
+type AppPage = 'swipe' | 'matches' | 'profile' | 'tenancy';
 
 /**
  * Main App component with authentication and routing
@@ -216,6 +217,16 @@ function App() {
                     exit={{ opacity: 0 }}
                   >
                     <MatchesPage />
+                  </motion.div>
+                )}
+                {currentPage === 'tenancy' && ( // Added tenancy page rendering
+                  <motion.div
+                    key="tenancy"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                  >
+                    <CurrentRenterDashboard />
                   </motion.div>
                 )}
                 {currentPage === 'profile' && (
