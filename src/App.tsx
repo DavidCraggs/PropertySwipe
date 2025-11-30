@@ -105,6 +105,24 @@ function App() {
     }
   }, [isAuthenticated, currentUser, userType, isAdminMode, impersonatedRole]);
 
+  // Set default page based on user type and status
+  useEffect(() => {
+    if (isAuthenticated && currentRoute === 'app') {
+      // For renters with active tenancy, default to tenancy page
+      if (userType === 'renter' && currentUser) {
+        const renterProfile = currentUser as any;
+        if (renterProfile.status === 'current') {
+          setCurrentPage('tenancy');
+        } else {
+          setCurrentPage('swipe');
+        }
+      } else {
+        // For other user types, default to swipe
+        setCurrentPage('swipe');
+      }
+    }
+  }, [isAuthenticated, currentRoute, userType, currentUser]);
+
   const handleGetStarted = () => {
     localStorage.setItem('get-on-has-visited', 'true');
     setCurrentRoute('role-select');

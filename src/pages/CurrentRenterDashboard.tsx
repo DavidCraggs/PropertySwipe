@@ -56,15 +56,30 @@ export const CurrentRenterDashboard: React.FC = () => {
       try {
         setIsLoading(true);
 
-        // Find current match for this renter
-        const currentMatch = matches.find(
-          m => m.renterId === renterProfile.id && m.tenancyStatus === 'active'
-        );
+        console.log('[CurrentRenterDashboard] Fetching data for renter:', renterProfile.id);
 
-        if (currentMatch) {
+        // Query Supabase directly for this renter's active match
+        const { supabase } = await import('../lib/supabase');
+        const { data: matchData, error: matchError } = await supabase
+          .from('matches')
+          .select('*')
+          .eq('renter_id', renterProfile.id)
+          .eq('tenancy_status', 'active')
+          .maybeSingle();
+
+        if (matchError) {
+          console.error('[CurrentRenterDashboard] Error fetching match:', matchError);
+          return;
+        }
+
+        console.log('[CurrentRenterDashboard] Found match data:', matchData);
+
+        if (matchData) {
           // Fetch property
           const properties = await getAllProperties();
-          const property = properties.find(p => p.id === currentMatch.propertyId);
+          console.log('[CurrentRenterDashboard] All properties:', properties.length);
+          const property = properties.find(p => p.id === matchData.property_id);
+          console.log('[CurrentRenterDashboard] Found property:', property);
           setCurrentProperty(property || null);
 
           // Fetch agency if exists
@@ -74,8 +89,10 @@ export const CurrentRenterDashboard: React.FC = () => {
           }
 
           // Fetch issues for this match
-          const matchIssues = await getIssuesForMatch(currentMatch.id);
+          const matchIssues = await getIssuesForMatch(matchData.id);
           setIssues(matchIssues);
+        } else {
+          console.log('[CurrentRenterDashboard] No active match found in database');
         }
       } catch (error) {
         console.error('Failed to fetch dashboard data:', error);
@@ -83,6 +100,7 @@ export const CurrentRenterDashboard: React.FC = () => {
         setIsLoading(false);
       }
     };
+
 
     fetchData();
   }, [renterProfile.id, renterProfile.currentAgencyId, matches]);
@@ -345,6 +363,25 @@ interface LandlordContactCardProps {
 }
 
 const LandlordContactCard: React.FC<LandlordContactCardProps> = ({ landlordId }) => {
+  const [landlordName, setLandlordName] = useState<string>('Loading...');
+
+  useEffect(() => {
+    if (!landlordId) return;
+
+    const fetchLandlord = async () => {
+      try {
+        const { getLandlordProfile } = await import('../lib/storage');
+        const landlord = await getLandlordProfile(landlordId);
+        setLandlordName(landlord?.names || 'Landlord');
+      } catch (error) {
+        console.error('Failed to fetch landlord:', error);
+        setLandlordName('Landlord');
+      }
+    };
+
+    fetchLandlord();
+  }, [landlordId]);
+
   if (!landlordId) {
     return null;
   }
@@ -357,7 +394,7 @@ const LandlordContactCard: React.FC<LandlordContactCardProps> = ({ landlordId })
         </div>
         <div className="flex-1">
           <h3 className="font-bold text-neutral-900">Your Landlord</h3>
-          <p className="text-sm text-neutral-600">Landlord ID: {landlordId.substring(0, 8)}...</p>
+          <p className="text-sm text-neutral-600">{landlordName}</p>
         </div>
       </div>
 
