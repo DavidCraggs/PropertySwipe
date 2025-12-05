@@ -19,7 +19,6 @@ export const MatchesPage: React.FC = () => {
   const [ratingModalMatch, setRatingModalMatch] = useState<Match | null>(null);
   const [ratingType, setRatingType] = useState<'landlord' | 'renter'>('landlord');
   const [loadedMatches, setLoadedMatches] = useState<Match[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
 
   // Dual-conversation state
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -43,7 +42,6 @@ export const MatchesPage: React.FC = () => {
         return;
       }
 
-      setIsLoading(true);
       try {
         // For renters, query Supabase directly
         if (userType === 'renter') {
@@ -113,8 +111,6 @@ export const MatchesPage: React.FC = () => {
       } catch (error) {
         console.error('[MatchesPage] Failed to fetch matches:', error);
         setLoadedMatches([]);
-      } finally {
-        setIsLoading(false);
       }
     };
 

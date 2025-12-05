@@ -1,6 +1,5 @@
 // Load environment variables FIRST before any other imports
 import '../lib/loadEnv';
-import { supabase } from '../lib/supabase';
 import { seedConversations } from '../utils/seedConversations';
 
 async function seedMissingConversations() {
