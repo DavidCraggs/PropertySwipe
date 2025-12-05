@@ -141,6 +141,49 @@ export class EmailService {
   }
 
   /**
+   * Send a conversation message notification email
+   * Routes to correct recipient based on conversation type
+   */
+  async sendConversationMessageNotification(
+    match: Match,
+    conversationType: 'landlord' | 'agency',
+    senderType: 'renter' | 'landlord' | 'management_agency',
+    data: Omit<NewMessageEmailData, 'recipientName'>
+  ): Promise<EmailNotification> {
+    // Determine recipient based on conversation type and sender
+    let recipientType: 'renter' | 'landlord' | 'agency';
+    let recipientName: string;
+
+    if (conversationType === 'landlord') {
+      // Landlord conversation
+      if (senderType === 'renter') {
+        recipientType = 'landlord';
+        recipientName = match.landlordName || 'Landlord';
+      } else {
+        recipientType = 'renter';
+        recipientName = match.renterName || 'Renter';
+      }
+    } else {
+      // Agency conversation
+      if (senderType === 'renter') {
+        recipientType = 'agency';
+        recipientName = 'Management Agency'; // TODO: Fetch actual agency name
+      } else {
+        recipientType = 'renter';
+        recipientName = match.renterName || 'Renter';
+      }
+    }
+
+    const emailData: NewMessageEmailData = {
+      ...data,
+      recipientName
+    };
+
+    return this.sendNewMessageNotification(match, recipientType, emailData);
+  }
+
+
+  /**
    * Send a new issue notification email
    * Triggered when a tenant reports an issue
    */

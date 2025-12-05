@@ -19,6 +19,9 @@ import type {
   AgencyLinkInvitation,
   AgencyPropertyLink,
   Message,
+  Conversation,
+  ConversationType,
+  SendMessageParams,
   ViewingPreference,
   Issue,
   RenterInvite,
@@ -2298,10 +2301,222 @@ export const sendMessage = async (message: Message): Promise<Message> => {
       await saveMatch(match);
       return msgToSave;
     } else {
-      throw new Error(`Match not found for id: ${message.matchId}`);
+      throw new Error(`Match not found for message ${message.matchId}`);
     }
   }
 };
+
+// =====================================================
+// CONVERSATIONS (Dual Messaging System)
+// =====================================================
+
+export const getConversations = async (matchId: string): Promise<Conversation[]> => {
+  if (isSupabaseConfigured()) {
+    const { data, error } = await supabase
+      .from('conversations')
+      .select('*')
+      .eq('match_id', matchId)
+      .order('conversation_type');
+
+    if (error) throw error;
+
+    return (data || []).map(d => ({
+      id: d.id,
+      matchId: d.match_id,
+      conversationType: d.conversation_type as ConversationType,
+      messages: d.messages || [],
+      lastMessageAt: d.last_message_at,
+      unreadCountRenter: d.unread_count_renter || 0,
+      unreadCountOther: d.unread_count_other || 0,
+      createdAt: new Date(d.created_at),
+      updatedAt: new Date(d.updated_at),
+    }));
+  } else {
+    // LocalStorage fallback - simulate conversations from match messages
+    const matches = await getAllMatches();
+    const match = matches.find(m => m.id === matchId);
+    if (!match) return [];
+
+    return [{
+      id: `${matchId}-landlord`,
+      matchId,
+      conversationType: 'landlord',
+      messages: match.messages || [],
+      lastMessageAt: match.lastMessageAt,
+      unreadCountRenter: match.unreadCount || 0,
+      unreadCountOther: 0,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }];
+  }
+};
+
+export const getConversation = async (
+  matchId: string,
+  type: ConversationType
+): Promise<Conversation | null> => {
+  if (isSupabaseConfigured()) {
+    const { data, error } = await supabase
+      .from('conversations')
+      .select('*')
+      .eq('match_id', matchId)
+      .eq('conversation_type', type)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') return null; // Not found
+      throw error;
+    }
+
+    return {
+      id: data.id,
+      matchId: data.match_id,
+      conversationType: data.conversation_type as ConversationType,
+      messages: data.messages || [],
+      lastMessageAt: data.last_message_at,
+      unreadCountRenter: data.unread_count_renter || 0,
+      unreadCountOther: data.unread_count_other || 0,
+      createdAt: new Date(data.created_at),
+      updatedAt: new Date(data.updated_at),
+    };
+  } else {
+    const conversations = await getConversations(matchId);
+    return conversations.find(c => c.conversationType === type) || null;
+  }
+};
+
+export const sendMessageToConversation = async (
+  params: SendMessageParams
+): Promise<Message> => {
+  const message: Message = {
+    id: Math.random().toString(36).substring(2, 15),
+    matchId: params.matchId,
+    senderId: params.senderId,
+    receiverId: '', // Will be set based on conversation type
+    senderType: params.senderType,
+    content: params.content,
+    timestamp: new Date().toISOString(),
+    isRead: false,
+  };
+
+  if (isSupabaseConfigured()) {
+    // Fetch conversation and match to determine receiver
+    const [conversation, { data: match, error: matchError }] = await Promise.all([
+      getConversation(params.matchId, params.conversationType),
+      supabase.from('matches').select('*').eq('id', params.matchId).single()
+    ]);
+
+    if (matchError || !match) throw new Error('Match not found');
+
+    // Determine receiver based on conversation type and sender
+    if (params.conversationType === 'landlord') {
+      message.receiverId = params.senderType === 'renter'
+        ? match.landlord_id
+        : match.renter_id;
+    } else {
+      // Agency conversation
+      message.receiverId = params.senderType === 'renter'
+        ? match.managing_agency_id
+        : match.renter_id;
+    }
+
+    if (!conversation) {
+      // Create new conversation if it doesn't exist
+      const { data: newConv, error: createError } = await supabase
+        .from('conversations')
+        .insert({
+          match_id: params.matchId,
+          conversation_type: params.conversationType,
+          messages: [message],
+          last_message_at: message.timestamp,
+          unread_count_renter: params.senderType === 'renter' ? 0 : 1,
+          unread_count_other: params.senderType === 'renter' ? 1 : 0,
+        })
+        .select()
+        .single();
+
+      if (createError) throw createError;
+
+      console.log('[Storage] Created new conversation:', newConv.id);
+    } else {
+      // Append message to existing conversation
+      const updatedMessages = [...conversation.messages, message];
+      const isRenterSending = params.senderType === 'renter';
+
+      const { error: updateError } = await supabase
+        .from('conversations')
+        .update({
+          messages: updatedMessages,
+          last_message_at: message.timestamp,
+          unread_count_renter: isRenterSending
+            ? conversation.unreadCountRenter
+            : conversation.unreadCountRenter + 1,
+          unread_count_other: isRenterSending
+            ? conversation.unreadCountOther + 1
+            : conversation.unreadCountOther,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', conversation.id);
+
+      if (updateError) throw updateError;
+
+      console.log('[Storage] Added message to conversation:', conversation.id);
+    }
+
+    // TODO: Trigger notification based on conversation type
+    // await sendNewMessageNotification(message, params.conversationType, match);
+
+    return message;
+  } else {
+    // LocalStorage fallback - use existing sendMessage
+    return sendMessage(message);
+  }
+};
+
+export const markConversationAsRead = async (
+  conversationId: string,
+  userRole: 'renter' | 'other'
+): Promise<void> => {
+  if (isSupabaseConfigured()) {
+    const updateField = userRole === 'renter'
+      ? 'unread_count_renter'
+      : 'unread_count_other';
+
+    const { error } = await supabase
+      .from('conversations')
+      .update({
+        [updateField]: 0,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', conversationId);
+
+    if (error) throw error;
+
+    console.log('[Storage] Marked conversation as read:', conversationId);
+  }
+  // LocalStorage: No-op for backward compatibility
+};
+
+export const getUnreadCounts = async (matchId: string): Promise<{
+  landlord: number;
+  agency: number;
+}> => {
+  if (isSupabaseConfigured()) {
+    const conversations = await getConversations(matchId);
+
+    return {
+      landlord: conversations.find(c => c.conversationType === 'landlord')?.unreadCountRenter || 0,
+      agency: conversations.find(c => c.conversationType === 'agency')?.unreadCountRenter || 0,
+    };
+  } else {
+    const match = (await getAllMatches()).find(m => m.id === matchId);
+    return {
+      landlord: match?.unreadCount || 0,
+      agency: 0,
+    };
+  }
+};
+
 
 export const getMessagesForMatch = async (matchId: string): Promise<Message[]> => {
   if (isSupabaseConfigured()) {

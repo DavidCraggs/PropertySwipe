@@ -13,8 +13,21 @@ import { createClient } from '@supabase/supabase-js';
  *    VITE_SUPABASE_ANON_KEY=your-anon-key
  */
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+// Helper to safely get env vars in both Vite (browser) and Node (seed scripts)
+const getEnvVar = (key: string): string => {
+  // Check Vite's import.meta.env
+  if (import.meta.env && import.meta.env[key]) {
+    return import.meta.env[key];
+  }
+  // Check Node's process.env
+  if (typeof process !== 'undefined' && process.env && process.env[key]) {
+    return process.env[key];
+  }
+  return '';
+};
+
+const supabaseUrl = getEnvVar('VITE_SUPABASE_URL');
+const supabaseAnonKey = getEnvVar('VITE_SUPABASE_ANON_KEY');
 
 console.log('[Supabase] Configuration check:', {
   hasUrl: !!supabaseUrl,
@@ -34,11 +47,11 @@ if (!supabaseUrl || !supabaseAnonKey) {
 // Only create client if credentials are available, otherwise use placeholder
 export const supabase = (supabaseUrl && supabaseAnonKey)
   ? createClient(supabaseUrl, supabaseAnonKey, {
-      auth: {
-        persistSession: true,
-        autoRefreshToken: true,
-      },
-    })
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+    },
+  })
   : createClient('https://placeholder.supabase.co', 'placeholder-key');
 
 /**

@@ -9,6 +9,7 @@ import {
     saveRenterProfile,
     saveAgencyProfile,
 } from '../lib/storage';
+import { supabase } from '../lib/supabase';
 import { hashPassword } from './validation';
 import { SEED_CONSTANTS, daysFromNow } from './seedHelpers';
 
@@ -182,6 +183,22 @@ export async function createTestManagementAgency(): Promise<AgencyProfile> {
  */
 export async function seedUserProfiles(verbose: boolean = false): Promise<number> {
     if (verbose) console.log('[Seed] Creating test user profiles...');
+
+    if (verbose) console.log('[Seed] Creating test user profiles...');
+
+    // Cleanup existing test users to avoid duplicate key errors
+    const testEmails = [
+        `test.renter@${SEED_CONSTANTS.EMAIL_DOMAIN}`,
+        `test.landlord@${SEED_CONSTANTS.EMAIL_DOMAIN}`,
+        `test.estateagent@${SEED_CONSTANTS.EMAIL_DOMAIN}`,
+        `test.managementagency@${SEED_CONSTANTS.EMAIL_DOMAIN}`
+    ];
+
+    if (verbose) console.log('[Seed] Cleaning up any existing test users...');
+
+    await supabase.from('renter_profiles').delete().in('email', testEmails);
+    await supabase.from('landlord_profiles').delete().in('email', testEmails);
+    await supabase.from('agency_profiles').delete().in('email', testEmails);
 
     const profiles = await Promise.all([
         createTestRenter(),

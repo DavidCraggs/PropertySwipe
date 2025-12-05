@@ -4,6 +4,9 @@
  * Run with: npm run seed:data
  */
 
+// Load environment variables first (for Node.js/tsx compatibility)
+import '../lib/loadEnv';
+
 import { seedAllTestData } from '../utils/seedTestData';
 
 async function main() {

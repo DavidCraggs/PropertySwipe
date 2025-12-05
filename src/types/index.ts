@@ -508,9 +508,21 @@ export interface Match {
   renterName: string;
   renterProfile?: RenterProfile;
   timestamp: string;
+
+  // DEPRECATED: Legacy message fields (kept for backward compatibility during transition)
+  /** @deprecated Use conversations instead */
   messages: Message[];
+  /** @deprecated Use conversations.landlord.lastMessageAt or conversations.agency.lastMessageAt instead */
   lastMessageAt?: string;
+  /** @deprecated Use conversations.landlord.unreadCount or conversations.agency.unreadCount instead */
   unreadCount: number;
+
+  // NEW: Dual-conversation system
+  conversations?: {
+    landlord: ConversationMetadata;
+    agency?: ConversationMetadata; // Optional because not all properties have agencies
+  };
+
 
   // Viewing
   viewingPreference?: ViewingPreference;
@@ -594,6 +606,43 @@ export interface Message {
   timestamp: string;
   isRead: boolean;
 }
+
+// =====================================================
+// CONVERSATION INTERFACE (Dual Messaging System)
+// =====================================================
+
+export type ConversationType = 'landlord' | 'agency';
+
+export interface Conversation {
+  id: string;
+  matchId: string;
+  conversationType: ConversationType;
+  messages: Message[];
+  lastMessageAt?: string;
+  unreadCountRenter: number;
+  unreadCountOther: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface ConversationMetadata {
+  conversationType: ConversationType;
+  unreadCount: number;
+  lastMessage?: Message;
+  lastMessageAt?: string;
+  recipientName: string; // Landlord name or agency company name
+  recipientId: string; // Landlord ID or agency ID
+  averageResponseTimeHours?: number; // For showing "Typically responds within X hours"
+}
+
+export interface SendMessageParams {
+  matchId: string;
+  conversationType: ConversationType;
+  content: string;
+  senderId: string;
+  senderType: UserType;
+}
+
 
 // =====================================================
 // VIEWING PREFERENCE

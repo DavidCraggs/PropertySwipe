@@ -244,7 +244,16 @@ function App() {
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                   >
-                    <CurrentRenterDashboard />
+                    <CurrentRenterDashboard onNavigateToMatches={(matchId, conversationType) => {
+                      setCurrentPage('matches');
+                      // Store match ID and conversation type in sessionStorage so MatchesPage can auto-open it
+                      if (matchId) {
+                        sessionStorage.setItem('autoOpenMatchId', matchId);
+                      }
+                      if (conversationType) {
+                        sessionStorage.setItem('autoOpenConversationType', conversationType);
+                      }
+                    }} />
                   </motion.div>
                 )}
                 {currentPage === 'profile' && (

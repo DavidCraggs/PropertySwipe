@@ -1,21 +1,169 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Heart, MessageCircle, MapPin, Calendar, Clock, CheckCircle, Star, AlertTriangle } from 'lucide-react';
 import { useAppStore, useAuthStore } from '../hooks';
 import { formatRelativeTime } from '../utils/formatters';
 import { Badge } from '../components/atoms/Badge';
 import { ViewingsList } from '../components/organisms/ViewingsList';
 import { RatingModal } from '../components/organisms/RatingModal';
-import type { Match } from '../types';
+import { ConversationSelector } from '../components/molecules/ConversationSelector';
+import { getConversations, sendMessageToConversation, getUnreadCounts } from '../lib/storage';
+import type { Match, Conversation, ConversationType } from '../types';
 
 type TabType = 'matches' | 'viewings';
 
 export const MatchesPage: React.FC = () => {
-  const { matches, submitRating } = useAppStore();
-  const { userType } = useAuthStore();
+  const { matches: storeMatches, submitRating } = useAppStore();
+  const { userType, currentUser } = useAuthStore();
   const [selectedMatch, setSelectedMatch] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>('matches');
   const [ratingModalMatch, setRatingModalMatch] = useState<Match | null>(null);
   const [ratingType, setRatingType] = useState<'landlord' | 'renter'>('landlord');
+  const [loadedMatches, setLoadedMatches] = useState<Match[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Dual-conversation state
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [activeConversation, setActiveConversation] = useState<ConversationType>('landlord');
+  const [unreadCounts, setUnreadCounts] = useState<{ landlord: number; agency: number }>({ landlord: 0, agency: 0 });
+  const [isLoadingConversations, setIsLoadingConversations] = useState(false);
+  const messageInputRef = useRef<HTMLInputElement>(null); // Moved to top level to follow Rules of Hooks
+
+
+  // Load matches for current user
+  useEffect(() => {
+    console.log('[MatchesPage] useEffect triggered. State:', {
+      currentUser: !!currentUser,
+      userType,
+      currentUserId: currentUser?.id
+    });
+
+    const fetchMatches = async () => {
+      if (!currentUser) {
+        console.log('[MatchesPage] Exiting early: no currentUser');
+        return;
+      }
+
+      setIsLoading(true);
+      try {
+        // For renters, query Supabase directly
+        if (userType === 'renter') {
+          const { supabase } = await import('../lib/supabase');
+          const { getAllProperties } = await import('../lib/storage');
+
+          console.log('[ MatchesPage] Querying matches for renter:', currentUser.id);
+          const { data: matchData, error } = await supabase
+            .from('matches')
+            .select('*')
+            .eq('renter_id', currentUser.id);
+
+          console.log('[MatchesPage] Query result:', { matchData, error, count: matchData?.length });
+
+          if (error) {
+            console.error('[MatchesPage] Error fetching matches:', error);
+            setLoadedMatches([]);
+            return;
+          }
+
+          if (matchData && matchData.length > 0) {
+            // Fetch properties to build full Match objects
+            const properties = await getAllProperties();
+            console.log('[MatchesPage] Fetched properties:', properties.length);
+
+            const matches: Match[] = matchData.map((m: any) => {
+              const property = properties.find(p => p.id === m.property_id);
+              if (!property) {
+                console.warn(`[MatchesPage] Property not found for property_id: ${m.property_id}`);
+              }
+              return {
+                id: m.id,
+                renterId: m.renter_id,
+                landlordId: m.landlord_id,
+                landlordName: 'Landlord', // Placeholder, could fetch from landlord profile
+                propertyId: m.property_id,
+                renterName: m.renter_name,
+                timestamp: m.created_at,
+                messages: m.messages || [],
+                unreadCount: m.unread_count || 0,
+                hasViewingScheduled: m.has_viewing_scheduled || false,
+                applicationStatus: m.application_status,
+                applicationSubmittedAt: m.application_submitted_at,
+                tenancyStatus: m.tenancy_status || 'prospective',
+                canRate: m.can_rate || false,
+                hasRenterRated: m.has_renter_rated || false,
+                hasLandlordRated: m.has_landlord_rated || false,
+                isUnderEvictionProceedings: m.is_under_eviction_proceedings || false,
+                rentArrears: m.rent_arrears || 0,
+                activeIssueIds: m.active_issue_ids || [],
+                totalIssuesRaised: m.total_issues_raised || 0,
+                totalIssuesResolved: m.total_issues_resolved || 0,
+                property: property!,
+              };
+            }).filter(m => m.property); // Only include matches where property was found
+
+            console.log('[MatchesPage] Mapped matches (after property filter):', matches.length);
+            setLoadedMatches(matches);
+          } else {
+            console.log('[MatchesPage] No match data returned from query');
+            setLoadedMatches([]);
+          }
+        } else {
+          // For landlords/agencies, use store matches
+          setLoadedMatches(storeMatches);
+        }
+      } catch (error) {
+        console.error('[MatchesPage] Failed to fetch matches:', error);
+        setLoadedMatches([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchMatches();
+  }, [currentUser, userType, storeMatches]);
+
+  // Use loaded matches instead of store matches
+  const matches = loadedMatches;
+
+  // Auto-open conversation if navigating from My Tenancy
+  useEffect(() => {
+    const autoOpenMatchId = sessionStorage.getItem('autoOpenMatchId');
+    const autoOpenConversationType = sessionStorage.getItem('autoOpenConversationType') as ConversationType;
+    if (autoOpenMatchId && matches.length > 0) {
+      setSelectedMatch(autoOpenMatchId);
+      if (autoOpenConversationType) {
+        setActiveConversation(autoOpenConversationType);
+        sessionStorage.removeItem('autoOpenConversationType');
+      }
+      sessionStorage.removeItem('autoOpenMatchId');
+    }
+  }, [matches]);
+
+  // Load conversations when a match is selected
+  useEffect(() => {
+    const loadConversations = async () => {
+      if (!selectedMatch) {
+        setConversations([]);
+        return;
+      }
+
+      setIsLoadingConversations(true);
+      try {
+        const [convs, counts] = await Promise.all([
+          getConversations(selectedMatch),
+          getUnreadCounts(selectedMatch)
+        ]);
+        setConversations(convs);
+        setUnreadCounts(counts);
+      } catch (error) {
+        console.error('[MatchesPage] Failed to load conversations:', error);
+        setConversations([]);
+      } finally {
+        setIsLoadingConversations(false);
+      }
+    };
+
+    loadConversations();
+  }, [selectedMatch]);
 
   // Sort matches by most recent
   const sortedMatches = [...matches].sort(
@@ -281,152 +429,229 @@ export const MatchesPage: React.FC = () => {
       </main>
 
       {/* Conversation View Modal */}
-      {selectedMatch && (
-        <div
-          className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
-          onClick={() => setSelectedMatch(null)}
-        >
+      {selectedMatch && (() => {
+        const match = matches.find(m => m.id === selectedMatch);
+        if (!match) return null;
+
+        const currentConversation = conversations.find(c => c.conversationType === activeConversation);
+        const conversationMessages = currentConversation?.messages || [];
+        const hasAgency = !!match.property.managingAgencyId;
+
+        // Determine recipient name based on active conversation
+        const recipientName = activeConversation === 'landlord'
+          ? match.landlordName
+          : 'Managing Agency';
+
+        return (
           <div
-            className="bg-white rounded-2xl w-full max-w-2xl h-[600px] flex flex-col shadow-2xl overflow-hidden"
-            onClick={(e) => e.stopPropagation()}
+            className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+            onClick={() => setSelectedMatch(null)}
           >
-            {/* Header */}
-            <div className="p-4 border-b border-neutral-200 flex justify-between items-center bg-neutral-50">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center text-primary-600 font-bold">
-                  {matches.find(m => m.id === selectedMatch)?.landlordName.charAt(0) || 'L'}
-                </div>
-                <div>
-                  <h3 className="font-bold text-neutral-900">
-                    {matches.find(m => m.id === selectedMatch)?.landlordName}
-                  </h3>
-                  <p className="text-xs text-neutral-500">
-                    {matches.find(m => m.id === selectedMatch)?.property.address.street}
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => setSelectedMatch(null)}
-                className="p-2 hover:bg-neutral-200 rounded-full transition-colors"
-              >
-                <span className="sr-only">Close</span>
-                ✕
-              </button>
-            </div>
-
-            {/* Messages Area */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-neutral-50">
-              {matches.find(m => m.id === selectedMatch)?.messages.map((msg) => (
-                <div
-                  key={msg.id}
-                  className={`flex ${msg.senderType === (userType === 'renter' ? 'renter' : 'landlord') ? 'justify-end' : 'justify-start'}`}
-                >
-                  <div
-                    className={`max-w-[80%] p-3 rounded-2xl ${msg.senderType === (userType === 'renter' ? 'renter' : 'landlord')
-                      ? 'bg-primary-500 text-white rounded-tr-none'
-                      : 'bg-white border border-neutral-200 text-neutral-800 rounded-tl-none shadow-sm'
-                      }`}
-                  >
-                    <p className="text-sm">{msg.content}</p>
-                    <p className={`text-[10px] mt-1 ${msg.senderType === (userType === 'renter' ? 'renter' : 'landlord') ? 'text-primary-100' : 'text-neutral-400'}`}>
-                      {formatRelativeTime(msg.timestamp)}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Pet Request Status Banner */}
-            {(() => {
-              const match = matches.find(m => m.id === selectedMatch);
-              if (!match) return null;
-
-              if (match.petRequestStatus === 'requested') {
-                return (
-                  <div className="bg-secondary-50 border-t border-secondary-200 p-3 flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-secondary-800">
-                      <Clock size={16} />
-                      <span className="text-sm font-medium">Pet Request Pending</span>
+            <div
+              className="bg-white rounded-2xl w-full max-w-2xl h-[600px] flex flex-col shadow-2xl overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="border-b border-neutral-200 bg-neutral-50">
+                <div className="p-4 flex justify-between items-center">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center text-primary-600 font-bold">
+                      {recipientName.charAt(0)}
                     </div>
-                    <span className="text-xs text-secondary-600">Landlord reviewing...</span>
-                  </div>
-                );
-              }
-              if (match.petRequestStatus === 'approved') {
-                return (
-                  <div className="bg-success-50 border-t border-success-200 p-3 flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-success-800">
-                      <CheckCircle size={16} />
-                      <span className="text-sm font-medium">Pet Request Approved! 🐾</span>
+                    <div>
+                      <h3 className="font-bold text-neutral-900">{recipientName}</h3>
+                      <p className="text-xs text-neutral-500">{match.property.address.street}</p>
                     </div>
                   </div>
-                );
-              }
-              if (match.petRequestStatus === 'refused') {
-                return (
-                  <div className="bg-danger-50 border-t border-danger-200 p-3">
-                    <div className="flex items-center gap-2 text-danger-800 mb-1">
-                      <AlertTriangle size={16} />
-                      <span className="text-sm font-medium">Pet Request Refused</span>
-                    </div>
-                    <p className="text-xs text-danger-700">Reason: {match.petRefusalReason}</p>
-                  </div>
-                );
-              }
-              return null;
-            })()}
-
-            {/* Action Bar */}
-            <div className="p-4 bg-white border-t border-neutral-200">
-              <div className="flex gap-2 mb-3 overflow-x-auto pb-2">
-                {/* Pet Request Button (RRA 2025) */}
-                {userType === 'renter' && matches.find(m => m.id === selectedMatch)?.petRequestStatus === 'none' && (
                   <button
-                    onClick={() => {
-                      const details = prompt('Please describe your pet(s) (Type, Breed, Age):');
-                      if (details) {
-                        const match = matches.find(m => m.id === selectedMatch);
-                        if (match) {
-                          // Use the new store action
+                    onClick={() => setSelectedMatch(null)}
+                    className="p-2 hover:bg-neutral-200 rounded-full transition-colors"
+                  >
+                    <span className="sr-only">Close</span>
+                    ✕
+                  </button>
+                </div>
+
+                {/* Conversation Selector */}
+                <ConversationSelector
+                  activeConversation={activeConversation}
+                  onSelectConversation={setActiveConversation}
+                  landlordUnreadCount={unreadCounts.landlord}
+                  agencyUnreadCount={unreadCounts.agency}
+                  hasAgency={hasAgency}
+                />
+              </div>
+
+              {/* Messages Area */}
+              <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-neutral-50">
+                {isLoadingConversations ? (
+                  <div className="flex items-center justify-center h-full">
+                    <div className="text-center">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto mb-2"></div>
+                      <p className="text-sm text-neutral-600">Loading messages...</p>
+                    </div>
+                  </div>
+                ) : conversationMessages.length === 0 ? (
+                  <div className="flex items-center justify-center h-full">
+                    <div className="text-center">
+                      <MessageCircle size={48} className="mx-auto text-neutral-400 mb-4" />
+                      <p className="text-neutral-600">No messages yet</p>
+                      <p className="text-sm text-neutral-500 mt-1">Start the conversation!</p>
+                    </div>
+                  </div>
+                ) : (
+                  conversationMessages.map((msg) => (
+                    <div
+                      key={msg.id}
+                      className={`flex ${msg.senderType === (userType === 'renter' ? 'renter' : 'landlord') ? 'justify-end' : 'justify-start'}`}
+                    >
+                      <div
+                        className={`max-w-[80%] p-3 rounded-2xl ${msg.senderType === (userType === 'renter' ? 'renter' : 'landlord')
+                          ? 'bg-primary-500 text-white rounded-tr-none'
+                          : 'bg-white border border-neutral-200 text-neutral-800 rounded-tl-none shadow-sm'
+                          }`}
+                      >
+                        <p className="text-sm">{msg.content}</p>
+                        <p className={`text-[10px] mt-1 ${msg.senderType === (userType === 'renter' ? 'renter' : 'landlord') ? 'text-primary-100' : 'text-neutral-400'}`}>
+                          {formatRelativeTime(msg.timestamp)}
+                        </p>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Pet Request Status Banner */}
+              {(() => {
+                if (match.petRequestStatus === 'requested') {
+                  return (
+                    <div className="bg-secondary-50 border-t border-secondary-200 p-3 flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-secondary-800">
+                        <Clock size={16} />
+                        <span className="text-sm font-medium">Pet Request Pending</span>
+                      </div>
+                      <span className="text-xs text-secondary-600">Landlord reviewing...</span>
+                    </div>
+                  );
+                }
+                if (match.petRequestStatus === 'approved') {
+                  return (
+                    <div className="bg-success-50 border-t border-success-200 p-3 flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-success-800">
+                        <CheckCircle size={16} />
+                        <span className="text-sm font-medium">Pet Request Approved! 🐾</span>
+                      </div>
+                    </div>
+                  );
+                }
+                if (match.petRequestStatus === 'refused') {
+                  return (
+                    <div className="bg-danger-50 border-t border-danger-200 p-3">
+                      <div className="flex items-center gap-2 text-danger-800 mb-1">
+                        <AlertTriangle size={16} />
+                        <span className="text-sm font-medium">Pet Request Refused</span>
+                      </div>
+                      <p className="text-xs text-danger-700">Reason: {match.petRefusalReason}</p>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
+
+              {/* Action Bar */}
+              <div className="p-4 bg-white border-t border-neutral-200">
+                <div className="flex gap-2 mb-3 overflow-x-auto pb-2">
+                  {/* Pet Request Button (RRA 2025) */}
+                  {userType === 'renter' && match.petRequestStatus === 'none' && (
+                    <button
+                      onClick={() => {
+                        const details = prompt('Please describe your pet(s) (Type, Breed, Age):');
+                        if (details) {
                           useAppStore.getState().requestPet(match.id, details);
+                        }
+                      }}
+                      className="flex items-center gap-1 px-3 py-1.5 bg-secondary-100 text-secondary-700 rounded-full text-xs font-medium hover:bg-secondary-200 transition-colors whitespace-nowrap"
+                    >
+                      🐾 Request Pet
+                    </button>
+                  )}
+
+                  <button className="flex items-center gap-1 px-3 py-1.5 bg-neutral-100 text-neutral-700 rounded-full text-xs font-medium hover:bg-neutral-200 transition-colors whitespace-nowrap">
+                    📅 Request Viewing
+                  </button>
+                </div>
+
+                {/* Message Input */}
+                <div className="flex gap-2">
+                  <input
+                    ref={messageInputRef}
+                    type="text"
+                    placeholder={`Message ${activeConversation === 'landlord' ? 'landlord' : 'agency'}...`}
+                    className="flex-1 border border-neutral-300 rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    onKeyDown={async (e) => {
+                      if (e.key === 'Enter' && !e.shiftKey && messageInputRef.current) {
+                        e.preventDefault();
+                        const content = messageInputRef.current.value.trim();
+                        if (!content || !currentUser) return;
+
+                        try {
+                          await sendMessageToConversation({
+                            matchId: match.id,
+                            conversationType: activeConversation,
+                            content,
+                            senderId: currentUser.id,
+                            senderType: userType as any,
+                          });
+                          messageInputRef.current.value = '';
+                          // Reload conversations to show new message
+                          const [convs, counts] = await Promise.all([
+                            getConversations(match.id),
+                            getUnreadCounts(match.id)
+                          ]);
+                          setConversations(convs);
+                          setUnreadCounts(counts);
+                        } catch (error) {
+                          console.error('[MatchesPage] Failed to send message:', error);
                         }
                       }
                     }}
-                    className="flex items-center gap-1 px-3 py-1.5 bg-secondary-100 text-secondary-700 rounded-full text-xs font-medium hover:bg-secondary-200 transition-colors whitespace-nowrap"
-                  >
-                    🐾 Request Pet
-                  </button>
-                )}
+                  />
+                  <button
+                    onClick={async () => {
+                      if (!messageInputRef.current || !currentUser) return;
+                      const content = messageInputRef.current.value.trim();
+                      if (!content) return;
 
-                <button className="flex items-center gap-1 px-3 py-1.5 bg-neutral-100 text-neutral-700 rounded-full text-xs font-medium hover:bg-neutral-200 transition-colors whitespace-nowrap">
-                  📅 Request Viewing
-                </button>
-              </div>
-
-              {/* Message Input */}
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  placeholder="Type a message..."
-                  className="flex-1 border border-neutral-300 rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && e.currentTarget.value.trim()) {
-                      const match = matches.find(m => m.id === selectedMatch);
-                      if (match) {
-                        useAppStore.getState().sendMessage(match.id, e.currentTarget.value);
-                        e.currentTarget.value = '';
+                      try {
+                        await sendMessageToConversation({
+                          matchId: match.id,
+                          conversationType: activeConversation,
+                          content,
+                          senderId: currentUser.id,
+                          senderType: userType as any,
+                        });
+                        messageInputRef.current.value = '';
+                        // Reload conversations to show new message
+                        const [convs, counts] = await Promise.all([
+                          getConversations(match.id),
+                          getUnreadCounts(match.id)
+                        ]);
+                        setConversations(convs);
+                        setUnreadCounts(counts);
+                      } catch (error) {
+                        console.error('[MatchesPage] Failed to send message:', error);
                       }
-                    }
-                  }}
-                />
-                <button className="bg-primary-500 text-white p-2 rounded-full hover:bg-primary-600 transition-colors">
-                  <MessageCircle size={20} />
-                </button>
+                    }}
+                    className="px-6 py-2 bg-primary-600 text-white rounded-full font-medium hover:bg-primary-700 transition-colors"
+                  >
+                    Send
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Rating Modal */}
       {ratingModalMatch && (

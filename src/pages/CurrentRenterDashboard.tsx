@@ -2,16 +2,20 @@ import React, { useState, useEffect } from 'react';
 import { Home, MessageCircle, AlertTriangle, Clock, CheckCircle2, Package, LogOut } from 'lucide-react';
 import { useAuthStore } from '../hooks/useAuthStore';
 import { Button } from '../components/atoms/Button';
-import type { RenterProfile, Property, AgencyProfile, Issue, IssueCategory, IssuePriority } from '../types';
+import type { RenterProfile, Property, AgencyProfile, Issue, IssueCategory, IssuePriority, ConversationType } from '../types';
 import { getAllProperties, getAgencyProfile, getIssuesForMatch, createIssue } from '../lib/storage';
 import { useAppStore } from '../hooks';
+
+interface CurrentRenterDashboardProps {
+  onNavigateToMatches?: (matchId?: string, conversationType?: ConversationType) => void;
+}
 
 /**
  * Dashboard for current renters (actively in a tenancy)
  * Shows current property, contact options, and issue management
  * Phase 3: Current Renter Experience
  */
-export const CurrentRenterDashboard: React.FC = () => {
+export const CurrentRenterDashboard: React.FC<CurrentRenterDashboardProps> = ({ onNavigateToMatches }) => {
   const { currentUser, userType, logout } = useAuthStore();
   const { matches } = useAppStore();
   const [activeTab, setActiveTab] = useState<'overview' | 'issues'>('overview');
@@ -19,6 +23,7 @@ export const CurrentRenterDashboard: React.FC = () => {
   const [currentAgency, setCurrentAgency] = useState<AgencyProfile | null>(null);
   const [issues, setIssues] = useState<Issue[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [currentMatchId, setCurrentMatchId] = useState<string | null>(null);
 
   // Type guards
   if (userType !== 'renter') {
@@ -75,6 +80,9 @@ export const CurrentRenterDashboard: React.FC = () => {
         console.log('[CurrentRenterDashboard] Found match data:', matchData);
 
         if (matchData) {
+          // Store match ID for navigation
+          setCurrentMatchId(matchData.id);
+
           // Fetch property
           const properties = await getAllProperties();
           console.log('[CurrentRenterDashboard] All properties:', properties.length);
@@ -88,9 +96,14 @@ export const CurrentRenterDashboard: React.FC = () => {
             setCurrentAgency(agency);
           }
 
-          // Fetch issues for this match
-          const matchIssues = await getIssuesForMatch(matchData.id);
-          setIssues(matchIssues);
+          // Fetch issues for this match (if the column exists)
+          try {
+            const matchIssues = await getIssuesForMatch(matchData.id);
+            setIssues(matchIssues);
+          } catch (error) {
+            console.log('[CurrentRenterDashboard] Issues feature not available:', error);
+            setIssues([]);
+          }
         } else {
           console.log('[CurrentRenterDashboard] No active match found in database');
         }
@@ -183,15 +196,20 @@ export const CurrentRenterDashboard: React.FC = () => {
               moveInDate={renterProfile.moveInDate}
             />
 
-            {/* Contact Cards */}
+            {/* Landlord & Agency Contact */}
             <div className="grid md:grid-cols-2 gap-6">
-              {/* Agency Contact */}
+              <LandlordContactCard
+                landlordId={renterProfile.currentLandlordId}
+                currentMatchId={currentMatchId}
+                onNavigateToMatches={onNavigateToMatches}
+              />
               {hasAgency && (
-                <AgencyContactCard agency={currentAgency} />
+                <AgencyContactCard
+                  agency={currentAgency}
+                  currentMatchId={currentMatchId}
+                  onNavigateToMatches={onNavigateToMatches}
+                />
               )}
-
-              {/* Landlord Contact */}
-              <LandlordContactCard landlordId={renterProfile.currentLandlordId} />
             </div>
 
             {/* Quick Actions */}
@@ -313,9 +331,11 @@ const CurrentPropertyCard: React.FC<CurrentPropertyCardProps> = ({
  */
 interface AgencyContactCardProps {
   agency: AgencyProfile | null;
+  currentMatchId: string | null;
+  onNavigateToMatches?: (matchId?: string, conversationType?: ConversationType) => void;
 }
 
-const AgencyContactCard: React.FC<AgencyContactCardProps> = ({ agency }) => {
+const AgencyContactCard: React.FC<AgencyContactCardProps> = ({ agency, currentMatchId, onNavigateToMatches }) => {
   if (!agency) {
     return null;
   }
@@ -347,7 +367,12 @@ const AgencyContactCard: React.FC<AgencyContactCardProps> = ({ agency }) => {
         </div>
       </div>
 
-      <Button variant="primary" className="w-full" icon={<MessageCircle size={18} />} disabled>
+      <Button
+        variant="primary"
+        className="w-full"
+        icon={<MessageCircle size={18} />}
+        onClick={() => onNavigateToMatches?.(currentMatchId || undefined, 'agency')}
+      >
         Contact Agency
       </Button>
     </div>
@@ -360,9 +385,11 @@ const AgencyContactCard: React.FC<AgencyContactCardProps> = ({ agency }) => {
  */
 interface LandlordContactCardProps {
   landlordId?: string;
+  currentMatchId: string | null;
+  onNavigateToMatches?: (matchId?: string, conversationType?: ConversationType) => void;
 }
 
-const LandlordContactCard: React.FC<LandlordContactCardProps> = ({ landlordId }) => {
+const LandlordContactCard: React.FC<LandlordContactCardProps> = ({ landlordId, currentMatchId, onNavigateToMatches }) => {
   const [landlordName, setLandlordName] = useState<string>('Loading...');
 
   useEffect(() => {
@@ -398,7 +425,12 @@ const LandlordContactCard: React.FC<LandlordContactCardProps> = ({ landlordId })
         </div>
       </div>
 
-      <Button variant="outline" className="w-full" icon={<MessageCircle size={18} />} disabled>
+      <Button
+        variant="outline"
+        className="w-full"
+        icon={<MessageCircle size={18} />}
+        onClick={() => onNavigateToMatches?.(currentMatchId || undefined, 'landlord')}
+      >
         Contact Landlord
       </Button>
     </div>

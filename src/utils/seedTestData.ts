@@ -69,6 +69,7 @@ export async function clearSeedData(verbose: boolean = false): Promise<number> {
         'agency_link_invitations',
         'ratings',
         'issues',
+        'conversations',
         'matches',
         'agency_property_links',
         'properties',
@@ -129,6 +130,7 @@ export async function verifySeedData(verbose: boolean = false): Promise<{
         'agency_profiles',
         'properties',
         'matches',
+        'conversations',
         'issues',
         'ratings',
     ];
@@ -297,7 +299,19 @@ export async function seedAllTestData(
         steps.push(matchResult);
         if (!matchResult.success) throw new Error('Failed to seed matches');
 
-        // Step 5: Seed messages
+        // Step 5: Seed conversations
+        const conversationResult = await executeStep(
+            'Seed Conversations',
+            async () => {
+                const { seedConversations } = await import('./seedConversations');
+                return await seedConversations(verbose);
+            },
+            verbose
+        );
+        steps.push(conversationResult);
+        // Note: Don't fail if conversations seed fails, continue with other steps
+
+        // Step 6: Seed messages  
         const messageResult = await executeStep(
             'Seed Messages',
             async () => {
