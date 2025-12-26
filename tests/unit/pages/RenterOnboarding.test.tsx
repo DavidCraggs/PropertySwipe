@@ -127,7 +127,7 @@ describe('RenterOnboarding', () => {
 
   describe('Step 0: Personal Info', () => {
     it('should render first step with all required fields', () => {
-      render(<RenterOnboarding onComplete={mockOnComplete} />);
+      render(<RenterOnboarding onComplete={mockOnComplete} onLogin={vi.fn()} />);
 
       expect(screen.getByText("Let's get to know you")).toBeInTheDocument();
       expect(screen.getByPlaceholderText('your@email.com')).toBeInTheDocument();
@@ -135,7 +135,7 @@ describe('RenterOnboarding', () => {
     });
 
     it('should have next button disabled when required fields are empty', () => {
-      render(<RenterOnboarding onComplete={mockOnComplete} />);
+      render(<RenterOnboarding onComplete={mockOnComplete} onLogin={vi.fn()} />);
 
       const nextButton = screen.getByRole('button', { name: /next/i });
       expect(nextButton).toBeDisabled();
@@ -143,7 +143,7 @@ describe('RenterOnboarding', () => {
 
     it('should enable next button when all required fields are filled', async () => {
       const user = userEvent.setup();
-      render(<RenterOnboarding onComplete={mockOnComplete} />);
+      render(<RenterOnboarding onComplete={mockOnComplete} onLogin={vi.fn()} />);
 
       await user.type(screen.getByPlaceholderText('your@email.com'), 'test@example.com');
       await user.type(screen.getByPlaceholderText('Enter a strong password'), 'TestPass123!');
@@ -158,7 +158,7 @@ describe('RenterOnboarding', () => {
       const user = userEvent.setup();
       const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
 
-      render(<RenterOnboarding onComplete={mockOnComplete} />);
+      render(<RenterOnboarding onComplete={mockOnComplete} onLogin={vi.fn()} />);
 
       await user.type(screen.getByPlaceholderText('your@email.com'), 'invalid-email');
       await user.type(screen.getByPlaceholderText('Enter a strong password'), 'TestPass123!');
@@ -173,7 +173,7 @@ describe('RenterOnboarding', () => {
 
     it('should show validation error for weak password', async () => {
       const user = userEvent.setup();
-      render(<RenterOnboarding onComplete={mockOnComplete} />);
+      render(<RenterOnboarding onComplete={mockOnComplete} onLogin={vi.fn()} />);
 
       await user.type(screen.getByPlaceholderText('your@email.com'), 'test@example.com');
       await user.type(screen.getByPlaceholderText('Enter a strong password'), 'weak');
@@ -189,7 +189,7 @@ describe('RenterOnboarding', () => {
 
     it('should show error for name less than 2 characters', async () => {
       const user = userEvent.setup();
-      render(<RenterOnboarding onComplete={mockOnComplete} />);
+      render(<RenterOnboarding onComplete={mockOnComplete} onLogin={vi.fn()} />);
 
       await user.type(screen.getByPlaceholderText('your@email.com'), 'test@example.com');
       await user.type(screen.getByPlaceholderText('Enter a strong password'), 'TestPass123!');
@@ -204,7 +204,7 @@ describe('RenterOnboarding', () => {
 
     it('should proceed to step 1 with valid inputs', async () => {
       const user = userEvent.setup();
-      render(<RenterOnboarding onComplete={mockOnComplete} />);
+      render(<RenterOnboarding onComplete={mockOnComplete} onLogin={vi.fn()} />);
 
       await user.type(screen.getByPlaceholderText('your@email.com'), 'test@example.com');
       await user.type(screen.getByPlaceholderText('Enter a strong password'), 'TestPass123!');
@@ -221,7 +221,7 @@ describe('RenterOnboarding', () => {
   describe('Step Navigation', () => {
     it('should navigate forward through all steps', async () => {
       const user = userEvent.setup();
-      render(<RenterOnboarding onComplete={mockOnComplete} />);
+      render(<RenterOnboarding onComplete={mockOnComplete} onLogin={vi.fn()} />);
 
       // Step 0 -> Step 1
       await user.type(screen.getByPlaceholderText('your@email.com'), 'test@example.com');
@@ -246,7 +246,7 @@ describe('RenterOnboarding', () => {
 
     it('should navigate backward through steps', async () => {
       const user = userEvent.setup();
-      render(<RenterOnboarding onComplete={mockOnComplete} />);
+      render(<RenterOnboarding onComplete={mockOnComplete} onLogin={vi.fn()} />);
 
       // Navigate to step 1
       await user.type(screen.getByPlaceholderText('your@email.com'), 'test@example.com');
@@ -269,7 +269,7 @@ describe('RenterOnboarding', () => {
   describe('Form Validation', () => {
     it('should block progress on step 2 when income is missing', async () => {
       const user = userEvent.setup();
-      render(<RenterOnboarding onComplete={mockOnComplete} />);
+      render(<RenterOnboarding onComplete={mockOnComplete} onLogin={vi.fn()} />);
 
       // Navigate to step 2
       await user.type(screen.getByPlaceholderText('your@email.com'), 'test@example.com');
@@ -289,7 +289,7 @@ describe('RenterOnboarding', () => {
 
     it('should block progress on step 3 when move-in date is missing', async () => {
       const user = userEvent.setup();
-      render(<RenterOnboarding onComplete={mockOnComplete} />);
+      render(<RenterOnboarding onComplete={mockOnComplete} onLogin={vi.fn()} />);
 
       // Navigate to step 3
       await user.type(screen.getByPlaceholderText('your@email.com'), 'test@example.com');
@@ -314,7 +314,7 @@ describe('RenterOnboarding', () => {
   describe('Draft Saving', () => {
     it('should save draft to localStorage when data changes', async () => {
       const user = userEvent.setup();
-      render(<RenterOnboarding onComplete={mockOnComplete} />);
+      render(<RenterOnboarding onComplete={mockOnComplete} onLogin={vi.fn()} />);
 
       await user.type(screen.getByPlaceholderText('John Smith'), 'Jane Doe');
 
@@ -341,7 +341,7 @@ describe('RenterOnboarding', () => {
       };
       localStorage.setItem('renter-onboarding-draft', JSON.stringify(draft));
 
-      render(<RenterOnboarding onComplete={mockOnComplete} />);
+      render(<RenterOnboarding onComplete={mockOnComplete} onLogin={vi.fn()} />);
 
       expect(screen.getByPlaceholderText('John & Jane Smith')).toHaveValue('John & Jane Doe');
     });
@@ -350,7 +350,7 @@ describe('RenterOnboarding', () => {
   describe('Profile Submission', () => {
     it('should create renter profile with correct data', async () => {
       const user = userEvent.setup();
-      render(<RenterOnboarding onComplete={mockOnComplete} />);
+      render(<RenterOnboarding onComplete={mockOnComplete} onLogin={vi.fn()} />);
 
       // Fill all required fields
       await user.type(screen.getByPlaceholderText('your@email.com'), 'test@example.com');
@@ -393,7 +393,7 @@ describe('RenterOnboarding', () => {
 
     it('should clear draft from localStorage after successful submission', async () => {
       const user = userEvent.setup();
-      render(<RenterOnboarding onComplete={mockOnComplete} />);
+      render(<RenterOnboarding onComplete={mockOnComplete} onLogin={vi.fn()} />);
 
       await user.type(screen.getByPlaceholderText('your@email.com'), 'test@example.com');
       await user.type(screen.getByPlaceholderText('Enter a strong password'), 'TestPass123!');
@@ -429,7 +429,7 @@ describe('RenterOnboarding', () => {
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
       mockLogin.mockRejectedValue(new Error('Network error'));
 
-      render(<RenterOnboarding onComplete={mockOnComplete} />);
+      render(<RenterOnboarding onComplete={mockOnComplete} onLogin={vi.fn()} />);
 
       await user.type(screen.getByPlaceholderText('your@email.com'), 'test@example.com');
       await user.type(screen.getByPlaceholderText('Enter a strong password'), 'TestPass123!');

@@ -163,14 +163,18 @@ describe('seedHelpers', () => {
         it('should accept custom dimensions', () => {
             const dataUri = generatePlaceholderImage(1200, 800);
 
-            expect(dataUri).toContain('width="1200"');
-            expect(dataUri).toContain('height="800"');
+            // Decode base64 to verify dimensions are in SVG
+            const svgString = atob(dataUri.replace('data:image/svg+xml;base64,', ''));
+            expect(svgString).toContain('width="1200"');
+            expect(svgString).toContain('height="800"');
         });
 
         it('should accept custom color', () => {
             const dataUri = generatePlaceholderImage(800, 600, 'ff0000');
 
-            expect(dataUri).toContain('#ff0000');
+            // Decode base64 to verify color is in SVG
+            const svgString = atob(dataUri.replace('data:image/svg+xml;base64,', ''));
+            expect(svgString).toContain('#ff0000');
         });
     });
 
@@ -205,18 +209,18 @@ describe('seedHelpers', () => {
 
     describe('SEED_CONSTANTS', () => {
         it('should have all user IDs', () => {
-            expect(SEED_CONSTANTS.RENTER_ID).toBe('seed-renter-001');
-            expect(SEED_CONSTANTS.LANDLORD_ID).toBe('seed-landlord-001');
-            expect(SEED_CONSTANTS.ESTATE_AGENT_ID).toBe('seed-agent-001');
-            expect(SEED_CONSTANTS.MANAGEMENT_AGENCY_ID).toBe('seed-mgmt-001');
+            expect(SEED_CONSTANTS.RENTER_TAG).toBe('seed-renter-001');
+            expect(SEED_CONSTANTS.LANDLORD_TAG).toBe('seed-landlord-001');
+            expect(SEED_CONSTANTS.ESTATE_AGENT_TAG).toBe('seed-agent-001');
+            expect(SEED_CONSTANTS.MANAGEMENT_AGENCY_TAG).toBe('seed-mgmt-001');
         });
 
         it('should have all property IDs', () => {
-            expect(SEED_CONSTANTS.PROPERTY_1_ID).toBe('seed-property-001');
-            expect(SEED_CONSTANTS.PROPERTY_2_ID).toBe('seed-property-002');
-            expect(SEED_CONSTANTS.PROPERTY_3_ID).toBe('seed-property-003');
-            expect(SEED_CONSTANTS.PROPERTY_4_ID).toBe('seed-property-004');
-            expect(SEED_CONSTANTS.PROPERTY_5_ID).toBe('seed-property-005');
+            expect(SEED_CONSTANTS.PROPERTY_1_TAG).toBe('seed-property-001');
+            expect(SEED_CONSTANTS.PROPERTY_2_TAG).toBe('seed-property-002');
+            expect(SEED_CONSTANTS.PROPERTY_3_TAG).toBe('seed-property-003');
+            expect(SEED_CONSTANTS.PROPERTY_4_TAG).toBe('seed-property-004');
+            expect(SEED_CONSTANTS.PROPERTY_5_TAG).toBe('seed-property-005');
         });
 
         it('should have default password', () => {
