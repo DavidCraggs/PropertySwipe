@@ -50,7 +50,8 @@
       "Bash(npm ls:*)",
       "Bash(wc:*)",
       "Bash(for file in \"/c/Users/david/PropertySwipe/src/pages\"/*.tsx)",
-      "Bash(done)"
+      "Bash(done)",
+      "Bash(grep:*)"
     ],
     "deny": [],
     "ask": []

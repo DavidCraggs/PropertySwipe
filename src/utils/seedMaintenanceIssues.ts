@@ -18,7 +18,7 @@ export async function createIssue1(): Promise<Issue> {
     const raisedAt = daysAgo(3);
     const slaDeadline = calculateSLADeadline(raisedAt, 'urgent');
 
-    const issue: any = {
+    const issue: Omit<Issue, 'id'> & { seed_tag: string } = {
         seed_tag: 'seed-issue-001',
         propertyId: PROPERTY_IDS.property2Id,
         renterId: GENERATED_IDS.renterId,
@@ -81,7 +81,7 @@ export async function createIssue2(): Promise<Issue> {
     const raisedAt = daysAgo(10);
     const slaDeadline = calculateSLADeadline(raisedAt, 'routine');
 
-    const issue: any = {
+    const issue: Omit<Issue, 'id'> & { seed_tag: string } = {
         seed_tag: 'seed-issue-002',
         propertyId: PROPERTY_IDS.property4Id,
         renterId: GENERATED_IDS.renterId,
@@ -132,7 +132,7 @@ export async function createIssue3(): Promise<Issue> {
     const raisedAt = daysAgo(1);
     const slaDeadline = calculateSLADeadline(raisedAt, 'low');
 
-    const issue: any = {
+    const issue: Omit<Issue, 'id'> & { seed_tag: string } = {
         seed_tag: 'seed-issue-003',
         propertyId: PROPERTY_IDS.property2Id,
         renterId: GENERATED_IDS.renterId,

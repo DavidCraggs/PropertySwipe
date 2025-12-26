@@ -15,7 +15,7 @@ import { MATCH_IDS } from './seedMatches';
  * Create Rating 1: Renter rates previous landlord
  */
 export async function createRating1(): Promise<Rating> {
-    const rating: any = {
+    const rating: Omit<Rating, 'id'> & { seed_tag: string } = {
         seed_tag: 'seed-rating-001',
         matchId: MATCH_IDS.match1Id,
         fromUserId: GENERATED_IDS.renterId,
@@ -46,7 +46,7 @@ export async function createRating1(): Promise<Rating> {
  * Create Rating 2: Landlord rates previous renter
  */
 export async function createRating2(): Promise<Rating> {
-    const rating: any = {
+    const rating: Omit<Rating, 'id'> & { seed_tag: string } = {
         seed_tag: 'seed-rating-002',
         matchId: MATCH_IDS.match1Id,
         fromUserId: GENERATED_IDS.landlordId,

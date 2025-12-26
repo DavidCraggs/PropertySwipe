@@ -53,7 +53,7 @@ export async function createTestRenter(): Promise<RenterProfile> {
         status: 'prospective', // Actively searching
     };
 
-    const saved = await saveRenterProfile(renter as any);
+    const saved = await saveRenterProfile(renter as unknown as RenterProfile);
     GENERATED_IDS.renterId = saved.id;
     return saved;
 }
@@ -90,7 +90,7 @@ export async function createTestLandlord(): Promise<LandlordProfile> {
         onboardingComplete: true,
     };
 
-    const saved = await saveLandlordProfile(landlord as any);
+    const saved = await saveLandlordProfile(landlord as unknown as LandlordProfile);
     GENERATED_IDS.landlordId = saved.id;
     return saved;
 }
@@ -99,7 +99,7 @@ export async function createTestLandlord(): Promise<LandlordProfile> {
  * Create test estate agent profile (Sarah Bennett)
  */
 export async function createTestEstateAgent(): Promise<AgencyProfile> {
-    const agent: any = {
+    const agent: Omit<AgencyProfile, 'id'> & { seed_tag: string } = {
         seed_tag: SEED_CONSTANTS.ESTATE_AGENT_TAG,
         email: `test.estateagent@${SEED_CONSTANTS.EMAIL_DOMAIN}`,
         password_hash: await hashPassword(SEED_CONSTANTS.DEFAULT_PASSWORD),
@@ -140,7 +140,7 @@ export async function createTestEstateAgent(): Promise<AgencyProfile> {
  * Create test management agency profile (PropertyCare Solutions)
  */
 export async function createTestManagementAgency(): Promise<AgencyProfile> {
-    const agency: any = {
+    const agency: Omit<AgencyProfile, 'id'> & { seed_tag: string } = {
         seed_tag: SEED_CONSTANTS.MANAGEMENT_AGENCY_TAG,
         email: `test.managementagency@${SEED_CONSTANTS.EMAIL_DOMAIN}`,
         password_hash: await hashPassword(SEED_CONSTANTS.DEFAULT_PASSWORD),

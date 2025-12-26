@@ -79,7 +79,7 @@ export async function createProperty1(): Promise<Property> {
         acceptsShortTermTenants: false,
     };
 
-    const saved = await saveProperty(property as any);
+    const saved = await saveProperty(property as unknown as Property);
     PROPERTY_IDS.property1Id = saved.id;
     return saved;
 }
@@ -148,7 +148,7 @@ export async function createProperty2(): Promise<Property> {
         acceptsShortTermTenants: false,
     };
 
-    const saved = await saveProperty(property as any);
+    const saved = await saveProperty(property as unknown as Property);
     PROPERTY_IDS.property2Id = saved.id;
     return saved;
 }
@@ -215,7 +215,7 @@ export async function createProperty3(): Promise<Property> {
         acceptsShortTermTenants: false,
     };
 
-    const saved = await saveProperty(property as any);
+    const saved = await saveProperty(property as unknown as Property);
     PROPERTY_IDS.property3Id = saved.id;
     return saved;
 }
@@ -281,7 +281,7 @@ export async function createProperty4(): Promise<Property> {
         acceptsShortTermTenants: false,
     };
 
-    const saved = await saveProperty(property as any);
+    const saved = await saveProperty(property as unknown as Property);
     PROPERTY_IDS.property4Id = saved.id;
     return saved;
 }
@@ -349,7 +349,7 @@ export async function createProperty5(): Promise<Property> {
         acceptsShortTermTenants: false,
     };
 
-    const saved = await saveProperty(property as any);
+    const saved = await saveProperty(property as unknown as Property);
     PROPERTY_IDS.property5Id = saved.id;
     return saved;
 }
