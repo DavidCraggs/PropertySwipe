@@ -333,10 +333,10 @@ export const getBuyerProfile = getRenterProfile as unknown as (id: string) => Pr
 // AGENCY PROFILES (Estate Agents & Management Agencies)
 // =====================================================
 
-export const saveAgencyProfile = async (profile: any): Promise<AgencyProfile> => {
+export const saveAgencyProfile = async (profile: AgencyProfile | Omit<AgencyProfile, 'id'>): Promise<AgencyProfile> => {
   if (isSupabaseConfigured()) {
     // Handle both camelCase TypeScript objects and snake_case database objects
-    const profileData: any = {
+    const profileData: Record<string, any> = {
       email: profile.email,
       password_hash: profile.password_hash || profile.passwordHash,
       agency_type: profile.agency_type || profile.agencyType,
@@ -473,9 +473,9 @@ export const getAgencyProfile = async (id: string): Promise<AgencyProfile | null
 // RENTAL PROPERTIES
 // =====================================================
 
-export const saveProperty = async (property: any): Promise<Property> => {
+export const saveProperty = async (property: Property | Omit<Property, 'id'>): Promise<Property> => {
   if (isSupabaseConfigured()) {
-    const propertyData: any = {
+    const propertyData: Record<string, any> = {
       landlord_id: property.landlord_id || property.landlordId || null,
       managing_agency_id: property.managing_agency_id || property.managingAgencyId || null,
       marketing_agent_id: property.marketing_agent_id || property.marketingAgentId || null,
@@ -701,9 +701,9 @@ export const deleteProperty = async (id: string): Promise<void> => {
 // RENTAL MATCHES (Landlord ↔ Renter)
 // =====================================================
 
-export const saveMatch = async (match: any): Promise<Match> => {
+export const saveMatch = async (match: Match | Omit<Match, 'id'>): Promise<Match> => {
   if (isSupabaseConfigured()) {
-    const matchData: any = {
+    const matchData: Record<string, any> = {
       property_id: match.property_id || match.propertyId,
       landlord_id: match.landlord_id || match.landlordId,
       renter_id: match.renter_id || match.renterId,
@@ -934,9 +934,9 @@ export const createViewingRequest = async (viewing: ViewingPreference): Promise<
 /**
  * Save a rating (renter rating landlord OR landlord rating renter)
  */
-export const saveRating = async (rating: any): Promise<any> => {
+export const saveRating = async (rating: Rating | Omit<Rating, 'id' | 'createdAt'>): Promise<Rating> => {
   if (isSupabaseConfigured()) {
-    const ratingData: any = {
+    const ratingData: Record<string, any> = {
       match_id: rating.match_id || rating.matchId,
       rated_user_id: rating.rated_user_id || rating.toUserId,
       rated_user_type: rating.rated_user_type || rating.toUserType,
@@ -1741,10 +1741,10 @@ export const deleteAgencyPropertyLink = async (linkId: string): Promise<void> =>
 /**
  * Save an issue (create or update)
  */
-export const saveIssue = async (issue: any): Promise<any> => {
+export const saveIssue = async (issue: Issue | Omit<Issue, 'id' | 'createdAt' | 'updatedAt'>): Promise<Issue> => {
   if (isSupabaseConfigured()) {
     // Handle both old and new multi-role schema
-    const issueData: any = {
+    const issueData: Record<string, any> = {
       // Multi-role schema (new)
       property_id: issue.property_id || issue.propertyId,
       renter_id: issue.renter_id || issue.renterId,
@@ -1810,7 +1810,7 @@ export const saveIssue = async (issue: any): Promise<any> => {
     const updatedIssue = { ...issue, id: issueId };
 
     const stored = localStorage.getItem('issues');
-    const issues: any[] = stored ? JSON.parse(stored) : [];
+    const issues: Issue[] = stored ? JSON.parse(stored) : [];
     const index = issues.findIndex(i => i.id === issueId);
 
     if (index >= 0) {
@@ -1999,7 +1999,7 @@ export const createIssue = async (
 /**
  * Get all issues for a match
  */
-export const getIssuesForMatch = async (matchId: string): Promise<any[]> => {
+export const getIssuesForMatch = async (matchId: string): Promise<Issue[]> => {
   if (isSupabaseConfigured()) {
     const { data, error } = await supabase
       .from('issues')
@@ -2011,7 +2011,7 @@ export const getIssuesForMatch = async (matchId: string): Promise<any[]> => {
     return data || [];
   } else {
     const stored = localStorage.getItem('issues');
-    const issues: any[] = stored ? JSON.parse(stored) : [];
+    const issues: Issue[] = stored ? JSON.parse(stored) : [];
     return issues.filter(i => i.matchId === matchId);
   }
 };
@@ -2019,7 +2019,7 @@ export const getIssuesForMatch = async (matchId: string): Promise<any[]> => {
 /**
  * Get all issues for a property
  */
-export const getIssuesForProperty = async (propertyId: string): Promise<any[]> => {
+export const getIssuesForProperty = async (propertyId: string): Promise<Issue[]> => {
   if (isSupabaseConfigured()) {
     const { data, error } = await supabase
       .from('issues')
@@ -2031,7 +2031,7 @@ export const getIssuesForProperty = async (propertyId: string): Promise<any[]> =
     return data || [];
   } else {
     const stored = localStorage.getItem('issues');
-    const issues: any[] = stored ? JSON.parse(stored) : [];
+    const issues: Issue[] = stored ? JSON.parse(stored) : [];
     return issues.filter(i => i.propertyId === propertyId);
   }
 };
@@ -2051,7 +2051,7 @@ export const getIssue = async (issueId: string): Promise<any | null> => {
     return data;
   } else {
     const stored = localStorage.getItem('issues');
-    const issues: any[] = stored ? JSON.parse(stored) : [];
+    const issues: Issue[] = stored ? JSON.parse(stored) : [];
     return issues.find(i => i.id === issueId) || null;
   }
 };
@@ -2086,7 +2086,7 @@ export const updateIssueStatus = async (
     return data;
   } else {
     const stored = localStorage.getItem('issues');
-    const issues: any[] = stored ? JSON.parse(stored) : [];
+    const issues: Issue[] = stored ? JSON.parse(stored) : [];
     const index = issues.findIndex(i => i.id === issueId);
 
     if (index >= 0) {
@@ -2101,7 +2101,7 @@ export const updateIssueStatus = async (
 /**
  * Save a ticket (support ticket for issue)
  */
-export const saveTicket = async (ticket: any): Promise<any> => {
+export const saveTicket = async (ticket: Record<string, any>): Promise<Record<string, any>> => {
   if (isSupabaseConfigured()) {
     const ticketData = {
       issue_id: ticket.issueId,
@@ -2150,7 +2150,7 @@ export const saveTicket = async (ticket: any): Promise<any> => {
     const updatedTicket = { ...ticket, id: ticketId };
 
     const stored = localStorage.getItem('tickets');
-    const tickets: any[] = stored ? JSON.parse(stored) : [];
+    const tickets: Issue[] = stored ? JSON.parse(stored) : [];
     const index = tickets.findIndex(t => t.id === ticketId);
 
     if (index >= 0) {
@@ -2167,7 +2167,7 @@ export const saveTicket = async (ticket: any): Promise<any> => {
 /**
  * Get all tickets for an issue
  */
-export const getTicketsForIssue = async (issueId: string): Promise<any[]> => {
+export const getTicketsForIssue = async (issueId: string): Promise<Issue[]> => {
   if (isSupabaseConfigured()) {
     const { data, error } = await supabase
       .from('tickets')
@@ -2179,7 +2179,7 @@ export const getTicketsForIssue = async (issueId: string): Promise<any[]> => {
     return data || [];
   } else {
     const stored = localStorage.getItem('tickets');
-    const tickets: any[] = stored ? JSON.parse(stored) : [];
+    const tickets: Issue[] = stored ? JSON.parse(stored) : [];
     return tickets.filter(t => t.issueId === issueId);
   }
 };
@@ -2187,7 +2187,7 @@ export const getTicketsForIssue = async (issueId: string): Promise<any[]> => {
 /**
  * Get all tickets for a match
  */
-export const getTicketsForMatch = async (matchId: string): Promise<any[]> => {
+export const getTicketsForMatch = async (matchId: string): Promise<Issue[]> => {
   if (isSupabaseConfigured()) {
     const { data, error } = await supabase
       .from('tickets')
@@ -2199,7 +2199,7 @@ export const getTicketsForMatch = async (matchId: string): Promise<any[]> => {
     return data || [];
   } else {
     const stored = localStorage.getItem('tickets');
-    const tickets: any[] = stored ? JSON.parse(stored) : [];
+    const tickets: Issue[] = stored ? JSON.parse(stored) : [];
     return tickets.filter(t => t.matchId === matchId);
   }
 };
@@ -2209,8 +2209,8 @@ export const getTicketsForMatch = async (matchId: string): Promise<any[]> => {
  */
 export const addTicketMessage = async (
   ticketId: string,
-  message: any
-): Promise<any> => {
+  message: Record<string, any>
+): Promise<Record<string, any>> => {
   if (isSupabaseConfigured()) {
     const { data: ticket, error: fetchError } = await supabase
       .from('tickets')
@@ -2234,7 +2234,7 @@ export const addTicketMessage = async (
     return data;
   } else {
     const stored = localStorage.getItem('tickets');
-    const tickets: any[] = stored ? JSON.parse(stored) : [];
+    const tickets: Issue[] = stored ? JSON.parse(stored) : [];
     const index = tickets.findIndex(t => t.id === ticketId);
 
     if (index >= 0) {
