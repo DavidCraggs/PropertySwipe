@@ -255,11 +255,13 @@ export const MatchesPage: React.FC = () => {
                 >
                   {/* Property Image */}
                   <div className="relative h-48 bg-neutral-200">
-                    <img
-                      src={match.property.images[0]}
-                      alt={match.property.address.street}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
+                    {match.property.images?.[0] && (
+                      <img
+                        src={match.property.images[0]}
+                        alt={match.property.address.street}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                    )}
                     {unreadCount > 0 && (
                       <div className="absolute top-3 right-3 w-8 h-8 bg-danger-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
                         {unreadCount}

@@ -110,12 +110,14 @@ function UpcomingViewingCard({ match, isRenter }: ViewingCardProps) {
     <div className="bg-white rounded-xl border-2 border-success-200 p-5 hover:shadow-md transition-shadow">
       <div className="flex gap-4">
         {/* Property Image */}
-        <div className="w-24 h-24 rounded-lg overflow-hidden flex-shrink-0">
-          <img
-            src={match.property.images[0]}
-            alt={match.property.address.street}
-            className="w-full h-full object-cover"
-          />
+        <div className="w-24 h-24 rounded-lg overflow-hidden flex-shrink-0 bg-neutral-200">
+          {match.property.images?.[0] && (
+            <img
+              src={match.property.images[0]}
+              alt={match.property.address.street}
+              className="w-full h-full object-cover"
+            />
+          )}
         </div>
 
         <div className="flex-1 min-w-0">

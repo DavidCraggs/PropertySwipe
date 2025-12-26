@@ -113,11 +113,13 @@ export const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({
               <div className="flex-1 overflow-y-auto">
                 {/* Hero Image */}
                 <div className="relative h-80 bg-neutral-200">
-                  <img
-                    src={property.images[0]}
-                    alt={property.address.street}
-                    className="w-full h-full object-cover"
-                  />
+                  {property.images?.[0] && (
+                    <img
+                      src={property.images[0]}
+                      alt={property.address.street}
+                      className="w-full h-full object-cover"
+                    />
+                  )}
                   <button
                     onClick={() => openImageGallery(0)}
                     className="absolute bottom-4 right-4 flex items-center gap-2 bg-black/70 backdrop-blur-sm text-white px-4 py-2 rounded-full hover:bg-black/80 transition-colors"

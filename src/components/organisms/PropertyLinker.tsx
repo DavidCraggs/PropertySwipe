@@ -231,11 +231,13 @@ export function PropertyLinker({
                     >
                       {/* Property Image */}
                       <div className="relative h-40 bg-neutral-200">
-                        <img
-                          src={property.images[0]}
-                          alt={property.address.street}
-                          className="w-full h-full object-cover"
-                        />
+                        {property.images?.[0] && (
+                          <img
+                            src={property.images[0]}
+                            alt={property.address.street}
+                            className="w-full h-full object-cover"
+                          />
+                        )}
                         <div className="absolute top-2 right-2 bg-white/95 backdrop-blur-sm px-3 py-1 rounded-full font-bold text-sm">
                           £{property.rentPcm.toLocaleString()} pcm
                         </div>
