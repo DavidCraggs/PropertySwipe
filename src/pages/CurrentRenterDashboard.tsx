@@ -100,7 +100,7 @@ export const CurrentRenterDashboard: React.FC<CurrentRenterDashboardProps> = ({ 
 
 
     fetchData();
-  }, [renterProfile.id, renterProfile.currentAgencyId, matches]);
+  }, [renterProfile.id, renterProfile.currentAgencyId, matches, addToast]);
 
   // Type guard - must be after hooks
   if (userType !== 'renter') {

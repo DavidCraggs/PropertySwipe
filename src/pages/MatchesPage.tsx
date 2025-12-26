@@ -145,7 +145,7 @@ export const MatchesPage: React.FC = () => {
     };
 
     fetchMatches();
-  }, [currentUser, userType, storeMatches]);
+  }, [currentUser, userType, storeMatches, addToast]);
 
   // Use loaded matches instead of store matches
   const matches = loadedMatches;
