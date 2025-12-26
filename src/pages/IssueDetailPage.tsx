@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import { Button } from '../components/atoms/Button';
 import { useAuthStore } from '../hooks/useAuthStore';
-import type { Issue, IssueMessage } from '../types';
+import type { Issue, IssueMessage, IssueStatus, RenterProfile, LandlordProfile, AgencyProfile } from '../types';
 import { getIssue, updateIssueStatus } from '../lib/storage';
 import { useToastStore } from '../components/organisms/Toast';
 
@@ -80,7 +80,7 @@ export function IssueDetailPage() {
             setIsUpdating(true);
             await updateIssueStatus(issue.id, newStatus);
 
-            setIssue({ ...issue, status: newStatus as any });
+            setIssue({ ...issue, status: newStatus as IssueStatus });
 
             addToast({
                 type: 'success',
@@ -105,11 +105,16 @@ export function IssueDetailPage() {
         if (!issue || !newMessage.trim() || !currentUser) return;
 
         try {
+            const senderName =
+              userType === 'agency'
+                ? (currentUser as AgencyProfile).companyName
+                : (currentUser as RenterProfile | LandlordProfile).names || 'User';
+
             const message: IssueMessage = {
                 id: `msg-${Date.now()}`,
                 senderId: currentUser.id,
                 senderType: userType || 'renter',
-                senderName: (currentUser as any).names || (currentUser as any).companyName || 'User',
+                senderName,
                 content: newMessage.trim(),
                 timestamp: new Date(),
                 isInternal: false,
