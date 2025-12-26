@@ -234,7 +234,7 @@ export const useAppStore = create<AppState>()(
         }
 
         // Get renter profile from useAuthStore to pass to checkForMatch
-        let renterProfile: any = undefined;
+        let renterProfile: RenterProfile | undefined = undefined;
         try {
           const authData = localStorage.getItem('get-on-auth');
           if (authData) {
