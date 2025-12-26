@@ -474,7 +474,7 @@ export function AgencyLinkManager({
       <CreateAgencyInvitationModal
         isOpen={showNewInvitationModal}
         onClose={() => setShowNewInvitationModal(false)}
-        onSubmit={handleCreateInvitation as any}
+        onSubmit={handleCreateInvitation}
         agencyType="estate_agent"
         initiatedBy="landlord"
       />
