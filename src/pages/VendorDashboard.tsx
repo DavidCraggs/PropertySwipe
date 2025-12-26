@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Home, TrendingUp, Users, Heart, MessageSquare, Calendar, Eye, Clock, Edit, Trash2, LinkIcon, PlusCircle, AlertTriangle, CheckCircle2, UserPlus } from 'lucide-react';
 import { useAuthStore } from '../hooks/useAuthStore';
 import { useAppStore } from '../hooks';
@@ -41,6 +41,26 @@ export function VendorDashboard() {
   const landlordProperty = landlordProfile?.propertyId
     ? allProperties.find((p) => p.id === landlordProfile.propertyId)
     : null;
+
+  const handleUnlinkProperty = useCallback(async () => {
+    if (!landlordProfile?.id || !landlordProperty) return;
+    try {
+      unlinkProperty(landlordProperty.id, landlordProfile.id);
+      await updateProfile({ propertyId: undefined });
+      addToast({
+        type: 'success',
+        title: 'Property Unlinked',
+        message: 'Property has been unlinked from your profile'
+      });
+    } catch (error) {
+      console.error('[VendorDashboard] Unlink failed:', error);
+      addToast({
+        type: 'danger',
+        title: 'Cannot Unlink',
+        message: error instanceof Error ? error.message : 'Failed to unlink property'
+      });
+    }
+  }, [landlordProfile, landlordProperty, unlinkProperty, updateProfile, addToast]);
 
   // Get matches where landlord is the property owner
   const allLandlordMatches = matches.filter((m) => m.landlordId === landlordProfile?.id);
@@ -199,25 +219,7 @@ export function VendorDashboard() {
                   Edit Property
                 </button>
                 <button
-                  onClick={async () => {
-                    if (!landlordProfile?.id) return;
-                    try {
-                      unlinkProperty(landlordProperty.id, landlordProfile.id);
-                      await updateProfile({ propertyId: undefined });
-                      addToast({
-                        type: 'success',
-                        title: 'Property Unlinked',
-                        message: 'Property has been unlinked from your profile'
-                      });
-                    } catch (error) {
-                      console.error('[VendorDashboard] Unlink failed:', error);
-                      addToast({
-                        type: 'danger',
-                        title: 'Cannot Unlink',
-                        message: error instanceof Error ? error.message : 'Failed to unlink property'
-                      });
-                    }
-                  }}
+                  onClick={handleUnlinkProperty}
                   className="px-4 py-2 bg-neutral-100 hover:bg-neutral-200 text-neutral-700 rounded-lg font-medium text-sm transition-colors flex items-center gap-2"
                 >
                   <LinkIcon className="w-4 h-4" />

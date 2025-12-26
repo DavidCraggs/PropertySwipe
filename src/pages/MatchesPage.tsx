@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { Heart, MessageCircle, MapPin, Calendar, Clock, CheckCircle, Star, AlertTriangle } from 'lucide-react';
 import { useAppStore, useAuthStore } from '../hooks';
 import { formatRelativeTime } from '../utils/formatters';
@@ -161,19 +161,58 @@ export const MatchesPage: React.FC = () => {
     loadConversations();
   }, [selectedMatch]);
 
-  // Sort matches by most recent
-  const sortedMatches = [...matches].sort(
-    (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+  // Sort matches by most recent (memoized to prevent unnecessary re-sorting)
+  const sortedMatches = useMemo(
+    () => [...matches].sort(
+      (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    ),
+    [matches]
   );
 
-  const handleOpenRatingModal = (match: Match, type: 'landlord' | 'renter') => {
-    setRatingModalMatch(match);
-    setRatingType(type);
-  };
+  const handleOpenRatingModal = useCallback(
+    (match: Match, type: 'landlord' | 'renter') => {
+      setRatingModalMatch(match);
+      setRatingType(type);
+    },
+    []
+  );
 
-  const handleCloseRatingModal = () => {
+  const handleCloseRatingModal = useCallback(() => {
     setRatingModalMatch(null);
-  };
+  }, []);
+
+  const handleSendMessage = useCallback(async () => {
+    if (!messageInputRef.current || !currentUser) return;
+    const content = messageInputRef.current.value.trim();
+    if (!content || !selectedMatch) return;
+
+    try {
+      await sendMessageToConversation({
+        matchId: selectedMatch,
+        conversationType: activeConversation,
+        content,
+        senderId: currentUser.id,
+        senderType: userType as any,
+      });
+      messageInputRef.current.value = '';
+      // Reload conversations to show new message
+      const [convs, counts] = await Promise.all([
+        getConversations(selectedMatch),
+        getUnreadCounts(selectedMatch)
+      ]);
+      setConversations(convs);
+      setUnreadCounts(counts);
+    } catch (error) {
+      console.error('[MatchesPage] Failed to send message:', error);
+    }
+  }, [currentUser, selectedMatch, userType, activeConversation]);
+
+  const handleMessageKeyDown = useCallback(async (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey && messageInputRef.current) {
+      e.preventDefault();
+      await handleSendMessage();
+    }
+  }, [handleSendMessage]);
 
   if (matches.length === 0) {
     return (
@@ -586,60 +625,10 @@ export const MatchesPage: React.FC = () => {
                     type="text"
                     placeholder={`Message ${activeConversation === 'landlord' ? 'landlord' : 'agency'}...`}
                     className="flex-1 border border-neutral-300 rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                    onKeyDown={async (e) => {
-                      if (e.key === 'Enter' && !e.shiftKey && messageInputRef.current) {
-                        e.preventDefault();
-                        const content = messageInputRef.current.value.trim();
-                        if (!content || !currentUser) return;
-
-                        try {
-                          await sendMessageToConversation({
-                            matchId: match.id,
-                            conversationType: activeConversation,
-                            content,
-                            senderId: currentUser.id,
-                            senderType: userType as any,
-                          });
-                          messageInputRef.current.value = '';
-                          // Reload conversations to show new message
-                          const [convs, counts] = await Promise.all([
-                            getConversations(match.id),
-                            getUnreadCounts(match.id)
-                          ]);
-                          setConversations(convs);
-                          setUnreadCounts(counts);
-                        } catch (error) {
-                          console.error('[MatchesPage] Failed to send message:', error);
-                        }
-                      }
-                    }}
+                    onKeyDown={handleMessageKeyDown}
                   />
                   <button
-                    onClick={async () => {
-                      if (!messageInputRef.current || !currentUser) return;
-                      const content = messageInputRef.current.value.trim();
-                      if (!content) return;
-
-                      try {
-                        await sendMessageToConversation({
-                          matchId: match.id,
-                          conversationType: activeConversation,
-                          content,
-                          senderId: currentUser.id,
-                          senderType: userType as any,
-                        });
-                        messageInputRef.current.value = '';
-                        // Reload conversations to show new message
-                        const [convs, counts] = await Promise.all([
-                          getConversations(match.id),
-                          getUnreadCounts(match.id)
-                        ]);
-                        setConversations(convs);
-                        setUnreadCounts(counts);
-                      } catch (error) {
-                        console.error('[MatchesPage] Failed to send message:', error);
-                      }
-                    }}
+                    onClick={handleSendMessage}
                     className="px-6 py-2 bg-primary-600 text-white rounded-full font-medium hover:bg-primary-700 transition-colors"
                   >
                     Send
