@@ -1,48 +1,8 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, CheckCircle, AlertCircle, Info, Heart } from 'lucide-react';
-import { create } from 'zustand';
+import { useToastStore, type Toast } from './toastUtils';
 
 type ToastType = 'success' | 'error' | 'danger' | 'info' | 'match';
-
-interface Toast {
-  id: string;
-  type: ToastType;
-  title?: string;
-  message: string;
-  duration?: number;
-}
-
-interface ToastStore {
-  toasts: Toast[];
-  addToast: (toast: Omit<Toast, 'id'>) => void;
-  removeToast: (id: string) => void;
-}
-
-/**
- * Toast notification store
- */
-export const useToastStore = create<ToastStore>((set) => ({
-  toasts: [],
-  addToast: (toast) => {
-    const id = `toast-${Date.now()}`;
-    set((state) => ({
-      toasts: [...state.toasts, { ...toast, id }],
-    }));
-
-    // Auto remove after duration
-    const duration = toast.duration || 3000;
-    setTimeout(() => {
-      set((state) => ({
-        toasts: state.toasts.filter((t) => t.id !== id),
-      }));
-    }, duration);
-  },
-  removeToast: (id) => {
-    set((state) => ({
-      toasts: state.toasts.filter((t) => t.id !== id),
-    }));
-  },
-}));
 
 /**
  * Toast component
@@ -52,7 +12,12 @@ export const ToastContainer: React.FC = () => {
   const { toasts, removeToast } = useToastStore();
 
   return (
-    <div className="fixed top-4 left-0 right-0 z-50 flex flex-col items-center gap-2 px-4 pointer-events-none">
+    <div
+      className="fixed top-4 left-0 right-0 z-50 flex flex-col items-center gap-2 px-4 pointer-events-none"
+      role="region"
+      aria-live="polite"
+      aria-label="Notifications"
+    >
       <AnimatePresence>
         {toasts.map((toast) => (
           <ToastItem key={toast.id} toast={toast} onClose={() => removeToast(toast.id)} />
@@ -70,7 +35,7 @@ interface ToastItemProps {
 const ToastItem: React.FC<ToastItemProps> = ({ toast, onClose }) => {
   const { type, title, message } = toast;
 
-  const styles = {
+  const styles: Record<ToastType, string> = {
     success: 'bg-success-50 border-success-200 text-success-800',
     error: 'bg-danger-50 border-danger-200 text-danger-800',
     danger: 'bg-danger-50 border-danger-200 text-danger-800',
@@ -94,6 +59,7 @@ const ToastItem: React.FC<ToastItemProps> = ({ toast, onClose }) => {
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: -20, scale: 0.9 }}
       className={`max-w-md w-full ${styles[type]} border rounded-xl shadow-lg p-4 flex items-start gap-3 pointer-events-auto`}
+      role="alert"
     >
       <Icon size={20} className="flex-shrink-0 mt-0.5" />
       <div className="flex-1">
@@ -109,18 +75,4 @@ const ToastItem: React.FC<ToastItemProps> = ({ toast, onClose }) => {
       </button>
     </motion.div>
   );
-};
-
-/**
- * Helper hook for easy toast usage
- */
-export const useToast = () => {
-  const { addToast } = useToastStore();
-
-  return {
-    success: (message: string, duration?: number) => addToast({ type: 'success', message, duration }),
-    error: (message: string, duration?: number) => addToast({ type: 'error', message, duration }),
-    info: (message: string, duration?: number) => addToast({ type: 'info', message, duration }),
-    match: (message: string, duration?: number) => addToast({ type: 'match', message, duration: duration || 5000 }),
-  };
 };

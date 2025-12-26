@@ -25,8 +25,7 @@ export const initializeAdminProfile = async (): Promise<void> => {
       // If email changed, recreate profile with new credentials
       if (existingProfile.email !== expectedEmail) {
         console.log('[Admin] Credentials changed - updating profile');
-        console.log('[Admin] Old email:', existingProfile.email);
-        console.log('[Admin] New email:', expectedEmail);
+        // Security: Do not log actual email values
         localStorage.removeItem(ADMIN_PROFILE_KEY);
         // Continue to create new profile below
       } else {
@@ -52,7 +51,7 @@ export const initializeAdminProfile = async (): Promise<void> => {
   };
 
   localStorage.setItem(ADMIN_PROFILE_KEY, JSON.stringify(adminProfile));
-  console.log('[Admin] Admin profile initialized with email:', expectedEmail);
+  console.log('[Admin] Admin profile initialized');
 };
 
 /**

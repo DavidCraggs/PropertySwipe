@@ -289,7 +289,7 @@ export function ServeEvictionNotice({ match, onSubmit, onCancel }: ServeEviction
       };
 
       await onSubmit(noticeData);
-    } catch (error) {
+    } catch {
       setErrors(['Failed to serve eviction notice. Please try again.']);
       setIsSubmitting(false);
     }

@@ -251,7 +251,7 @@ export const useAppStore = create<AppState>()(
               };
             }
           }
-        } catch (e) {
+        } catch {
           console.warn('[Like] Could not retrieve renter profile from auth store');
         }
 
@@ -280,7 +280,7 @@ export const useAppStore = create<AppState>()(
       },
 
       // Check for match (rental platform: renter ↔ landlord)
-      checkForMatch: (propertyId, _renterProfile) => {
+      checkForMatch: (propertyId) => {
         const { allProperties, matches, user } = get();
         if (!user) return false;
 
@@ -316,7 +316,7 @@ export const useAppStore = create<AppState>()(
                 landlordName = parsed.state.currentUser.names;
               }
             }
-          } catch (e) {
+          } catch {
             console.warn('[Matching] Could not retrieve landlord name from auth store');
           }
 

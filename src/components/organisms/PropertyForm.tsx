@@ -156,7 +156,7 @@ export function PropertyForm({ mode, initialData, onSubmit, onCancel }: Property
           formData.city.trim() &&
           formData.postcode.trim()
         );
-      case 1: // Basic Details (Rental)
+      case 1: { // Basic Details (Rental)
         const rentPcm = parseInt(formData.rentPcm);
         const deposit = parseInt(formData.deposit);
         const bedrooms = parseInt(formData.bedrooms);
@@ -175,7 +175,8 @@ export function PropertyForm({ mode, initialData, onSubmit, onCancel }: Property
           maxOccupants > 0 &&
           formData.availableFrom
         );
-      case 2: // Property Type & Details
+      }
+      case 2: { // Property Type & Details
         const year = parseInt(formData.yearBuilt);
         const currentYear = new Date().getFullYear();
         return !!(
@@ -185,6 +186,7 @@ export function PropertyForm({ mode, initialData, onSubmit, onCancel }: Property
           year <= currentYear &&
           formData.furnishing
         );
+      }
       case 3: // Furnishing & Pets (no validation - always valid)
         return true;
       case 4: // Images

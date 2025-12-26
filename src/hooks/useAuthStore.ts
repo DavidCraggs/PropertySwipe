@@ -138,23 +138,34 @@ export const useAuthStore = create<AuthStore>()(
             const agencyProfilesJson = localStorage.getItem('get-on-agency-profiles');
 
             if (landlordProfilesJson) {
-              const landlordProfiles: LandlordProfile[] = JSON.parse(landlordProfilesJson);
-              allProfiles.push(...landlordProfiles);
+              try {
+                const landlordProfiles: LandlordProfile[] = JSON.parse(landlordProfilesJson);
+                allProfiles.push(...landlordProfiles);
+              } catch (e) {
+                console.error('[Auth] Failed to parse landlord profiles from localStorage:', e);
+              }
             }
             if (renterProfilesJson) {
-              const renterProfiles: RenterProfile[] = JSON.parse(renterProfilesJson);
-              allProfiles.push(...renterProfiles);
+              try {
+                const renterProfiles: RenterProfile[] = JSON.parse(renterProfilesJson);
+                allProfiles.push(...renterProfiles);
+              } catch (e) {
+                console.error('[Auth] Failed to parse renter profiles from localStorage:', e);
+              }
             }
             if (agencyProfilesJson) {
-              const agencyProfiles: AgencyProfile[] = JSON.parse(agencyProfilesJson);
-              allProfiles.push(...agencyProfiles);
+              try {
+                const agencyProfiles: AgencyProfile[] = JSON.parse(agencyProfilesJson);
+                allProfiles.push(...agencyProfiles);
+              } catch (e) {
+                console.error('[Auth] Failed to parse agency profiles from localStorage:', e);
+              }
             }
 
             user = allProfiles.find(p => p.email.toLowerCase() === email.toLowerCase()) || null;
           }
 
           if (!user) {
-            console.log('[Auth] No user found with email:', email);
             return false;
           }
 
@@ -162,7 +173,6 @@ export const useAuthStore = create<AuthStore>()(
           const isValid = await verifyPassword(password, user.passwordHash);
 
           if (!isValid) {
-            console.log('[Auth] Invalid password for:', email);
             return false;
           }
 
@@ -184,7 +194,6 @@ export const useAuthStore = create<AuthStore>()(
             onboardingStep: user.onboardingComplete ? 0 : 1,
           });
 
-          console.log('[Auth] Login successful for:', email);
           return true;
         } catch (error) {
           console.error('[Auth] Login error:', error);
@@ -441,7 +450,12 @@ export const useAuthStore = create<AuthStore>()(
       getAdminSession: () => {
         const sessionJson = localStorage.getItem('get-on-admin-session');
         if (!sessionJson) return null;
-        return JSON.parse(sessionJson);
+        try {
+          return JSON.parse(sessionJson);
+        } catch (e) {
+          console.error('[Auth] Failed to parse admin session from localStorage:', e);
+          return null;
+        }
       },
     }),
     {

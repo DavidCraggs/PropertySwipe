@@ -23,7 +23,7 @@ async function checkSeedData() {
         return;
     }
 
-    console.log('Renter found:', { id: renter.id, email: renter.email });
+    console.log('Renter found with ID:', renter.id);
 
     // 2. Check Properties
     const { data: properties, error: propError } = await supabase

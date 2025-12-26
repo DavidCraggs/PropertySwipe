@@ -78,15 +78,30 @@ export function getPasswordStrength(password: string | null | undefined): 'weak'
   return 'strong';
 }
 
-// Simple password hashing (for demo - in production use proper bcrypt/scrypt)
+/**
+ * Password hashing function
+ *
+ * SECURITY WARNING: This implementation uses SHA-256 which is NOT suitable for
+ * production password storage. SHA-256 is too fast and vulnerable to brute force attacks.
+ *
+ * For production use, you MUST:
+ * 1. Use Supabase Auth (recommended) - handles password hashing server-side with bcrypt
+ * 2. Or implement bcrypt/scrypt/argon2 on a backend server
+ *
+ * This client-side hashing is only for demo/development purposes.
+ * True secure password hashing requires:
+ * - Slow hash functions (bcrypt, scrypt, argon2)
+ * - Salt per password (bcrypt handles this automatically)
+ * - Server-side execution (not exposed to client)
+ */
 export async function hashPassword(password: string): Promise<string> {
   // Handle edge cases
   if (!password && password !== '') {
     throw new Error('Cannot hash null or undefined password');
   }
 
-  // In a real app, use bcrypt or a similar secure hashing algorithm
-  // For demo purposes, we'll use a simple hash
+  // WARNING: SHA-256 is NOT secure for password hashing in production!
+  // This is for demo purposes only. Use Supabase Auth or a backend with bcrypt.
   const encoder = new TextEncoder();
   const data = encoder.encode(password);
   const hashBuffer = await crypto.subtle.digest('SHA-256', data);

@@ -18,19 +18,6 @@ export function AgencyDashboard() {
   const [allIssues, setAllIssues] = useState<Issue[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Type guard
-  if (userType !== 'estate_agent' && userType !== 'management_agency') {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-success-50 flex items-center justify-center p-4">
-        <div className="text-center">
-          <Building2 className="mx-auto text-neutral-400 mb-4" size={64} />
-          <h2 className="text-2xl font-bold text-neutral-900 mb-2">Access Denied</h2>
-          <p className="text-neutral-600">This page is only accessible to agencies.</p>
-        </div>
-      </div>
-    );
-  }
-
   const agencyProfile = currentUser as AgencyProfile;
 
   // Fetch data on mount
@@ -62,6 +49,19 @@ export function AgencyDashboard() {
 
     fetchData();
   }, [agencyProfile.id, agencyProfile.managedPropertyIds]);
+
+  // Type guard - must be after hooks
+  if (userType !== 'estate_agent' && userType !== 'management_agency') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-success-50 flex items-center justify-center p-4">
+        <div className="text-center">
+          <Building2 className="mx-auto text-neutral-400 mb-4" size={64} />
+          <h2 className="text-2xl font-bold text-neutral-900 mb-2">Access Denied</h2>
+          <p className="text-neutral-600">This page is only accessible to agencies.</p>
+        </div>
+      </div>
+    );
+  }
 
   // Calculate stats from real data
   const activeTenancies = matches.filter(m =>

@@ -219,7 +219,7 @@ export function RaiseDisputeModal({
 
       await onSubmit(disputeData);
       onClose();
-    } catch (error) {
+    } catch {
       setErrors(['Failed to submit dispute. Please try again.']);
       setIsSubmitting(false);
     }

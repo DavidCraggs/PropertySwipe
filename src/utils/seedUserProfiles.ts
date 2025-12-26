@@ -208,8 +208,7 @@ export async function seedUserProfiles(verbose: boolean = false): Promise<number
     ]);
 
     if (verbose) {
-        console.log(`[Seed] ✓ Created ${profiles.length} user profiles:`);
-        profiles.forEach(p => console.log(`  - ${p.id}: ${'email' in p ? p.email : 'N/A'}`));
+        console.log(`[Seed] ✓ Created ${profiles.length} user profiles`);
         console.log(`[Seed] Generated IDs:`, GENERATED_IDS);
     }
 

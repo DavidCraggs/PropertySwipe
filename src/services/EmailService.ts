@@ -457,19 +457,66 @@ export class EmailService {
 
   /**
    * Get recipient email from match based on recipient type
+   *
+   * IMPORTANT: In production, this should fetch the actual email from user profiles
+   * via Supabase or your user management system.
    */
-  private getRecipientEmail(_match: Match, recipientType: 'renter' | 'landlord' | 'agency'): string {
-    // In production, fetch actual email from user profiles
-    // For now, return placeholder
-    return `${recipientType}@example.com`;
+  private getRecipientEmail(match: Match, recipientType: 'renter' | 'landlord' | 'agency'): string {
+    // Try to get email from match's renterProfile or use stored email
+    if (recipientType === 'renter') {
+      const renterEmail = match.renterProfile?.email;
+      if (renterEmail) {
+        return renterEmail;
+      }
+      // Fallback: In development, throw error to catch missing email configuration
+      if (this.config.isDevelopment) {
+        console.warn('[EmailService] No renter email found in match, using fallback');
+      }
+    }
+
+    // For landlord/agency, we need to look up from profiles
+    // In production, this would query Supabase for the user's email
+    if (recipientType === 'landlord' || recipientType === 'agency') {
+      // TODO: Implement proper email lookup from landlord/agency profiles
+      // For now, log warning and use placeholder in development mode only
+      if (this.config.isDevelopment) {
+        console.warn(`[EmailService] Email lookup not implemented for ${recipientType}, using development placeholder`);
+        return `${recipientType}-${match.id}@development.local`;
+      }
+    }
+
+    // In production without proper email, throw error rather than send to wrong address
+    throw new Error(`Cannot send email: No email address found for ${recipientType} in match ${match.id}`);
+  }
+
+  /**
+   * Escape HTML special characters to prevent XSS in email templates
+   */
+  private escapeHtml(text: string): string {
+    const htmlEscapes: Record<string, string> = {
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;',
+    };
+    return text.replace(/[&<>"']/g, (char) => htmlEscapes[char] || char);
   }
 
   // ==================== HTML EMAIL TEMPLATES ====================
 
   /**
    * Render new message email template (HTML)
+   * All user-provided data is escaped to prevent XSS
    */
   private renderNewMessageTemplate(data: NewMessageEmailData): string {
+    // Escape all user-provided content to prevent XSS
+    const safeRecipientName = this.escapeHtml(data.recipientName);
+    const safeSenderName = this.escapeHtml(data.senderName);
+    const safePropertyAddress = this.escapeHtml(data.propertyAddress);
+    const safeMessagePreview = this.escapeHtml(data.messagePreview);
+    const safeViewUrl = this.escapeHtml(data.viewUrl);
+
     return `
 <!DOCTYPE html>
 <html>
@@ -484,22 +531,22 @@ export class EmailService {
   </div>
 
   <div style="background: #f9fafb; padding: 30px; border-radius: 0 0 12px 12px;">
-    <p style="font-size: 16px; margin-bottom: 20px;">Hi ${data.recipientName},</p>
+    <p style="font-size: 16px; margin-bottom: 20px;">Hi ${safeRecipientName},</p>
 
-    <p style="font-size: 16px; margin-bottom: 20px;">You have a new message from <strong>${data.senderName}</strong> regarding the property at:</p>
+    <p style="font-size: 16px; margin-bottom: 20px;">You have a new message from <strong>${safeSenderName}</strong> regarding the property at:</p>
 
     <div style="background: white; padding: 20px; border-radius: 8px; border-left: 4px solid #667eea; margin-bottom: 20px;">
       <p style="margin: 0; color: #666; font-size: 14px; margin-bottom: 8px;">Property:</p>
-      <p style="margin: 0; font-size: 16px; font-weight: 600;">${data.propertyAddress}</p>
+      <p style="margin: 0; font-size: 16px; font-weight: 600;">${safePropertyAddress}</p>
     </div>
 
     <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
       <p style="margin: 0; color: #666; font-size: 14px; margin-bottom: 8px;">Message Preview:</p>
-      <p style="margin: 0; font-size: 14px; color: #333;">${data.messagePreview}</p>
+      <p style="margin: 0; font-size: 14px; color: #333;">${safeMessagePreview}</p>
     </div>
 
     <div style="text-align: center;">
-      <a href="${data.viewUrl}" style="display: inline-block; background: #667eea; color: white; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px;">View Full Message</a>
+      <a href="${safeViewUrl}" style="display: inline-block; background: #667eea; color: white; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px;">View Full Message</a>
     </div>
 
     <p style="font-size: 12px; color: #999; margin-top: 30px; text-align: center;">
@@ -515,8 +562,19 @@ export class EmailService {
 
   /**
    * Render new issue email template (HTML)
+   * All user-provided data is escaped to prevent XSS
    */
   private renderNewIssueTemplate(data: NewIssueEmailData): string {
+    // Escape all user-provided content to prevent XSS
+    const safeRecipientName = this.escapeHtml(data.recipientName);
+    const safeRenterName = this.escapeHtml(data.renterName);
+    const safeIssueSubject = this.escapeHtml(data.issueSubject);
+    const safeIssueCategory = this.escapeHtml(data.issueCategory);
+    const safeIssuePriority = this.escapeHtml(data.issuePriority);
+    const safeIssueDescription = this.escapeHtml(data.issueDescription);
+    const safePropertyAddress = this.escapeHtml(data.propertyAddress);
+    const safeViewUrl = this.escapeHtml(data.viewUrl);
+
     const priorityColors: Record<string, string> = {
       emergency: '#EF4444',
       urgent: '#F59E0B',
@@ -539,27 +597,27 @@ export class EmailService {
   </div>
 
   <div style="background: #f9fafb; padding: 30px; border-radius: 0 0 12px 12px;">
-    <p style="font-size: 16px; margin-bottom: 20px;">Hi ${data.recipientName},</p>
+    <p style="font-size: 16px; margin-bottom: 20px;">Hi ${safeRecipientName},</p>
 
-    <p style="font-size: 16px; margin-bottom: 20px;"><strong>${data.renterName}</strong> has reported a new issue:</p>
+    <p style="font-size: 16px; margin-bottom: 20px;"><strong>${safeRenterName}</strong> has reported a new issue:</p>
 
     <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
       <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-        <span style="display: inline-block; background: ${priorityColor}; color: white; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; text-transform: uppercase;">${data.issuePriority}</span>
-        <span style="display: inline-block; background: #e5e7eb; color: #374151; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600;">${data.issueCategory}</span>
+        <span style="display: inline-block; background: ${priorityColor}; color: white; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; text-transform: uppercase;">${safeIssuePriority}</span>
+        <span style="display: inline-block; background: #e5e7eb; color: #374151; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600;">${safeIssueCategory}</span>
       </div>
 
-      <h2 style="margin: 0 0 12px 0; font-size: 18px; color: #111;">${data.issueSubject}</h2>
-      <p style="margin: 0; font-size: 14px; color: #666; line-height: 1.6;">${data.issueDescription}</p>
+      <h2 style="margin: 0 0 12px 0; font-size: 18px; color: #111;">${safeIssueSubject}</h2>
+      <p style="margin: 0; font-size: 14px; color: #666; line-height: 1.6;">${safeIssueDescription}</p>
     </div>
 
     <div style="background: white; padding: 20px; border-radius: 8px; border-left: 4px solid ${priorityColor}; margin-bottom: 30px;">
       <p style="margin: 0; color: #666; font-size: 14px; margin-bottom: 8px;">Property:</p>
-      <p style="margin: 0; font-size: 16px; font-weight: 600;">${data.propertyAddress}</p>
+      <p style="margin: 0; font-size: 16px; font-weight: 600;">${safePropertyAddress}</p>
     </div>
 
     <div style="text-align: center;">
-      <a href="${data.viewUrl}" style="display: inline-block; background: ${priorityColor}; color: white; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px;">View & Respond to Issue</a>
+      <a href="${safeViewUrl}" style="display: inline-block; background: ${priorityColor}; color: white; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px;">View & Respond to Issue</a>
     </div>
 
     <p style="font-size: 12px; color: #999; margin-top: 30px; text-align: center;">
@@ -575,8 +633,17 @@ export class EmailService {
 
   /**
    * Render issue status update template (HTML)
+   * All user-provided data is escaped to prevent XSS
    */
   private renderIssueStatusUpdateTemplate(data: IssueStatusUpdateEmailData): string {
+    // Escape all user-provided content to prevent XSS
+    const safeRecipientName = this.escapeHtml(data.recipientName);
+    const safeIssueSubject = this.escapeHtml(data.issueSubject);
+    const safeOldStatus = this.escapeHtml(data.oldStatus);
+    const safeNewStatus = this.escapeHtml(data.newStatus);
+    const safeUpdateNotes = data.updateNotes ? this.escapeHtml(data.updateNotes) : '';
+    const safeViewUrl = this.escapeHtml(data.viewUrl);
+
     return `
 <!DOCTYPE html>
 <html>
@@ -591,24 +658,24 @@ export class EmailService {
   </div>
 
   <div style="background: #f9fafb; padding: 30px; border-radius: 0 0 12px 12px;">
-    <p style="font-size: 16px; margin-bottom: 20px;">Hi ${data.recipientName},</p>
+    <p style="font-size: 16px; margin-bottom: 20px;">Hi ${safeRecipientName},</p>
 
     <p style="font-size: 16px; margin-bottom: 20px;">There's an update on your issue:</p>
 
     <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
-      <h2 style="margin: 0 0 15px 0; font-size: 18px;">${data.issueSubject}</h2>
+      <h2 style="margin: 0 0 15px 0; font-size: 18px;">${safeIssueSubject}</h2>
 
       <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 15px;">
-        <span style="background: #fee2e2; color: #991b1b; padding: 8px 12px; border-radius: 6px; font-size: 13px; text-transform: capitalize;">${data.oldStatus}</span>
+        <span style="background: #fee2e2; color: #991b1b; padding: 8px 12px; border-radius: 6px; font-size: 13px; text-transform: capitalize;">${safeOldStatus}</span>
         <span style="font-size: 20px;">→</span>
-        <span style="background: #dcfce7; color: #166534; padding: 8px 12px; border-radius: 6px; font-size: 13px; text-transform: capitalize;">${data.newStatus}</span>
+        <span style="background: #dcfce7; color: #166534; padding: 8px 12px; border-radius: 6px; font-size: 13px; text-transform: capitalize;">${safeNewStatus}</span>
       </div>
 
-      ${data.updateNotes ? `<p style="margin: 15px 0 0 0; font-size: 14px; color: #666; padding: 15px; background: #f9fafb; border-radius: 6px;">${data.updateNotes}</p>` : ''}
+      ${safeUpdateNotes ? `<p style="margin: 15px 0 0 0; font-size: 14px; color: #666; padding: 15px; background: #f9fafb; border-radius: 6px;">${safeUpdateNotes}</p>` : ''}
     </div>
 
     <div style="text-align: center;">
-      <a href="${data.viewUrl}" style="display: inline-block; background: #10b981; color: white; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px;">View Issue Details</a>
+      <a href="${safeViewUrl}" style="display: inline-block; background: #10b981; color: white; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px;">View Issue Details</a>
     </div>
 
     <p style="font-size: 12px; color: #999; margin-top: 30px; text-align: center;">
@@ -623,8 +690,15 @@ export class EmailService {
 
   /**
    * Render SLA alert template (HTML)
+   * All user-provided data is escaped to prevent XSS
    */
   private renderSLAAlertTemplate(data: SLAAlertEmailData): string {
+    // Escape all user-provided content to prevent XSS
+    const safeRecipientName = this.escapeHtml(data.recipientName);
+    const safeIssueSubject = this.escapeHtml(data.issueSubject);
+    const safeTimeRemaining = this.escapeHtml(data.timeRemaining);
+    const safeViewUrl = this.escapeHtml(data.viewUrl);
+
     const alertColor = data.isBreached ? '#EF4444' : '#F59E0B';
     const alertIcon = data.isBreached ? '⚠️' : '⏰';
     const alertTitle = data.isBreached ? 'SLA BREACHED' : 'SLA Approaching';
@@ -643,7 +717,7 @@ export class EmailService {
   </div>
 
   <div style="background: #f9fafb; padding: 30px; border-radius: 0 0 12px 12px;">
-    <p style="font-size: 16px; margin-bottom: 20px;">Hi ${data.recipientName},</p>
+    <p style="font-size: 16px; margin-bottom: 20px;">Hi ${safeRecipientName},</p>
 
     <p style="font-size: 16px; margin-bottom: 20px;">
       ${data.isBreached
@@ -652,7 +726,7 @@ export class EmailService {
     </p>
 
     <div style="background: white; padding: 20px; border-radius: 8px; border: 3px solid ${alertColor}; margin-bottom: 20px;">
-      <h2 style="margin: 0 0 15px 0; font-size: 18px;">${data.issueSubject}</h2>
+      <h2 style="margin: 0 0 15px 0; font-size: 18px;">${safeIssueSubject}</h2>
 
       <div style="background: ${data.isBreached ? '#fef2f2' : '#fef3c7'}; padding: 15px; border-radius: 6px; margin-bottom: 15px;">
         <p style="margin: 0; font-size: 14px; color: #666; margin-bottom: 5px;">SLA Deadline:</p>
@@ -661,12 +735,12 @@ export class EmailService {
 
       <div style="background: #f9fafb; padding: 15px; border-radius: 6px;">
         <p style="margin: 0; font-size: 14px; color: #666; margin-bottom: 5px;">${data.isBreached ? 'Overdue by:' : 'Time remaining:'}</p>
-        <p style="margin: 0; font-size: 20px; font-weight: 700; color: ${alertColor};">${data.timeRemaining}</p>
+        <p style="margin: 0; font-size: 20px; font-weight: 700; color: ${alertColor};">${safeTimeRemaining}</p>
       </div>
     </div>
 
     <div style="text-align: center;">
-      <a href="${data.viewUrl}" style="display: inline-block; background: ${alertColor}; color: white; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px;">Take Action Now</a>
+      <a href="${safeViewUrl}" style="display: inline-block; background: ${alertColor}; color: white; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px;">Take Action Now</a>
     </div>
 
     <p style="font-size: 12px; color: #999; margin-top: 30px; text-align: center;">

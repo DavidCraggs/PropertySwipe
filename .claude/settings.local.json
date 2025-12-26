@@ -46,7 +46,11 @@
       "Bash(timeout 40 bash:*)",
       "Bash(timeout 30 bash:*)",
       "Bash(timeout 60 bash:*)",
-      "Bash(timeout 90 bash:*)"
+      "Bash(timeout 90 bash:*)",
+      "Bash(npm ls:*)",
+      "Bash(wc:*)",
+      "Bash(for file in \"/c/Users/david/PropertySwipe/src/pages\"/*.tsx)",
+      "Bash(done)"
     ],
     "deny": [],
     "ask": []

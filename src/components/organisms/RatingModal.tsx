@@ -175,7 +175,7 @@ export function RatingModal({
             });
 
             onClose();
-        } catch (error) {
+        } catch {
             addToast({
                 type: 'error',
                 title: 'Submission Failed',

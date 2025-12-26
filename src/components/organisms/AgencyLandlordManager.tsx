@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Building2, Users, Link as LinkIcon, TrendingUp } from 'lucide-react';
 import type { AgencyLinkInvitation, AgencyPropertyLink } from '../../types';
@@ -38,12 +38,7 @@ export function AgencyLandlordManager({
   const [showNewInvitationModal, setShowNewInvitationModal] = useState(false);
   const [landlordNames, setLandlordNames] = useState<Map<string, string>>(new Map());
 
-  // Load invitations and links
-  useEffect(() => {
-    loadData();
-  }, [agencyId]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     try {
       const [invitationsData, linksData] = await Promise.all([
@@ -77,7 +72,12 @@ export function AgencyLandlordManager({
     } finally {
       setLoading(false);
     }
-  };
+  }, [agencyId]);
+
+  // Load invitations and links
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   // Accept invitation
   const handleAcceptInvitation = async (invitationId: string, responseMessage?: string) => {

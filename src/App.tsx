@@ -16,7 +16,9 @@ import { AdminLoginPage } from './pages/AdminLoginPage';
 import { AdminDashboard } from './pages/AdminDashboard';
 import { AdminModeIndicator } from './components/AdminModeIndicator';
 import { BottomNav } from './components/organisms/BottomNav';
-import { ToastContainer, useToastStore } from './components/organisms/Toast';
+import { ToastContainer } from './components/organisms/Toast';
+import { useToastStore } from './components/organisms/toastUtils';
+import { ErrorBoundary } from './components/organisms/ErrorBoundary';
 import { useAuthStore } from './hooks/useAuthStore';
 import { useAppStore } from './hooks/useAppStore';
 import type { UserType } from './types';
@@ -110,7 +112,7 @@ function App() {
     if (isAuthenticated && currentRoute === 'app') {
       // For renters with active tenancy, default to tenancy page
       if (userType === 'renter' && currentUser) {
-        const renterProfile = currentUser as any;
+        const renterProfile = currentUser as RenterProfile;
         if (renterProfile.status === 'current') {
           setCurrentPage('tenancy');
         } else {
@@ -278,10 +280,10 @@ function App() {
   };
 
   return (
-    <>
+    <ErrorBoundary>
       {renderRoute()}
       <ToastContainer />
-    </>
+    </ErrorBoundary>
   );
 }
 

@@ -249,7 +249,7 @@ export function ReportHazard({
 
       await onSubmit(reportData);
       onClose();
-    } catch (error) {
+    } catch {
       setErrors(['Failed to submit hazard report. Please try again.']);
       setIsSubmitting(false);
     }

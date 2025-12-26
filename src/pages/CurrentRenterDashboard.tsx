@@ -25,35 +25,7 @@ export const CurrentRenterDashboard: React.FC<CurrentRenterDashboardProps> = ({ 
   const [isLoading, setIsLoading] = useState(true);
   const [currentMatchId, setCurrentMatchId] = useState<string | null>(null);
 
-  // Type guards
-  if (userType !== 'renter') {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-success-50 flex items-center justify-center p-4">
-        <div className="text-center">
-          <Package className="mx-auto text-neutral-400 mb-4" size={64} />
-          <h2 className="text-2xl font-bold text-neutral-900 mb-2">Access Denied</h2>
-          <p className="text-neutral-600">This page is only accessible to renters.</p>
-        </div>
-      </div>
-    );
-  }
-
   const renterProfile = currentUser as RenterProfile;
-
-  // Check if renter is current (not prospective)
-  if (renterProfile.status !== 'current') {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-success-50 flex items-center justify-center p-4">
-        <div className="text-center">
-          <Home className="mx-auto text-neutral-400 mb-4" size={64} />
-          <h2 className="text-2xl font-bold text-neutral-900 mb-2">No Active Tenancy</h2>
-          <p className="text-neutral-600">
-            You don't have an active tenancy yet. Continue swiping to find your next home!
-          </p>
-        </div>
-      </div>
-    );
-  }
 
   // Fetch data on mount
   useEffect(() => {
@@ -117,6 +89,34 @@ export const CurrentRenterDashboard: React.FC<CurrentRenterDashboardProps> = ({ 
 
     fetchData();
   }, [renterProfile.id, renterProfile.currentAgencyId, matches]);
+
+  // Type guard - must be after hooks
+  if (userType !== 'renter') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-success-50 flex items-center justify-center p-4">
+        <div className="text-center">
+          <Package className="mx-auto text-neutral-400 mb-4" size={64} />
+          <h2 className="text-2xl font-bold text-neutral-900 mb-2">Access Denied</h2>
+          <p className="text-neutral-600">This page is only accessible to renters.</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Check if renter is current (not prospective)
+  if (renterProfile.status !== 'current') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-success-50 flex items-center justify-center p-4">
+        <div className="text-center">
+          <Home className="mx-auto text-neutral-400 mb-4" size={64} />
+          <h2 className="text-2xl font-bold text-neutral-900 mb-2">No Active Tenancy</h2>
+          <p className="text-neutral-600">
+            You don't have an active tenancy yet. Continue swiping to find your next home!
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   const hasAgency = !!renterProfile.currentAgencyId;
 

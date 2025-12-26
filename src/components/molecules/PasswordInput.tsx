@@ -50,7 +50,7 @@ export function PasswordInput({
     { met: /[A-Z]/.test(value), text: 'One uppercase letter' },
     { met: /[a-z]/.test(value), text: 'One lowercase letter' },
     { met: /[0-9]/.test(value), text: 'One number' },
-    { met: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(value), text: 'One special character' },
+    { met: /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(value), text: 'One special character' },
   ];
 
   return (
