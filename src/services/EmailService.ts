@@ -420,7 +420,7 @@ export class EmailService {
   /**
    * Send email via AWS SES API
    */
-  private async sendViaAWSSES(_notification: EmailNotification): Promise<void> {
+  private async sendViaAWSSES(_: EmailNotification): Promise<void> {
     // Placeholder for AWS SES implementation
     // Would require AWS SDK and proper authentication
     throw new Error('AWS SES integration not yet implemented');

@@ -92,7 +92,7 @@ export function LandlordOnboarding({ onComplete, onLogin }: LandlordOnboardingPr
           }));
         } else {
           setErrors((prev) => {
-            const { propertyListingLink, ...rest } = prev;
+            const { propertyListingLink: _, ...rest } = prev;
             return rest;
           });
         }

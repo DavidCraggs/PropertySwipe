@@ -340,14 +340,12 @@ export const isPropertyCompliant = (property: Property): boolean => {
 /**
  * Filter properties by landlord rating
  * @param properties - Array of properties
- * @param minRating - Minimum landlord rating (1-5)
  * @returns Properties from landlords with acceptable rating
  */
 export const filterByLandlordRating = (
-  properties: Property[],
-  _minRating: number
+  properties: Property[]
 ): Property[] => {
-  return properties.filter((_property) => {
+  return properties.filter(() => {
     // In real implementation, would join with landlord_profiles table
     // For now, assumes property has landlord rating attached
     return true; // Placeholder for actual landlord rating check
