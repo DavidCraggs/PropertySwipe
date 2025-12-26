@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { Heart, MessageCircle, MapPin, Calendar, Clock, CheckCircle, Star, AlertTriangle } from 'lucide-react';
 import { useAppStore, useAuthStore } from '../hooks';
+import { useToastStore } from '../components/organisms/Toast';
 import { formatRelativeTime } from '../utils/formatters';
 import { Badge } from '../components/atoms/Badge';
 import { ViewingsList } from '../components/organisms/ViewingsList';
@@ -14,6 +15,7 @@ type TabType = 'matches' | 'viewings';
 export const MatchesPage: React.FC = () => {
   const { matches: storeMatches, submitRating } = useAppStore();
   const { userType, currentUser } = useAuthStore();
+  const { addToast } = useToastStore();
   const [selectedMatch, setSelectedMatch] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>('matches');
   const [ratingModalMatch, setRatingModalMatch] = useState<Match | null>(null);
@@ -110,6 +112,11 @@ export const MatchesPage: React.FC = () => {
         }
       } catch (error) {
         console.error('[MatchesPage] Failed to fetch matches:', error);
+        addToast({
+          type: 'danger',
+          title: 'Failed to Load Matches',
+          message: 'Could not retrieve your matches. Please try again.'
+        });
         setLoadedMatches([]);
       }
     };
@@ -152,6 +159,11 @@ export const MatchesPage: React.FC = () => {
         setUnreadCounts(counts);
       } catch (error) {
         console.error('[MatchesPage] Failed to load conversations:', error);
+        addToast({
+          type: 'danger',
+          title: 'Failed to Load Messages',
+          message: 'Could not load your conversation. Please try again.'
+        });
         setConversations([]);
       } finally {
         setIsLoadingConversations(false);
@@ -159,7 +171,7 @@ export const MatchesPage: React.FC = () => {
     };
 
     loadConversations();
-  }, [selectedMatch]);
+  }, [selectedMatch, addToast]);
 
   // Sort matches by most recent (memoized to prevent unnecessary re-sorting)
   const sortedMatches = useMemo(
@@ -204,8 +216,13 @@ export const MatchesPage: React.FC = () => {
       setUnreadCounts(counts);
     } catch (error) {
       console.error('[MatchesPage] Failed to send message:', error);
+      addToast({
+        type: 'danger',
+        title: 'Message Failed',
+        message: 'Could not send your message. Please try again.'
+      });
     }
-  }, [currentUser, selectedMatch, userType, activeConversation]);
+  }, [currentUser, selectedMatch, userType, activeConversation, addToast]);
 
   const handleMessageKeyDown = useCallback(async (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && !e.shiftKey && messageInputRef.current) {

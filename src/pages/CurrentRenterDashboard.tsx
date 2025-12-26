@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Home, MessageCircle, AlertTriangle, Clock, CheckCircle2, Package, LogOut } from 'lucide-react';
 import { useAuthStore } from '../hooks/useAuthStore';
 import { Button } from '../components/atoms/Button';
+import { useToastStore } from '../components/organisms/Toast';
 import type { RenterProfile, Property, AgencyProfile, Issue, IssueCategory, IssuePriority, ConversationType } from '../types';
 import { getAllProperties, getAgencyProfile, getIssuesForMatch, createIssue } from '../lib/storage';
 import { useAppStore } from '../hooks';
@@ -18,6 +19,7 @@ interface CurrentRenterDashboardProps {
 export const CurrentRenterDashboard: React.FC<CurrentRenterDashboardProps> = ({ onNavigateToMatches }) => {
   const { currentUser, userType, logout } = useAuthStore();
   const { matches } = useAppStore();
+  const { addToast } = useToastStore();
   const [activeTab, setActiveTab] = useState<'overview' | 'issues'>('overview');
   const [currentProperty, setCurrentProperty] = useState<Property | null>(null);
   const [currentAgency, setCurrentAgency] = useState<AgencyProfile | null>(null);
@@ -46,6 +48,11 @@ export const CurrentRenterDashboard: React.FC<CurrentRenterDashboardProps> = ({ 
 
         if (matchError) {
           console.error('[CurrentRenterDashboard] Error fetching match:', matchError);
+          addToast({
+            type: 'danger',
+            title: 'Failed to Load Match',
+            message: 'Could not retrieve your current tenancy information. Please try again.'
+          });
           return;
         }
 
@@ -81,6 +88,11 @@ export const CurrentRenterDashboard: React.FC<CurrentRenterDashboardProps> = ({ 
         }
       } catch (error) {
         console.error('Failed to fetch dashboard data:', error);
+        addToast({
+          type: 'danger',
+          title: 'Loading Error',
+          message: 'Failed to load dashboard data. Please refresh the page.'
+        });
       } finally {
         setIsLoading(false);
       }
