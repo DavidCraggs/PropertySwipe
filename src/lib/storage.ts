@@ -885,7 +885,7 @@ export const createViewingRequest = async (viewing: ViewingPreference): Promise<
     if (fetchError) throw fetchError;
 
     // Update the match with the viewing preference
-    const updateData: any = {
+    const updateData: Record<string, any> = {
       viewing_preference: viewing,
       has_viewing_scheduled: viewing.status === 'confirmed',
     };
@@ -2063,9 +2063,9 @@ export const updateIssueStatus = async (
   issueId: string,
   status: string,
   resolutionNotes?: string
-): Promise<any> => {
-  const updates: any = {
-    status,
+): Promise<Issue> => {
+  const updates: Partial<Issue> = {
+    status: status as Issue['status'],
     updatedAt: new Date(),
   };
 

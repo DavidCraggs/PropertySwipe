@@ -12,6 +12,29 @@ import type { Match, Conversation, ConversationType } from '../types';
 
 type TabType = 'matches' | 'viewings';
 
+interface SupabaseMatch {
+  id: string;
+  renter_id: string;
+  landlord_id: string;
+  property_id: string;
+  renter_name: string;
+  created_at: string;
+  messages?: string[];
+  unread_count?: number;
+  has_viewing_scheduled?: boolean;
+  application_status?: string;
+  application_submitted_at?: string;
+  tenancy_status?: string;
+  can_rate?: boolean;
+  has_renter_rated?: boolean;
+  has_landlord_rated?: boolean;
+  is_under_eviction_proceedings?: boolean;
+  rent_arrears?: number;
+  active_issue_ids?: string[];
+  total_issues_raised?: number;
+  total_issues_resolved?: number;
+}
+
 export const MatchesPage: React.FC = () => {
   const { matches: storeMatches, submitRating } = useAppStore();
   const { userType, currentUser } = useAuthStore();
@@ -69,7 +92,7 @@ export const MatchesPage: React.FC = () => {
             const properties = await getAllProperties();
             console.log('[MatchesPage] Fetched properties:', properties.length);
 
-            const matches: Match[] = matchData.map((m: any) => {
+            const matches: Match[] = matchData.map((m: SupabaseMatch) => {
               const property = properties.find(p => p.id === m.property_id);
               if (!property) {
                 console.warn(`[MatchesPage] Property not found for property_id: ${m.property_id}`);
@@ -87,7 +110,7 @@ export const MatchesPage: React.FC = () => {
                 hasViewingScheduled: m.has_viewing_scheduled || false,
                 applicationStatus: m.application_status,
                 applicationSubmittedAt: m.application_submitted_at,
-                tenancyStatus: m.tenancy_status || 'prospective',
+                tenancyStatus: (m.tenancy_status || 'prospective') as Match['tenancyStatus'],
                 canRate: m.can_rate || false,
                 hasRenterRated: m.has_renter_rated || false,
                 hasLandlordRated: m.has_landlord_rated || false,
