@@ -8,7 +8,7 @@ import { ViewingsList } from '../components/organisms/ViewingsList';
 import { RatingModal } from '../components/organisms/RatingModal';
 import { ConversationSelector } from '../components/molecules/ConversationSelector';
 import { getConversations, sendMessageToConversation, getUnreadCounts } from '../lib/storage';
-import type { Match, Conversation, ConversationType } from '../types';
+import type { Match, Conversation, ConversationType, UserType } from '../types';
 
 type TabType = 'matches' | 'viewings';
 
@@ -227,7 +227,7 @@ export const MatchesPage: React.FC = () => {
         conversationType: activeConversation,
         content,
         senderId: currentUser.id,
-        senderType: userType as any,
+        senderType: userType as UserType,
       });
       messageInputRef.current.value = '';
       // Reload conversations to show new message

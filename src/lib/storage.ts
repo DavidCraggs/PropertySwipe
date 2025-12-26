@@ -825,7 +825,7 @@ export const getAllMatches = async (): Promise<Match[]> => {
         listingDate: d.property.listing_date,
         preferredMinimumStay: d.property.preferred_minimum_stay,
         acceptsShortTermTenants: d.property.accepts_short_term_tenants,
-      } : {} as any,
+      } : {} as Record<string, unknown>,
       landlordId: d.landlord_id,
       landlordName: `Landlord ${d.landlord_id?.substring(0, 8)}`,
       renterId: d.renter_id,
@@ -2039,7 +2039,7 @@ export const getIssuesForProperty = async (propertyId: string): Promise<Issue[]>
 /**
  * Get a single issue by ID
  */
-export const getIssue = async (issueId: string): Promise<any | null> => {
+export const getIssue = async (issueId: string): Promise<Issue | null> => {
   if (isSupabaseConfigured()) {
     const { data, error } = await supabase
       .from('issues')
@@ -2209,8 +2209,8 @@ export const getTicketsForMatch = async (matchId: string): Promise<Issue[]> => {
  */
 export const addTicketMessage = async (
   ticketId: string,
-  message: Record<string, any>
-): Promise<Record<string, any>> => {
+  message: Record<string, unknown>
+): Promise<Record<string, unknown>> => {
   if (isSupabaseConfigured()) {
     const { data: ticket, error: fetchError } = await supabase
       .from('tickets')
@@ -2555,7 +2555,7 @@ function generateInviteCode(): string {
 /**
  * Transform Supabase property data (snake_case) to app format (camelCase)
  */
-function transformSupabasePropertyToApp(data: any): Property {
+function transformSupabasePropertyToApp(data: Record<string, unknown>): Property {
   return {
     id: data.id,
     landlordId: data.landlord_id,
@@ -2818,7 +2818,7 @@ export const redeemInviteCode = async (
     totalIssuesResolved: 0,
   };
 
-  const createdMatch = await saveMatch(match as any);
+  const createdMatch = await saveMatch(match as Match);
 
   // Mark invite as accepted
   if (isSupabaseConfigured()) {

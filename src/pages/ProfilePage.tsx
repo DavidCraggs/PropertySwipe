@@ -6,7 +6,7 @@ import { useAuthStore } from '../hooks/useAuthStore';
 import { useToastStore } from '../components/organisms/Toast';
 import { RatingsSummaryCard } from '../components/molecules/RatingsSummaryCard';
 
-import type { RenterProfile, LandlordProfile, UserRatingsSummary } from '../types';
+import type { RenterProfile, LandlordProfile, AgencyProfile, UserRatingsSummary } from '../types';
 import { calculateUserRatingsSummary } from '../utils/ratingCalculations';
 
 export const ProfilePage: React.FC = () => {
@@ -112,7 +112,7 @@ export const ProfilePage: React.FC = () => {
               <div className="flex items-center gap-2 mb-1">
                 <h2 className="text-2xl font-bold text-neutral-900">
                   {isAgency
-                    ? (currentUser as any).companyName
+                    ? (currentUser as AgencyProfile).companyName
                     : (currentUser as RenterProfile | LandlordProfile).names}
                 </h2>
                 <span className={`px-2 py-1 text-xs font-medium rounded-full ${isRenter ? 'bg-primary-100 text-primary-700' : 'bg-secondary-100 text-secondary-700'}`}>

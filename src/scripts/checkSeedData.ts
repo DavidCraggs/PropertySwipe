@@ -1,6 +1,7 @@
 // Load environment variables FIRST before any other imports
 import '../lib/loadEnv';
 import { supabase } from '../lib/supabase';
+import type { Conversation } from '../types';
 
 async function checkSeedData() {
     console.log('Checking seed data...');
@@ -77,7 +78,7 @@ async function checkSeedData() {
     }
 
     // 4. Check Conversations
-    let conversations: any[] | null = null;
+    let conversations: Conversation[] | null = null;
     if (matches && matches.length > 0) {
         const matchIds = matches.map(m => m.id);
         const { data: convData, error: convError } = await supabase

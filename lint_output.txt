@@ -1,0 +1,331 @@
+
+> get-on@0.0.0 lint
+> eslint .
+
+
+c:\Users\david\PropertySwipe\android\app\build\intermediates\assets\debug\mergeDebugAssets\native-bridge.js
+    36:5   warning  Unused eslint-disable directive (no problems were reported)
+   208:29  warning  Unused eslint-disable directive (no problems were reported from 'no-prototype-builtins')
+  1003:13  error    Definition for rule '@typescript-eslint/no-unused-vars' was not found                     @typescript-eslint/no-unused-vars
+
+c:\Users\david\PropertySwipe\convex\_generated\api.js
+  1:1  warning  Unused eslint-disable directive (no problems were reported)
+
+c:\Users\david\PropertySwipe\convex\_generated\server.d.ts
+  1:1  warning  Unused eslint-disable directive (no problems were reported)
+
+c:\Users\david\PropertySwipe\convex\_generated\server.js
+  1:1  warning  Unused eslint-disable directive (no problems were reported)
+
+c:\Users\david\PropertySwipe\coverage\block-navigation.js
+  1:1  warning  Unused eslint-disable directive (no problems were reported)
+
+c:\Users\david\PropertySwipe\coverage\prettify.js
+  1:1  warning  Unused eslint-disable directive (no problems were reported)
+
+c:\Users\david\PropertySwipe\coverage\sorter.js
+  1:1  warning  Unused eslint-disable directive (no problems were reported)
+
+c:\Users\david\PropertySwipe\src\components\molecules\FormField.tsx
+  141:40  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+c:\Users\david\PropertySwipe\src\lib\storage.ts
+   339:39  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   478:40  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   706:37  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   828:17  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   888:38  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   939:38  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  1362:38  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  1646:38  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  1747:37  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  2042:58  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  2104:57  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  2104:87  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  2212:27  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  2213:27  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  2558:47  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  2821:49  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+c:\Users\david\PropertySwipe\src\pages\CurrentRenterDashboard.tsx
+  103:6  warning  React Hook useEffect has a missing dependency: 'addToast'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+c:\Users\david\PropertySwipe\src\pages\LandlordOnboarding.tsx
+  95:21  error  'propertyListingLink' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+c:\Users\david\PropertySwipe\src\pages\MatchesPage.tsx
+  148:6   warning  React Hook useEffect has a missing dependency: 'addToast'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  230:33  error    Unexpected any. Specify a different type                                                                     @typescript-eslint/no-explicit-any
+
+c:\Users\david\PropertySwipe\src\pages\ProfilePage.tsx
+  115:39  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+c:\Users\david\PropertySwipe\src\pages\VendorOnboarding.tsx
+  71:21  error  'estateAgentLink' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+c:\Users\david\PropertySwipe\src\scripts\checkSeedData.ts
+  80:24  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+c:\Users\david\PropertySwipe\src\services\EmailService.ts
+  423:31  error  '_notification' is defined but never used  @typescript-eslint/no-unused-vars
+
+c:\Users\david\PropertySwipe\src\utils\filters.ts
+  348:3   error  '_minRating' is defined but never used  @typescript-eslint/no-unused-vars
+  350:29  error  '_property' is defined but never used   @typescript-eslint/no-unused-vars
+
+c:\Users\david\PropertySwipe\src\utils\seedHelpers.ts
+  166:61  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+c:\Users\david\PropertySwipe\src\utils\seedMaintenanceIssues.ts
+   21:18  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   84:18  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  135:18  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+c:\Users\david\PropertySwipe\src\utils\seedProperties.ts
+   82:50  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  151:50  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  218:50  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  284:50  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  352:50  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+c:\Users\david\PropertySwipe\src\utils\seedRatings.ts
+  18:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  49:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+c:\Users\david\PropertySwipe\src\utils\seedUserProfiles.ts
+   56:53  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   93:57  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  102:18  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  143:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+c:\Users\david\PropertySwipe\src\utils\seedViewingRequests.ts
+  19:20  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  41:20  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  62:20  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+c:\Users\david\PropertySwipe\src\utils\validateSeeding.ts
+  134:14  error  'error' is defined but never used  @typescript-eslint/no-unused-vars
+  153:14  error  'error' is defined but never used  @typescript-eslint/no-unused-vars
+  279:18  error  'error' is defined but never used  @typescript-eslint/no-unused-vars
+
+c:\Users\david\PropertySwipe\src\utils\validation.ts
+  34:25  error  Unnecessary escape character: \[  no-useless-escape
+  59:24  error  Unnecessary escape character: \[  no-useless-escape
+  65:68  error  Unnecessary escape character: \[  no-useless-escape
+
+c:\Users\david\PropertySwipe\tests\__mocks__\supabase.ts
+   10:26  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   11:28  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   12:26  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   13:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   14:18  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   15:18  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   16:34  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   17:32  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   32:51  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   49:16  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   61:16  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   85:29  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   90:7   error  'column' is defined but never used        @typescript-eslint/no-unused-vars
+   90:23  error  'value' is defined but never used         @typescript-eslint/no-unused-vars
+   90:30  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   95:6   error  'column' is defined but never used        @typescript-eslint/no-unused-vars
+   95:22  error  'value' is defined but never used         @typescript-eslint/no-unused-vars
+   95:29  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  100:7   error  'column' is defined but never used        @typescript-eslint/no-unused-vars
+  100:23  error  'value' is defined but never used         @typescript-eslint/no-unused-vars
+  100:30  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  105:6   error  'column' is defined but never used        @typescript-eslint/no-unused-vars
+  105:22  error  'value' is defined but never used         @typescript-eslint/no-unused-vars
+  105:29  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  110:7   error  'column' is defined but never used        @typescript-eslint/no-unused-vars
+  110:23  error  'value' is defined but never used         @typescript-eslint/no-unused-vars
+  110:30  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  115:8   error  'column' is defined but never used        @typescript-eslint/no-unused-vars
+  115:24  error  'pattern' is defined but never used       @typescript-eslint/no-unused-vars
+  120:6   error  'column' is defined but never used        @typescript-eslint/no-unused-vars
+  120:22  error  'values' is defined but never used        @typescript-eslint/no-unused-vars
+  120:30  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  147:31  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  147:63  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  198:35  error  'password' is defined but never used      @typescript-eslint/no-unused-vars
+  205:47  error  'password' is defined but never used      @typescript-eslint/no-unused-vars
+  231:78  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+c:\Users\david\PropertySwipe\tests\compliance.test.ts
+   34:102  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   43:52   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   44:22   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   57:108  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   66:52   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   67:22   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   80:108  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   89:52   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   90:22   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  109:22   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+c:\Users\david\PropertySwipe\tests\e2e\agency\agency-onboarding.spec.ts
+  16:38  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  29:38  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  39:38  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  52:38  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+c:\Users\david\PropertySwipe\tests\e2e\auth\signup-landlord.spec.ts
+  18:40  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  65:40  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+c:\Users\david\PropertySwipe\tests\e2e\auth\signup-renter.spec.ts
+  105:39  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+c:\Users\david\PropertySwipe\tests\e2e\issues\issue-management.spec.ts
+  3:39  error  'RenterProfile' is defined but never used    @typescript-eslint/no-unused-vars
+  3:54  error  'LandlordProfile' is defined but never used  @typescript-eslint/no-unused-vars
+  3:71  error  'AgencyProfile' is defined but never used    @typescript-eslint/no-unused-vars
+
+c:\Users\david\PropertySwipe\tests\e2e\onboarding\renter-invite-flow.spec.ts
+    3:15  error  'RenterInvite' is defined but never used  @typescript-eslint/no-unused-vars
+  237:47  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  274:47  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  379:54  error  'page' is defined but never used          @typescript-eslint/no-unused-vars
+
+c:\Users\david\PropertySwipe\tests\e2e\property\create-property.spec.ts
+  45:45  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+c:\Users\david\PropertySwipe\tests\e2e\rating\rating-flow.spec.ts
+   3:32  error  'RenterProfile' is defined but never used    @typescript-eslint/no-unused-vars
+   3:47  error  'LandlordProfile' is defined but never used  @typescript-eslint/no-unused-vars
+  10:35  error  'context' is defined but never used          @typescript-eslint/no-unused-vars
+
+c:\Users\david\PropertySwipe\tests\e2e\utils\auth-helpers.ts
+   21:20  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  304:68  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+c:\Users\david\PropertySwipe\tests\integration\agency-linking-flow.test.tsx
+   21:32  error  'AgencyProfile' is defined but never used  @typescript-eslint/no-unused-vars
+   89:23  error  Unexpected any. Specify a different type   @typescript-eslint/no-explicit-any
+  129:23  error  Unexpected any. Specify a different type   @typescript-eslint/no-explicit-any
+  176:23  error  Unexpected any. Specify a different type   @typescript-eslint/no-explicit-any
+  221:23  error  Unexpected any. Specify a different type   @typescript-eslint/no-explicit-any
+  266:24  error  Unexpected any. Specify a different type   @typescript-eslint/no-explicit-any
+  281:18  error  Unexpected any. Specify a different type   @typescript-eslint/no-explicit-any
+  296:18  error  Unexpected any. Specify a different type   @typescript-eslint/no-explicit-any
+
+c:\Users\david\PropertySwipe\tests\integration\property-matching-flow.test.tsx
+  23:57  error  'Match' is defined but never used  @typescript-eslint/no-unused-vars
+
+c:\Users\david\PropertySwipe\tests\setup.ts
+  32:6  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  40:6  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+c:\Users\david\PropertySwipe\tests\unit\components\LoginPage.test.tsx
+  19:10  error  'hashPassword' is defined but never used     @typescript-eslint/no-unused-vars
+  21:15  error  'LandlordProfile' is defined but never used  @typescript-eslint/no-unused-vars
+
+c:\Users\david\PropertySwipe\tests\unit\components\PasswordInput.test.tsx
+  216:13  error  'user' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+c:\Users\david\PropertySwipe\tests\unit\components\RatingModal.test.tsx
+    1:36  error  'beforeEach' is defined but never used     @typescript-eslint/no-unused-vars
+  158:19  error  'user' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+c:\Users\david\PropertySwipe\tests\unit\components\RenterIssueReporter.test.tsx
+  84:69  error  Parsing error: Invalid character
+
+c:\Users\david\PropertySwipe\tests\unit\hooks\useAppStore.test.ts
+  151:18  error  'error' is defined but never used         @typescript-eslint/no-unused-vars
+  363:18  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  390:24  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  432:24  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  450:24  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  473:18  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  498:18  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  509:25  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+c:\Users\david\PropertySwipe\tests\unit\hooks\useAuthStore.test.ts
+  16:27  error  'waitFor' is defined but never used  @typescript-eslint/no-unused-vars
+
+c:\Users\david\PropertySwipe\tests\unit\lib\agencyLinking.test.ts
+  17:15  error  'AgencyLinkInvitation' is defined but never used  @typescript-eslint/no-unused-vars
+  17:37  error  'AgencyPropertyLink' is defined but never used    @typescript-eslint/no-unused-vars
+
+c:\Users\david\PropertySwipe\tests\unit\lib\createIssue.test.ts
+   37:30  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   53:30  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   69:30  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   85:30  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  101:30  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  117:30  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  136:30  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  158:30  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  185:30  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  208:30  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  231:30  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  296:30  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  324:30  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  350:30  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  377:30  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  407:31  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  420:31  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  468:30  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  508:18  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  510:30  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  531:30  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  552:30  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  572:30  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+c:\Users\david\PropertySwipe\tests\unit\lib\renterInvites.test.ts
+    2:15  error  'RenterInvite' is defined but never used                @typescript-eslint/no-unused-vars
+    2:54  error  'Match' is defined but never used                       @typescript-eslint/no-unused-vars
+   27:5   error  'redeemInviteCode' is defined but never used            @typescript-eslint/no-unused-vars
+   28:5   error  'saveMatch' is defined but never used                   @typescript-eslint/no-unused-vars
+   29:5   error  'saveRenterProfile' is defined but never used           @typescript-eslint/no-unused-vars
+   30:5   error  'getAllProperties' is defined but never used            @typescript-eslint/no-unused-vars
+   44:11  error  'mockProperty' is assigned a value but never used       @typescript-eslint/no-unused-vars
+   92:11  error  'mockRenterProfile' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  142:18  error  Unexpected any. Specify a different type                @typescript-eslint/no-explicit-any
+  229:18  error  Unexpected any. Specify a different type                @typescript-eslint/no-explicit-any
+  317:18  error  Unexpected any. Specify a different type                @typescript-eslint/no-explicit-any
+  406:18  error  Unexpected any. Specify a different type                @typescript-eslint/no-explicit-any
+  428:18  error  Unexpected any. Specify a different type                @typescript-eslint/no-explicit-any
+  468:18  error  Unexpected any. Specify a different type                @typescript-eslint/no-explicit-any
+
+c:\Users\david\PropertySwipe\tests\unit\pages\AgencyOnboarding.test.tsx
+   6:29  error  'clearAllStorage' is defined but never used  @typescript-eslint/no-unused-vars
+  13:54  error  Unexpected any. Specify a different type     @typescript-eslint/no-explicit-any
+
+c:\Users\david\PropertySwipe\tests\unit\pages\LandlordOnboarding.test.tsx
+   36:35  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   42:99  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   56:56  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   58:29  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   72:71  error  'isRequired' is defined but never used    @typescript-eslint/no-unused-vars
+   72:85  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   89:47  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  131:10  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+c:\Users\david\PropertySwipe\tests\unit\pages\RenterOnboarding.test.tsx
+  29:35  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  35:99  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  49:56  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  51:29  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  66:71  error  'isRequired' is defined but never used    @typescript-eslint/no-unused-vars
+  66:97  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  84:54  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+c:\Users\david\PropertySwipe\tests\unit\utils\messageValidation.test.ts
+  663:46  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  670:45  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+c:\Users\david\PropertySwipe\tests\unit\utils\validation.test.ts
+  201:51  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  202:61  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+c:\Users\david\PropertySwipe\tests\utils\testHelpers.ts
+  29:50  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  29:60  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  36:55  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  36:62  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+✖ 217 problems (207 errors, 10 warnings)
+  0 errors and 8 warnings potentially fixable with the `--fix` option.
+
