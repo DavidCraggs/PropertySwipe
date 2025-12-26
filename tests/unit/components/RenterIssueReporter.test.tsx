@@ -81,7 +81,7 @@ describe('RenterIssueReporter', () => {
             await user.click(screen.getByText('Report New Issue'));
             expect(screen.getByText(/Your landlord will be notified/)).toBeInTheDocument();
 
-            rerender(<RenterIssueReporter {...defaultProps} agencyId=\"agency-123\" />);
+            rerender(<RenterIssueReporter {...defaultProps} agencyId="agency-123" />);
       expect(screen.getByText(/Your managing agency will be notified/)).toBeInTheDocument();
         });
 
@@ -343,7 +343,7 @@ describe('RenterIssueReporter', () => {
             const user = userEvent.setup();
             vi.mocked(createIssue).mockResolvedValue({} as any);
 
-            render(<RenterIssueReporter {...defaultProps} agencyId=\"agency-123\" />);
+            render(<RenterIssueReporter {...defaultProps} agencyId="agency-123" />);
       
       await user.click(screen.getByText('Report New Issue'));
 
