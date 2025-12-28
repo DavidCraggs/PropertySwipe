@@ -4,7 +4,7 @@ import { useAuthStore } from '../hooks/useAuthStore';
 import { Button } from '../components/atoms/Button';
 import { useToastStore } from '../components/organisms/Toast';
 import type { RenterProfile, Property, AgencyProfile, Issue, IssueCategory, IssuePriority, ConversationType } from '../types';
-import { getAllProperties, getAgencyProfile, getIssuesForMatch, createIssue } from '../lib/storage';
+import { getPropertyById, getAgencyProfile, getIssuesForMatch, createIssue } from '../lib/storage';
 import { useAppStore } from '../hooks';
 
 interface CurrentRenterDashboardProps {
@@ -62,12 +62,10 @@ export const CurrentRenterDashboard: React.FC<CurrentRenterDashboardProps> = ({ 
           // Store match ID for navigation
           setCurrentMatchId(matchData.id);
 
-          // Fetch property
-          const properties = await getAllProperties();
-          console.log('[CurrentRenterDashboard] All properties:', properties.length);
-          const property = properties.find(p => p.id === matchData.property_id);
-          console.log('[CurrentRenterDashboard] Found property:', property);
-          setCurrentProperty(property || null);
+          // Fetch property by ID (efficient single-row query)
+          const property = await getPropertyById(matchData.property_id);
+          console.log('[CurrentRenterDashboard] Found property:', property?.id);
+          setCurrentProperty(property);
 
           // Fetch agency if exists
           if (renterProfile.currentAgencyId) {

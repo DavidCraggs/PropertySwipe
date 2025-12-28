@@ -3,7 +3,7 @@ import { Building2, Users, AlertTriangle, CheckCircle2, Clock, TrendingUp, Home,
 import { useAuthStore } from '../hooks/useAuthStore';
 import type { AgencyProfile, Issue, Property, Match } from '../types';
 import { AgencyLandlordManager } from '../components/organisms/AgencyLandlordManager';
-import { getAllProperties, getIssuesForProperty } from '../lib/storage';
+import { getPropertiesByIds, getIssuesForProperty } from '../lib/storage';
 import { useAppStore } from '../hooks';
 
 /**
@@ -26,13 +26,8 @@ export function AgencyDashboard() {
       try {
         setIsLoading(true);
 
-        // Fetch all properties
-        const allProps = await getAllProperties();
-
-        // Filter properties managed by this agency
-        const managedProps = allProps.filter(p =>
-          agencyProfile.managedPropertyIds.includes(p.id)
-        );
+        // Fetch only properties managed by this agency (efficient batch query)
+        const managedProps = await getPropertiesByIds(agencyProfile.managedPropertyIds || []);
         setProperties(managedProps);
 
         // Fetch issues for all managed properties

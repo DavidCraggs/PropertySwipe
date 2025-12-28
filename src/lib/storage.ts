@@ -589,18 +589,187 @@ export const saveProperty = async (property: Property | Omit<Property, 'id'>): P
   }
 };
 
+// Pagination options for property queries
+export interface PropertyQueryOptions {
+  limit?: number;
+  offset?: number;
+  filters?: {
+    rentMin?: number;
+    rentMax?: number;
+    city?: string;
+    bedrooms?: number;
+    propertyType?: string;
+  };
+}
+
+// Response type for paginated queries
+export interface PaginatedProperties {
+  data: Property[];
+  total: number;
+  hasMore: boolean;
+}
+
+// Get properties with pagination support
+export const getPropertiesPaginated = async (
+  options: PropertyQueryOptions = {}
+): Promise<PaginatedProperties> => {
+  const { limit = 50, offset = 0, filters = {} } = options;
+
+  if (!isSupabaseConfigured()) {
+    const stored = localStorage.getItem('properties');
+    const allProperties: Property[] = stored ? JSON.parse(stored) : [];
+    return {
+      data: allProperties.slice(offset, offset + limit),
+      total: allProperties.length,
+      hasMore: offset + limit < allProperties.length,
+    };
+  }
+
+  let query = supabase
+    .from('properties')
+    .select('*', { count: 'exact' })
+    .eq('is_available', true);
+
+  // Apply filters
+  if (filters.rentMin) query = query.gte('rent_pcm', filters.rentMin);
+  if (filters.rentMax) query = query.lte('rent_pcm', filters.rentMax);
+  if (filters.city) query = query.ilike('city', `%${filters.city}%`);
+  if (filters.bedrooms) query = query.eq('bedrooms', filters.bedrooms);
+  if (filters.propertyType) query = query.eq('property_type', filters.propertyType);
+
+  // Apply pagination and ordering
+  query = query
+    .order('created_at', { ascending: false })
+    .range(offset, offset + limit - 1);
+
+  const { data, error, count } = await query;
+
+  if (error) {
+    console.error('[Storage] Paginated query error:', error);
+    throw error;
+  }
+
+  const total = count ?? 0;
+  const transformedData = (data || []).map(transformSupabasePropertyToLocal);
+
+  return {
+    data: transformedData,
+    total,
+    hasMore: offset + limit < total,
+  };
+};
+
+// Helper function to transform Supabase property to local Property type
+const transformSupabasePropertyToLocal = (d: Record<string, unknown>): Property => ({
+  id: d.id as string,
+  landlordId: (d.landlord_id as string) || '',
+  managingAgencyId: (d.managing_agency_id as string) || undefined,
+  marketingAgentId: (d.marketing_agent_id as string) || undefined,
+  address: {
+    street: d.street as string,
+    city: d.city as string,
+    postcode: d.postcode as string,
+    council: d.council as string,
+  },
+  rentPcm: d.rent_pcm as number,
+  deposit: d.deposit as number,
+  maxRentInAdvance: 1, // RRA 2025: Hardcoded to 1 month by law
+  bedrooms: d.bedrooms as number,
+  bathrooms: d.bathrooms as number,
+  propertyType: d.property_type as Property['propertyType'],
+  yearBuilt: d.year_built as number,
+  description: d.description as string,
+  epcRating: d.epc_rating as Property['epcRating'],
+  images: d.images as string[],
+  features: d.features as string[],
+  furnishing: d.furnishing as Property['furnishing'],
+  availableFrom: d.available_from as string,
+  tenancyType: d.tenancy_type as Property['tenancyType'],
+  maxOccupants: d.max_occupants as number,
+  petsPolicy: d.pets_policy as Property['petsPolicy'],
+  bills: {
+    councilTaxBand: d.council_tax_band as string,
+    gasElectricIncluded: d.gas_electric_included as boolean,
+    waterIncluded: d.water_included as boolean,
+    internetIncluded: d.internet_included as boolean,
+  },
+  meetsDecentHomesStandard: d.meets_decent_homes_standard as boolean,
+  awaabsLawCompliant: d.awaabs_law_compliant as boolean,
+  lastSafetyInspectionDate: d.last_safety_inspection_date ? new Date(d.last_safety_inspection_date as string) : undefined,
+  prsPropertyRegistrationNumber: d.prs_property_registration_number as string,
+  prsPropertyRegistrationStatus: d.prs_property_registration_status as Property['prsPropertyRegistrationStatus'],
+  canBeMarketed: d.can_be_marketed as boolean,
+  isAvailable: d.is_available as boolean,
+  listingDate: d.listing_date as string,
+  preferredMinimumStay: d.preferred_minimum_stay as number,
+  acceptsShortTermTenants: d.accepts_short_term_tenants as boolean,
+});
+
+// Get a single property by ID - efficient single-row query instead of fetching all properties
+export const getPropertyById = async (propertyId: string): Promise<Property | null> => {
+  if (!propertyId) return null;
+
+  if (!isSupabaseConfigured()) {
+    const stored = localStorage.getItem('properties');
+    const properties: Property[] = stored ? JSON.parse(stored) : [];
+    return properties.find(p => p.id === propertyId) || null;
+  }
+
+  const { data, error } = await supabase
+    .from('properties')
+    .select('*')
+    .eq('id', propertyId)
+    .single();
+
+  if (error) {
+    if (error.code === 'PGRST116') {
+      // No rows returned
+      return null;
+    }
+    console.error('[Storage] Error fetching property by ID:', error);
+    throw error;
+  }
+
+  return data ? transformSupabasePropertyToLocal(data) : null;
+};
+
+// Get multiple properties by their IDs - efficient batch query using IN filter
+export const getPropertiesByIds = async (propertyIds: string[]): Promise<Property[]> => {
+  if (!propertyIds || propertyIds.length === 0) return [];
+
+  if (!isSupabaseConfigured()) {
+    const stored = localStorage.getItem('properties');
+    const properties: Property[] = stored ? JSON.parse(stored) : [];
+    return properties.filter(p => propertyIds.includes(p.id));
+  }
+
+  const { data, error } = await supabase
+    .from('properties')
+    .select('*')
+    .in('id', propertyIds);
+
+  if (error) {
+    console.error('[Storage] Error fetching properties by IDs:', error);
+    throw error;
+  }
+
+  return (data || []).map(transformSupabasePropertyToLocal);
+};
+
+// Original function maintained for backwards compatibility (uses default limit of 100)
 export const getAllProperties = async (): Promise<Property[]> => {
   const supabaseConfigured = isSupabaseConfigured();
   console.log('[Storage] getAllProperties called - Supabase configured:', supabaseConfigured);
 
   if (supabaseConfigured) {
-    console.log('[Storage] Fetching rental properties from Supabase...');
+    console.log('[Storage] Fetching rental properties from Supabase (limit: 100)...');
 
     const { data, error } = await supabase
       .from('properties')
       .select('*')
       .eq('is_available', true)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .limit(100); // Add reasonable default limit to prevent unbounded queries
 
     if (error) {
       console.error('[Storage] Supabase query error:', error);
@@ -2751,11 +2920,10 @@ export const validateInviteCode = async (code: string): Promise<InviteValidation
       return { isValid: false, error: 'expired', invite };
     }
 
-    // Get property from localStorage
-    const properties = await getAllProperties();
-    const property = properties.find((p) => p.id === invite.propertyId);
+    // Get property by ID (efficient single-row query)
+    const property = await getPropertyById(invite.propertyId);
 
-    return { isValid: true, invite, property };
+    return { isValid: true, invite, property: property || undefined };
   }
 };
 

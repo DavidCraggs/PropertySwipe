@@ -68,15 +68,19 @@ export const MatchesPage: React.FC = () => {
       }
 
       try {
-        // For renters, query Supabase directly
+        // For renters, query Supabase directly with JOIN to avoid N+1 query
         if (userType === 'renter') {
           const { supabase } = await import('../lib/supabase');
-          const { getAllProperties } = await import('../lib/storage');
 
-          console.log('[ MatchesPage] Querying matches for renter:', currentUser.id);
+          console.log('[MatchesPage] Querying matches with property JOIN for renter:', currentUser.id);
+
+          // Single query with JOIN - fetches matches AND their properties in one round trip
           const { data: matchData, error } = await supabase
             .from('matches')
-            .select('*')
+            .select(`
+              *,
+              property:properties(*)
+            `)
             .eq('renter_id', currentUser.id);
 
           console.log('[MatchesPage] Query result:', { matchData, error, count: matchData?.length });
@@ -88,42 +92,75 @@ export const MatchesPage: React.FC = () => {
           }
 
           if (matchData && matchData.length > 0) {
-            // Fetch properties to build full Match objects
-            const properties = await getAllProperties();
-            console.log('[MatchesPage] Fetched properties:', properties.length);
+            // Transform joined data - property is already embedded in each match
+            const matches: Match[] = matchData
+              .filter((m) => m.property) // Only include matches where property exists
+              .map((m) => {
+                const p = m.property;
+                return {
+                  id: m.id,
+                  renterId: m.renter_id,
+                  landlordId: m.landlord_id,
+                  landlordName: 'Landlord', // TODO: Add landlord JOIN if needed
+                  propertyId: m.property_id,
+                  renterName: m.renter_name,
+                  timestamp: m.created_at,
+                  messages: m.messages || [],
+                  unreadCount: m.unread_count || 0,
+                  hasViewingScheduled: m.has_viewing_scheduled || false,
+                  applicationStatus: m.application_status,
+                  applicationSubmittedAt: m.application_submitted_at,
+                  tenancyStatus: (m.tenancy_status || 'prospective') as Match['tenancyStatus'],
+                  canRate: m.can_rate || false,
+                  hasRenterRated: m.has_renter_rated || false,
+                  hasLandlordRated: m.has_landlord_rated || false,
+                  isUnderEvictionProceedings: m.is_under_eviction_proceedings || false,
+                  rentArrears: m.rent_arrears || 0,
+                  activeIssueIds: m.active_issue_ids || [],
+                  totalIssuesRaised: m.total_issues_raised || 0,
+                  totalIssuesResolved: m.total_issues_resolved || 0,
+                  // Transform property from snake_case to camelCase
+                  property: {
+                    id: p.id,
+                    landlordId: p.landlord_id,
+                    managingAgencyId: p.managing_agency_id,
+                    address: {
+                      street: p.street,
+                      city: p.city,
+                      postcode: p.postcode,
+                      council: p.council || '',
+                    },
+                    rentPcm: p.rent_pcm,
+                    deposit: p.deposit || 0,
+                    bedrooms: p.bedrooms,
+                    bathrooms: p.bathrooms,
+                    propertyType: p.property_type,
+                    availableFrom: p.available_from,
+                    images: p.images || [],
+                    features: p.features || [],
+                    description: p.description || '',
+                    epcRating: p.epc_rating,
+                    councilTaxBand: p.council_tax_band,
+                    yearBuilt: p.year_built,
+                    floorArea: p.floor_area,
+                    parkingType: p.parking_type,
+                    outdoorSpace: p.outdoor_space,
+                    petsAllowed: p.pets_allowed ?? false,
+                    smokingAllowed: p.smoking_allowed ?? false,
+                    dssAccepted: p.dss_accepted ?? false,
+                    furnished: p.furnished,
+                    minTenancy: p.min_tenancy,
+                    maxTenancy: p.max_tenancy,
+                    isAvailable: p.is_available ?? true,
+                    viewCount: p.view_count || 0,
+                    likeCount: p.like_count || 0,
+                    createdAt: p.created_at,
+                    updatedAt: p.updated_at,
+                  },
+                };
+              });
 
-            const matches: Match[] = matchData.map((m: SupabaseMatch) => {
-              const property = properties.find(p => p.id === m.property_id);
-              if (!property) {
-                console.warn(`[MatchesPage] Property not found for property_id: ${m.property_id}`);
-              }
-              return {
-                id: m.id,
-                renterId: m.renter_id,
-                landlordId: m.landlord_id,
-                landlordName: 'Landlord', // Placeholder, could fetch from landlord profile
-                propertyId: m.property_id,
-                renterName: m.renter_name,
-                timestamp: m.created_at,
-                messages: m.messages || [],
-                unreadCount: m.unread_count || 0,
-                hasViewingScheduled: m.has_viewing_scheduled || false,
-                applicationStatus: m.application_status,
-                applicationSubmittedAt: m.application_submitted_at,
-                tenancyStatus: (m.tenancy_status || 'prospective') as Match['tenancyStatus'],
-                canRate: m.can_rate || false,
-                hasRenterRated: m.has_renter_rated || false,
-                hasLandlordRated: m.has_landlord_rated || false,
-                isUnderEvictionProceedings: m.is_under_eviction_proceedings || false,
-                rentArrears: m.rent_arrears || 0,
-                activeIssueIds: m.active_issue_ids || [],
-                totalIssuesRaised: m.total_issues_raised || 0,
-                totalIssuesResolved: m.total_issues_resolved || 0,
-                property: property!,
-              };
-            }).filter(m => m.property); // Only include matches where property was found
-
-            console.log('[MatchesPage] Mapped matches (after property filter):', matches.length);
+            console.log('[MatchesPage] Mapped matches with joined properties:', matches.length);
             setLoadedMatches(matches);
           } else {
             console.log('[MatchesPage] No match data returned from query');
