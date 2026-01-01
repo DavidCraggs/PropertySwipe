@@ -26,8 +26,12 @@ test.describe('Renter Signup Flow', () => {
     await page.waitForSelector('text=How can we help you?');
     await page.getByRole('button', { name: /i'm a renter/i }).click();
 
+    // Handle InviteCodePrompt - click "I'm a new renter" to skip
+    await page.waitForSelector('text=Welcome to GetOn', { timeout: 10000 });
+    await page.getByRole('button', { name: /continue as new renter/i }).click();
+
     // Wait for onboarding form
-    await page.waitForSelector('text=Let\'s get to know you');
+    await page.waitForSelector('text=Let\'s get to know you', { timeout: 10000 });
 
     // Fill form with weak password
     await page.locator('#email').fill('weak@test.com');
@@ -53,7 +57,12 @@ test.describe('Renter Signup Flow', () => {
     await page.waitForSelector('text=How can we help you?');
     await page.getByRole('button', { name: /i'm a renter/i }).click();
 
-    await page.waitForTimeout(500);
+    // Handle InviteCodePrompt - click "I'm a new renter" to skip
+    await page.waitForSelector('text=Welcome to GetOn', { timeout: 10000 });
+    await page.getByRole('button', { name: /continue as new renter/i }).click();
+
+    // Wait for onboarding form
+    await page.waitForSelector('text=Let\'s get to know you', { timeout: 10000 });
 
     // Fill form with invalid email
     await page.locator('#email').fill('notanemail');
@@ -74,11 +83,15 @@ test.describe('Renter Signup Flow', () => {
   test('should persist session across page reload', async ({ page }) => {
     await signupAndLogin(page, 'renter');
 
+    // Verify dashboard visible before reload
+    await expectRenterDashboard(page);
+
     // Reload page
     await page.reload();
 
     // Wait for app to restore state from localStorage after reload (React hydration)
-    await page.waitForTimeout(3000);
+    // Use waitForSelector instead of fixed timeout for reliability
+    await page.waitForSelector('button:has-text("Swipe")', { timeout: 10000 });
 
     // Should still be authenticated
     await expectRenterDashboard(page);

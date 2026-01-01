@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Home, MessageCircle, AlertTriangle, Clock, CheckCircle2, Package, LogOut } from 'lucide-react';
 import { useAuthStore } from '../hooks/useAuthStore';
 import { Button } from '../components/atoms/Button';
-import { useToastStore } from '../components/organisms/Toast';
+import { useToastStore } from '../components/organisms/toastUtils';
 import type { RenterProfile, Property, AgencyProfile, Issue, IssueCategory, IssuePriority, ConversationType } from '../types';
 import { getPropertyById, getAgencyProfile, getIssuesForMatch, createIssue } from '../lib/storage';
 import { useAppStore } from '../hooks';
@@ -910,3 +910,6 @@ const IssueCard: React.FC<IssueCardProps> = ({ issue }) => {
     </div>
   );
 };
+
+// Export RenterIssueReporter for testing
+export { RenterIssueReporter };

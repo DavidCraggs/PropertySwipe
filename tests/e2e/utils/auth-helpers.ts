@@ -54,35 +54,49 @@ export async function signupAndLogin(page: Page, userType: UserType): Promise<Te
 }
 
 async function completeRenterOnboarding(page: Page, user: TestUser) {
+  // First, handle the InviteCodePrompt - click "I'm a new renter" to skip
+  // The button has aria-label="Continue as new renter"
+  await page.waitForSelector('text=Welcome to GetOn', { timeout: 10000 });
+  await page.getByRole('button', { name: /continue as new renter/i }).click();
+
   // Wait for onboarding to load
-  await page.waitForSelector('text=Let\'s get to know you');
+  await page.waitForSelector('text=Let\'s get to know you', { timeout: 10000 });
 
   // Step 0: Personal info
   await page.locator('#email').fill(user.email);
   await page.locator('input[type="password"]').first().fill(user.password);
   await page.locator('#names').fill('Test Renter');
   await page.locator('#ages').fill('28');
-  await page.getByRole('button', { name: /continue/i }).click();
+  await page.waitForTimeout(300);
+  await page.getByRole('button', { name: /continue/i }).click({ force: true });
 
   // Step 1: Location preferences - wait for step to load
-  await page.waitForTimeout(500); // Allow animation to complete
-  await page.getByRole('button', { name: /continue/i }).click();
+  await page.waitForTimeout(800); // Allow animation to complete
+  await page.getByRole('button', { name: /continue/i }).click({ force: true });
 
   // Step 2: Income & employment - wait for step to load
   await page.waitForTimeout(500);
+  // Select renter type (Professional) - using the card wrapper
+  await page.getByText('Professional', { exact: true }).first().click();
+  // Select employment status (Employed) - click the text within the visible card
+  // The radio is sr-only, so click the visible wrapper containing "Employed"
+  await page.locator('text=Employed >> nth=0').click({ force: true });
+  // Fill monthly income
   await page.locator('#monthlyIncome').fill('3000');
-  await page.getByRole('button', { name: /continue/i }).click();
+  await page.waitForTimeout(300);
+  await page.getByRole('button', { name: /continue/i }).click({ force: true });
 
   // Step 3: Move-in date - wait for step to load
   await page.waitForTimeout(500);
   const futureDate = new Date();
   futureDate.setDate(futureDate.getDate() + 30);
   await page.locator('#moveInDate').fill(futureDate.toISOString().split('T')[0]);
-  await page.getByRole('button', { name: /continue/i }).click();
+  await page.waitForTimeout(300);
+  await page.getByRole('button', { name: /continue/i }).click({ force: true });
 
   // Step 4: Review & submit - wait for step to load
   await page.waitForTimeout(500);
-  await page.getByRole('button', { name: /complete|submit/i }).click();
+  await page.getByRole('button', { name: /complete|submit/i }).click({ force: true });
 
   // Wait for dashboard (use timeout to handle navigation)
   await page.waitForTimeout(1000);
@@ -96,69 +110,88 @@ async function completeLandlordOnboarding(page: Page, user: TestUser) {
   await page.locator('#email').fill(user.email);
   await page.locator('input[type="password"]').first().fill(user.password);
   await page.locator('#names').fill('Test Landlord');
-  await page.getByRole('button', { name: /continue/i }).click();
+  // Wait for button and click with explicit wait (webkit needs extra time to become interactive)
+  await page.waitForTimeout(500);
+  const continueBtn0 = page.getByRole('button', { name: /continue/i });
+  await continueBtn0.waitFor({ state: 'visible', timeout: 5000 });
+  await continueBtn0.click({ force: true });
 
   // Step 1: Property type - wait for step to load
-  await page.waitForTimeout(500);
-  await page.getByRole('button', { name: /flat/i }).first().click();
-  await page.getByRole('button', { name: /continue/i }).click();
+  // RadioCardGroup uses labels containing text, not buttons. Use exact match to avoid duplicates.
+  await page.waitForTimeout(1000);
+  // Wait for the property type step to be visible
+  await page.waitForSelector('text=Flat', { timeout: 10000 });
+  await page.getByText('Flat', { exact: true }).click({ force: true });
+  await page.waitForTimeout(300);
+  await page.getByRole('button', { name: /continue/i }).click({ force: true });
 
   // Step 2: Property details - wait for step to load
   await page.waitForTimeout(500);
-  await page.getByRole('button', { name: /continue/i }).click();
+  await page.getByRole('button', { name: /continue/i }).click({ force: true });
 
   // Step 3: RRA 2025 compliance - wait for step to load
   await page.waitForTimeout(500);
   await page.locator('#prsRegistrationNumber').fill('PRS-TEST-12345');
 
-  // Select ombudsman scheme from dropdown
-  await page.locator('select').first().selectOption('property_redress_scheme');
+  // Select ombudsman scheme (RadioCardGroup, not dropdown) - use force click
+  await page.getByText('Property Redress Scheme', { exact: true }).click({ force: true });
 
-  // Check all certification checkboxes
+  // Check all certification checkboxes (EPC, Gas Safety, EICR) - they may be already checked
   const checkboxes = await page.locator('input[type="checkbox"]').all();
   for (const checkbox of checkboxes) {
-    await checkbox.check();
+    // Only check if not already checked
+    const isChecked = await checkbox.isChecked();
+    if (!isChecked) {
+      await checkbox.check({ force: true });
+    }
   }
 
-  await page.getByRole('button', { name: /continue/i }).click();
+  await page.waitForTimeout(300);
+  await page.getByRole('button', { name: /continue/i }).click({ force: true });
 
-  // Step 4: Review & submit - wait for step to load
+  // Step 4: Property Listing (optional) - just click continue to skip
   await page.waitForTimeout(500);
-  await page.getByRole('button', { name: /complete|submit/i }).click();
+  await page.getByRole('button', { name: /continue/i }).click({ force: true });
+
+  // Step 5: Review & submit - wait for step to load
+  await page.waitForTimeout(1000);
+  // Wait for button to be visible and click with longer timeout (Firefox is slower)
+  const submitButton = page.getByRole('button', { name: /complete|submit/i });
+  await submitButton.waitFor({ state: 'visible', timeout: 15000 });
+  await submitButton.click({ force: true });
 
   // Wait for dashboard
   await page.waitForTimeout(1000);
 }
 
 async function completeAgencyOnboarding(page: Page, user: TestUser) {
-  // Wait for onboarding to load
-  await page.waitForTimeout(500);
+  // Wait for onboarding page to load - AgencyOnboarding is a SINGLE page form, not multi-step
+  await page.waitForSelector('text=Agency Registration', { timeout: 10000 });
 
-  // Step 0: Basic info
-  await page.locator('#email').fill(user.email);
+  // Company Details section
+  await page.getByPlaceholder('Company Name *').fill('Test Agency Ltd');
+  await page.getByPlaceholder('Companies House Registration Number *').fill('REG-12345678');
+  await page.getByPlaceholder('Primary Contact Name *').fill('Test Contact');
+
+  // Contact Information section
+  await page.getByPlaceholder('Email Address *').fill(user.email);
   await page.locator('input[type="password"]').first().fill(user.password);
-  await page.locator('#companyName').fill('Test Agency Ltd');
-  await page.getByRole('button', { name: /continue/i }).click();
+  await page.getByPlaceholder('Phone Number *').fill('01234567890');
+  await page.getByPlaceholder('Office Street Address *').fill('123 Test Street');
+  await page.getByPlaceholder('City *').fill('Liverpool');
+  await page.getByPlaceholder('Postcode *').fill('L1 1AA');
 
-  // Step 1: Contact details - wait for step to load
-  await page.waitForTimeout(500);
-  await page.locator('#primaryContactName').fill('Test Contact');
-  await page.locator('#phone').fill('01234567890');
-  await page.getByRole('button', { name: /continue/i }).click();
+  // Service Areas - select at least one area (Liverpool)
+  await page.getByRole('button', { name: 'Liverpool' }).click();
 
-  // Step 2: Address & service areas - wait for step to load
-  await page.waitForTimeout(500);
-  await page.locator('#street').fill('123 Test Street');
-  await page.locator('#city').fill('Liverpool');
-  await page.locator('#postcode').fill('L1 1AA');
-  await page.getByRole('button', { name: /continue/i }).click();
+  // Compliance - check Property Ombudsman Member checkbox (required)
+  await page.locator('input[type="checkbox"]').first().check();
 
-  // Step 3: Review & submit - wait for step to load
-  await page.waitForTimeout(500);
-  await page.getByRole('button', { name: /complete|submit/i }).click();
+  // Submit the form
+  await page.getByRole('button', { name: /complete registration/i }).click();
 
-  // Wait for dashboard
-  await page.waitForTimeout(1000);
+  // Wait for dashboard navigation
+  await page.waitForTimeout(2000);
 }
 
 /**
@@ -328,13 +361,21 @@ function createMockProfile(userType: UserType, timestamp: number): any {
       ...baseProfile,
       names: 'Test Landlord',
       propertyType: 'Flat',
+      furnishingPreference: 'Unfurnished',
+      preferredTenantTypes: [],
+      defaultPetsPolicy: {
+        willConsiderPets: true,
+        requiresPetInsurance: false,
+        preferredPetTypes: [],
+        maxPetsAllowed: 0,
+      },
       prsRegistrationNumber: 'PRS-TEST-12345',
+      prsRegistrationStatus: 'active',
       ombudsmanScheme: 'property_redress_scheme',
-      certifiedEPC: true,
-      certifiedGasSafety: true,
-      certifiedElectricalSafety: true,
-      certifiedSmokeAlarms: true,
-      certifiedCOAlarms: true,
+      isFullyCompliant: true,
+      depositScheme: 'DPS',
+      isRegisteredLandlord: true,
+      estateAgentLink: '',
     };
   } else {
     return {

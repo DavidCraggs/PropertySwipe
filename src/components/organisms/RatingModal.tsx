@@ -6,7 +6,7 @@ import { Button } from '../atoms/Button';
 import { IconButton } from '../atoms/IconButton';
 import { StarRating } from '../molecules/StarRating';
 import { formatDate } from '../../utils/formatters';
-import { useToastStore } from './Toast';
+import { useToastStore } from './toastUtils';
 
 interface RatingModalProps {
     isOpen: boolean;

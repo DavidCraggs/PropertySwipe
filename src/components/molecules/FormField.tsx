@@ -138,7 +138,7 @@ export const TextAreaField = forwardRef<HTMLTextAreaElement, TextAreaFieldProps>
           aria-describedby={
             error ? `${props.id}-error` : helperText ? `${props.id}-helper` : undefined
           }
-          {...(props as Record<string, any>)}
+          {...(props as Record<string, unknown>)}
         />
 
         {/* Helper Text or Error Message */}

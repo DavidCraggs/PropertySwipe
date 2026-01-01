@@ -21,7 +21,7 @@ import { useToastStore } from './components/organisms/toastUtils';
 import { ErrorBoundary } from './components/organisms/ErrorBoundary';
 import { useAuthStore } from './hooks/useAuthStore';
 import { useAppStore } from './hooks/useAppStore';
-import type { UserType } from './types';
+import type { UserType, RenterProfile } from './types';
 
 type Route = 'welcome' | 'role-select' | 'login' | 'renter-onboarding' | 'landlord-onboarding' | 'agency-onboarding' | 'admin-login' | 'admin-dashboard' | 'app';
 type AppPage = 'swipe' | 'matches' | 'profile' | 'tenancy';

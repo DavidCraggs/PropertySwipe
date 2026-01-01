@@ -1,7 +1,6 @@
 // Load environment variables FIRST before any other imports
 import '../lib/loadEnv';
 import { supabase } from '../lib/supabase';
-import type { Conversation } from '../types';
 
 async function checkSeedData() {
     console.log('Checking seed data...');
@@ -78,7 +77,16 @@ async function checkSeedData() {
     }
 
     // 4. Check Conversations
-    let conversations: Conversation[] | null = null;
+    // Raw DB records use snake_case
+    interface DbConversation {
+        id: string;
+        match_id: string;
+        conversation_type: string;
+        messages?: unknown[];
+        unread_count_renter?: number;
+        unread_count_other?: number;
+    }
+    let conversations: DbConversation[] | null = null;
     if (matches && matches.length > 0) {
         const matchIds = matches.map(m => m.id);
         const { data: convData, error: convError } = await supabase
@@ -89,7 +97,7 @@ async function checkSeedData() {
         if (convError) {
             console.error('\nError fetching conversations:', convError);
         } else {
-            conversations = convData;
+            conversations = convData as DbConversation[];
             console.log(`\n📨 Found ${conversations?.length || 0} conversations.`);
             if (conversations && conversations.length > 0) {
                 conversations.forEach(c => {

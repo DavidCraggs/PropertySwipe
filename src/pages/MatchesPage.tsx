@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { Heart, MessageCircle, MapPin, Calendar, Clock, CheckCircle, Star, AlertTriangle } from 'lucide-react';
 import { useAppStore, useAuthStore } from '../hooks';
-import { useToastStore } from '../components/organisms/Toast';
+import { useToastStore } from '../components/organisms/toastUtils';
 import { formatRelativeTime } from '../utils/formatters';
 import { Badge } from '../components/atoms/Badge';
 import { ViewingsList } from '../components/organisms/ViewingsList';
@@ -12,28 +12,6 @@ import type { Match, Conversation, ConversationType, UserType } from '../types';
 
 type TabType = 'matches' | 'viewings';
 
-interface SupabaseMatch {
-  id: string;
-  renter_id: string;
-  landlord_id: string;
-  property_id: string;
-  renter_name: string;
-  created_at: string;
-  messages?: string[];
-  unread_count?: number;
-  has_viewing_scheduled?: boolean;
-  application_status?: string;
-  application_submitted_at?: string;
-  tenancy_status?: string;
-  can_rate?: boolean;
-  has_renter_rated?: boolean;
-  has_landlord_rated?: boolean;
-  is_under_eviction_proceedings?: boolean;
-  rent_arrears?: number;
-  active_issue_ids?: string[];
-  total_issues_raised?: number;
-  total_issues_resolved?: number;
-}
 
 export const MatchesPage: React.FC = () => {
   const { matches: storeMatches, submitRating } = useAppStore();
@@ -93,9 +71,10 @@ export const MatchesPage: React.FC = () => {
 
           if (matchData && matchData.length > 0) {
             // Transform joined data - property is already embedded in each match
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const matches: Match[] = matchData
-              .filter((m) => m.property) // Only include matches where property exists
-              .map((m) => {
+              .filter((m: any) => m.property) // Only include matches where property exists
+              .map((m: any) => {
                 const p = m.property;
                 return {
                   id: m.id,
@@ -108,14 +87,19 @@ export const MatchesPage: React.FC = () => {
                   messages: m.messages || [],
                   unreadCount: m.unread_count || 0,
                   hasViewingScheduled: m.has_viewing_scheduled || false,
-                  applicationStatus: m.application_status,
-                  applicationSubmittedAt: m.application_submitted_at,
+                  applicationStatus: m.application_status || 'pending',
+                  applicationSubmittedAt: m.application_submitted_at ? new Date(m.application_submitted_at) : undefined,
                   tenancyStatus: (m.tenancy_status || 'prospective') as Match['tenancyStatus'],
                   canRate: m.can_rate || false,
                   hasRenterRated: m.has_renter_rated || false,
                   hasLandlordRated: m.has_landlord_rated || false,
                   isUnderEvictionProceedings: m.is_under_eviction_proceedings || false,
-                  rentArrears: m.rent_arrears || 0,
+                  rentArrears: {
+                    totalOwed: m.rent_arrears_total_owed || 0,
+                    monthsMissed: m.rent_arrears_months_missed || 0,
+                    consecutiveMonthsMissed: m.rent_arrears_consecutive_months || 0,
+                    lastPaymentDate: m.rent_arrears_last_payment ? new Date(m.rent_arrears_last_payment) : undefined,
+                  },
                   activeIssueIds: m.active_issue_ids || [],
                   totalIssuesRaised: m.total_issues_raised || 0,
                   totalIssuesResolved: m.total_issues_resolved || 0,
@@ -124,40 +108,48 @@ export const MatchesPage: React.FC = () => {
                     id: p.id,
                     landlordId: p.landlord_id,
                     managingAgencyId: p.managing_agency_id,
+                    marketingAgentId: p.marketing_agent_id,
                     address: {
-                      street: p.street,
-                      city: p.city,
-                      postcode: p.postcode,
+                      street: p.street || '',
+                      city: p.city || '',
+                      postcode: p.postcode || '',
                       council: p.council || '',
                     },
-                    rentPcm: p.rent_pcm,
+                    rentPcm: p.rent_pcm || 0,
                     deposit: p.deposit || 0,
-                    bedrooms: p.bedrooms,
-                    bathrooms: p.bathrooms,
-                    propertyType: p.property_type,
-                    availableFrom: p.available_from,
+                    maxRentInAdvance: 1 as const, // RRA 2025: Max 1 month
+                    bedrooms: p.bedrooms || 1,
+                    bathrooms: p.bathrooms || 1,
+                    propertyType: p.property_type || 'house',
+                    availableFrom: p.available_from || new Date().toISOString(),
                     images: p.images || [],
                     features: p.features || [],
                     description: p.description || '',
-                    epcRating: p.epc_rating,
-                    councilTaxBand: p.council_tax_band,
-                    yearBuilt: p.year_built,
-                    floorArea: p.floor_area,
-                    parkingType: p.parking_type,
-                    outdoorSpace: p.outdoor_space,
-                    petsAllowed: p.pets_allowed ?? false,
-                    smokingAllowed: p.smoking_allowed ?? false,
-                    dssAccepted: p.dss_accepted ?? false,
-                    furnished: p.furnished,
-                    minTenancy: p.min_tenancy,
-                    maxTenancy: p.max_tenancy,
+                    epcRating: p.epc_rating || 'C',
+                    yearBuilt: p.year_built || 2000,
+                    furnishing: p.furnishing || 'unfurnished',
+                    tenancyType: p.tenancy_type || 'Periodic',
+                    maxOccupants: p.max_occupants || 4,
+                    petsPolicy: {
+                      willConsiderPets: true,
+                      preferredPetTypes: p.preferred_pet_types || [],
+                      requiresPetInsurance: p.requires_pet_insurance || false,
+                      maxPetsAllowed: p.max_pets_allowed || 2,
+                    },
+                    bills: {
+                      councilTaxBand: p.council_tax_band || 'C',
+                      gasElectricIncluded: p.gas_electric_included || false,
+                      waterIncluded: p.water_included || false,
+                      internetIncluded: p.internet_included || false,
+                    },
+                    meetsDecentHomesStandard: p.meets_decent_homes_standard || false,
+                    awaabsLawCompliant: p.awaabs_law_compliant || false,
+                    prsPropertyRegistrationStatus: p.prs_property_registration_status || 'not_registered',
                     isAvailable: p.is_available ?? true,
-                    viewCount: p.view_count || 0,
-                    likeCount: p.like_count || 0,
-                    createdAt: p.created_at,
-                    updatedAt: p.updated_at,
+                    canBeMarketed: p.can_be_marketed || false,
+                    listingDate: p.listing_date || new Date().toISOString(),
                   },
-                };
+                } as Match;
               });
 
             console.log('[MatchesPage] Mapped matches with joined properties:', matches.length);

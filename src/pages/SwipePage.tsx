@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { CardStack, SwipeControls, PropertyDetailsModal } from '../components';
 import { ViewingTimeModal } from '../components/organisms/ViewingTimeModal';
 import { useAppStore, usePropertyDeck } from '../hooks';
-import { useToastStore } from '../components/organisms/Toast';
+import { useToastStore } from '../components/organisms/toastUtils';
 import type { Property, Match } from '../types';
 
 export const SwipePage: React.FC = () => {

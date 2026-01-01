@@ -1091,3 +1091,103 @@ export interface InviteValidationResult {
   error?: 'not_found' | 'expired' | 'already_used' | 'revoked';
   property?: Property; // Property preview for valid invites
 }
+
+// =====================================================
+// TWO-SIDED MATCHING SYSTEM (Phase 3)
+// =====================================================
+
+/**
+ * Interest status for two-sided matching
+ * - pending: Renter swiped right, awaiting landlord review
+ * - landlord_liked: Landlord approved, creates match
+ * - landlord_passed: Landlord declined
+ * - expired: Interest expired after 30 days
+ * - matched: Successfully converted to a Match
+ */
+export type InterestStatus = 'pending' | 'landlord_liked' | 'landlord_passed' | 'expired' | 'matched';
+
+/**
+ * Interest record - represents a renter's interest in a property
+ * Before two-sided confirmation
+ */
+export interface Interest {
+  id: string;
+  renterId: string;
+  landlordId: string;
+  propertyId: string;
+  interestedAt: Date;
+  status: InterestStatus;
+  landlordReviewedAt?: Date;
+  expiresAt: Date;
+  createdMatchId?: string;
+
+  // Cached compatibility scoring
+  compatibilityScore?: number; // 0-100
+  compatibilityBreakdown?: CompatibilityBreakdown;
+
+  // Metadata
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+/**
+ * Compatibility score breakdown for match quality assessment
+ */
+export interface CompatibilityBreakdown {
+  affordability: number; // 0-30 points (income vs rent)
+  location: number; // 0-20 points (area preference match)
+  timing: number; // 0-15 points (move-in date alignment)
+  propertyFit: number; // 0-20 points (bedrooms, type, features)
+  tenantHistory: number; // 0-15 points (previous ratings)
+}
+
+/**
+ * Full compatibility score with flags for edge cases
+ */
+export interface CompatibilityScore {
+  overall: number; // 0-100
+  breakdown: CompatibilityBreakdown;
+  flags: CompatibilityFlag[];
+}
+
+/**
+ * Flags for edge cases that require attention
+ */
+export type CompatibilityFlag =
+  | 'income_marginal' // Income is 2.5-3x rent (borderline)
+  | 'income_strong' // Income is 3x+ rent
+  | 'move_date_mismatch' // Move dates don't align
+  | 'move_date_flexible' // Renter is flexible on dates
+  | 'pet_requires_approval' // Has pets, needs landlord approval
+  | 'first_time_renter' // No rental history
+  | 'excellent_references' // Strong previous ratings
+  | 'has_guarantor' // Has a guarantor
+  | 'verified_income' // Income has been verified
+  | 'long_term_seeker'; // Looking for long tenancy
+
+/**
+ * Renter card data for landlord swipe interface
+ * Shows non-discriminatory information only
+ */
+export interface RenterCard {
+  renterId: string;
+  interestId: string;
+  situation: RenterSituation;
+  employmentStatus: EmploymentStatus;
+  monthlyIncome: number;
+  hasPets: boolean;
+  petDetails?: {
+    type: string;
+    count: number;
+    hasInsurance: boolean;
+  }[];
+  hasGuarantor: boolean;
+  hasRentalHistory: boolean;
+  preferredMoveInDate?: Date;
+  smokingStatus: 'Non-Smoker' | 'Smoker' | 'Vaper';
+  rating?: UserRatingsSummary;
+  compatibilityScore: CompatibilityScore;
+  interestedAt: Date;
+  propertyId: string;
+  propertyAddress: string;
+}

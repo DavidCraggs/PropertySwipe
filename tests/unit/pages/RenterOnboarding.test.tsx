@@ -22,6 +22,20 @@ import { setupStorageMocks, clearAllStorage } from '../../__mocks__/localStorage
 // Mock auth store
 vi.mock('../../../src/hooks/useAuthStore');
 
+// Mock InviteCodePrompt to skip it and go straight to onboarding steps
+vi.mock('../../../src/components/organisms/InviteCodePrompt', () => {
+  const React = require('react');
+  return {
+    InviteCodePrompt: ({ onContinueAsNew }: { onContinueAsNew: () => void; onContinueWithInvite: (validation: unknown) => void }) => {
+      // Automatically skip the invite prompt in tests by continuing as new renter
+      React.useEffect(() => {
+        onContinueAsNew();
+      }, [onContinueAsNew]);
+      return null;
+    },
+  };
+});
+
 // Mock framer-motion
 vi.mock('framer-motion', () => ({
   AnimatePresence: ({ children }: { children: React.ReactNode }) => <>{children}</>,

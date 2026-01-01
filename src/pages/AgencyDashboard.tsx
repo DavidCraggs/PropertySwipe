@@ -71,10 +71,10 @@ export function AgencyDashboard() {
   const stats = {
     totalProperties: properties.length,
     activeTenancies: activeTenancies.length,
-    totalLandlords: agencyProfile.landlordClientIds.length,
+    totalLandlords: agencyProfile.landlordClientIds?.length || 0,
     openIssues: openIssues.length,
-    slaComplianceRate: agencyProfile.performanceMetrics.slaComplianceRate,
-    averageResponseTime: agencyProfile.performanceMetrics.averageResponseTimeHours,
+    slaComplianceRate: agencyProfile.performanceMetrics?.slaComplianceRate ?? 95,
+    averageResponseTime: agencyProfile.slaConfiguration?.urgentResponseHours ?? 24,
     totalIssuesResolved: allIssues.filter(i => i.status === 'resolved' || i.status === 'closed').length,
     totalIssuesRaised: allIssues.length,
   };
@@ -143,7 +143,12 @@ export function AgencyDashboard() {
             <SLAPerformanceSection
               complianceRate={stats.slaComplianceRate}
               averageResponseTime={stats.averageResponseTime}
-              slaConfig={agencyProfile.slaConfiguration}
+              slaConfig={agencyProfile.slaConfiguration ?? {
+                emergencyResponseHours: 4,
+                urgentResponseHours: 24,
+                routineResponseHours: 72,
+                maintenanceResponseDays: 14,
+              }}
             />
 
             {/* Recent Issues Summary */}

@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
-import { User, TrendingUp, Heart, X, Home, LogOut, ShoppingBag, MapPin, CreditCard, Users } from 'lucide-react';
+import { User, TrendingUp, Heart, X, Home, LogOut, ShoppingBag, MapPin, CreditCard, Users, Download, Trash2, Shield, FileText } from 'lucide-react';
 import { Button } from '../components/atoms/Button';
 import { useAppStore } from '../hooks';
 import { useAuthStore } from '../hooks/useAuthStore';
-import { useToastStore } from '../components/organisms/Toast';
+import { useToastStore } from '../components/organisms/toastUtils';
 import { RatingsSummaryCard } from '../components/molecules/RatingsSummaryCard';
+import { exportUserData, downloadExportData } from '../services/DataExportService';
+import { DataDeletionService } from '../services/DataDeletionService';
 
 import type { RenterProfile, LandlordProfile, AgencyProfile, UserRatingsSummary } from '../types';
 import { calculateUserRatingsSummary } from '../utils/ratingCalculations';
@@ -16,6 +18,8 @@ export const ProfilePage: React.FC = () => {
   const stats = getStats();
   const [ratingsSummary, setRatingsSummary] = useState<UserRatingsSummary | null>(null);
   const [isLoadingRatings, setIsLoadingRatings] = useState(true);
+  const [isExportingData, setIsExportingData] = useState(false);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
 
   // Load user ratings on mount
   useEffect(() => {
@@ -57,6 +61,84 @@ export const ProfilePage: React.FC = () => {
       resetApp();
       logout();
       window.location.reload();
+    }
+  };
+
+  const handleExportData = async () => {
+    if (!currentUser || !userType) return;
+
+    try {
+      setIsExportingData(true);
+
+      const result = await exportUserData(currentUser.id, userType, {
+        format: 'both',
+        includeMetadata: true
+      });
+
+      if (result.success) {
+        downloadExportData(result, `propertyswipe-data-${currentUser.id}`);
+
+        addToast({
+          type: 'success',
+          message: 'Your data has been exported successfully',
+        });
+      } else {
+        throw new Error(result.error || 'Export failed');
+      }
+    } catch (error) {
+      console.error('Failed to export data:', error);
+      addToast({
+        type: 'error',
+        message: 'Failed to export your data. Please try again.',
+      });
+    } finally {
+      setIsExportingData(false);
+    }
+  };
+
+  const handleRequestDeletion = async () => {
+    if (!currentUser || !userType) return;
+
+    const confirmed = confirm(
+      'Are you sure you want to request account deletion?\n\n' +
+      'This will:\n' +
+      '• Start a 30-day grace period before permanent deletion\n' +
+      '• Send you a verification email\n' +
+      '• Allow you to cancel within 30 days\n' +
+      '• Permanently delete all your data after 30 days\n\n' +
+      'This action complies with GDPR Article 17 (Right to Erasure).'
+    );
+
+    if (!confirmed) return;
+
+    try {
+      setIsDeletingAccount(true);
+
+      const deletionRequest = await DataDeletionService.requestDeletion(
+        currentUser.id,
+        userType,
+        {
+          reason: 'User requested account deletion from profile page'
+        }
+      );
+
+      addToast({
+        type: 'info',
+        message: `Account deletion requested. Please check your email to verify. Deletion scheduled for ${new Date(deletionRequest.scheduledDeletionDate).toLocaleDateString()}.`,
+      });
+
+      // Optionally log out the user
+      setTimeout(() => {
+        handleLogout();
+      }, 3000);
+    } catch (error) {
+      console.error('Failed to request deletion:', error);
+      addToast({
+        type: 'error',
+        message: 'Failed to request account deletion. Please try again.',
+      });
+    } finally {
+      setIsDeletingAccount(false);
     }
   };
 
@@ -278,6 +360,91 @@ export const ProfilePage: React.FC = () => {
             </div>
           </div>
         )}
+
+        {/* Your Data Rights (GDPR) */}
+        <div className="bg-white rounded-2xl shadow-sm p-6 border-2 border-primary-100">
+          <div className="flex items-center gap-2 mb-3">
+            <Shield size={24} className="text-primary-600" />
+            <h3 className="text-xl font-bold text-neutral-900">Your Data Rights</h3>
+          </div>
+          <p className="text-neutral-600 mb-6">
+            Under GDPR, you have the right to access, export, and delete your personal data at any time.
+          </p>
+
+          <div className="space-y-4">
+            {/* Export Data */}
+            <div className="border border-neutral-200 rounded-xl p-4">
+              <div className="flex items-start gap-3 mb-3">
+                <div className="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <Download size={20} className="text-primary-600" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-semibold text-neutral-900 mb-1">Download Your Data</h4>
+                  <p className="text-sm text-neutral-600">
+                    Export all your personal data in JSON and CSV formats. Includes your profile, matches, messages, and ratings.
+                  </p>
+                  <p className="text-xs text-neutral-500 mt-2">
+                    GDPR Article 15 (Right of Access) & Article 20 (Data Portability)
+                  </p>
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                icon={<Download size={16} />}
+                onClick={handleExportData}
+                disabled={isExportingData}
+              >
+                {isExportingData ? 'Exporting...' : 'Export My Data'}
+              </Button>
+            </div>
+
+            {/* Request Deletion */}
+            <div className="border border-danger-200 rounded-xl p-4 bg-danger-50">
+              <div className="flex items-start gap-3 mb-3">
+                <div className="w-10 h-10 bg-danger-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <Trash2 size={20} className="text-danger-600" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="font-semibold text-neutral-900 mb-1">Delete Your Account</h4>
+                  <p className="text-sm text-neutral-600">
+                    Request permanent deletion of your account and all associated data. You'll have 30 days to cancel before deletion is final.
+                  </p>
+                  <p className="text-xs text-neutral-500 mt-2">
+                    GDPR Article 17 (Right to Erasure / "Right to be Forgotten")
+                  </p>
+                </div>
+              </div>
+              <Button
+                variant="danger"
+                size="sm"
+                icon={<Trash2 size={16} />}
+                onClick={handleRequestDeletion}
+                disabled={isDeletingAccount}
+              >
+                {isDeletingAccount ? 'Processing...' : 'Request Account Deletion'}
+              </Button>
+            </div>
+
+            {/* Privacy Information */}
+            <div className="border border-neutral-200 rounded-xl p-4 bg-neutral-50">
+              <div className="flex items-start gap-3">
+                <FileText size={20} className="text-neutral-600 flex-shrink-0 mt-0.5" />
+                <div className="text-sm text-neutral-600">
+                  <p className="mb-2">
+                    <strong>Your privacy matters.</strong> We process your data in compliance with UK GDPR and the Data Protection Act 2018.
+                  </p>
+                  <ul className="space-y-1 text-xs">
+                    <li>• Data Controller: PropertySwipe Ltd</li>
+                    <li>• Contact: privacy@propertyswipe.co.uk</li>
+                    <li>• DPO: dpo@propertyswipe.co.uk</li>
+                    <li>• You can lodge a complaint with the ICO at any time</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
 
         {/* Danger Zone */}
         <div className="bg-white rounded-2xl shadow-sm p-6 border-2 border-danger-100">

@@ -21,12 +21,13 @@ test.describe('Bottom Navigation', () => {
     // Navigate to matches
     await page.getByRole('button', { name: /matches/i }).click();
     await page.waitForTimeout(500);
-    await expect(page.getByText(/matches/i)).toBeVisible();
+    await expect(page.getByRole('heading', { name: /matches/i }).or(page.getByText(/no matches yet/i))).toBeVisible();
 
     // Navigate to profile
     await page.getByRole('button', { name: /profile/i }).click();
     await page.waitForTimeout(500);
-    await expect(page.getByText(/profile|settings|account/i)).toBeVisible();
+    // Profile page has a heading "Profile" - use specific selector
+    await expect(page.getByRole('heading', { name: 'Profile', level: 1 })).toBeVisible();
 
     // Navigate back to swipe
     await page.getByRole('button', { name: /swipe/i }).click();

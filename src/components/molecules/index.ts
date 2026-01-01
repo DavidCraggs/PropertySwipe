@@ -4,6 +4,7 @@
  */
 
 export { PropertyCard } from './PropertyCard';
+export { RenterCard } from './RenterCard';
 export { ImageGallery } from './ImageGallery';
 export { PropertyInfoGrid } from './PropertyInfoGrid';
 export { LocationMap } from './LocationMap';

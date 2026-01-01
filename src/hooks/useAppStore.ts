@@ -12,7 +12,11 @@ import type {
   AgencyLinkInvitation,
   AgencyPropertyLink,
   InvitationType,
+  Interest,
+  RenterCard,
+  RenterProfile,
 } from '../types';
+import { calculateCompatibility } from '../utils/matchScoring';
 import { mockProperties } from '../data/mockProperties';
 import {
   STORAGE_KEYS,
@@ -60,6 +64,9 @@ interface AppState {
   // Viewing Preferences
   viewingPreferences: ViewingPreference[];
 
+  // Two-Sided Matching (Phase 3)
+  interests: Interest[];
+
   // UI State
   isOnboarded: boolean;
 
@@ -73,11 +80,11 @@ interface AppState {
 
   // Matching (rental platform: renter ↔ landlord)
   checkForMatch: (propertyId: string, renterProfile?: {
-    situation: string;
-    ages: string;
-    localArea: string;
-    renterType: string;
-    employmentStatus: string;
+    situation?: string;
+    ages?: string;
+    localArea?: string;
+    renterType?: string;
+    employmentStatus?: string;
   }) => boolean;
 
   // Rating System (NEW)
@@ -149,6 +156,13 @@ interface AppState {
   reviewPetRequest: (matchId: string, status: 'approved' | 'refused', refusalReason?: string) => void;
   verifyRightToRent: (matchId: string) => void;
 
+  // Two-Sided Matching (Phase 3)
+  createInterest: (propertyId: string, renterId: string, renterProfile: RenterProfile) => Promise<Interest | null>;
+  getInterestedRenters: (landlordId: string, propertyId?: string) => Promise<RenterCard[]>;
+  confirmMatch: (interestId: string) => Promise<Match | null>;
+  declineInterest: (interestId: string) => Promise<void>;
+  getPendingInterestsCount: (landlordId: string) => number;
+
   // Reset
   resetApp: () => void;
 }
@@ -169,6 +183,7 @@ export const useAppStore = create<AppState>()(
       passedProperties: [],
       matches: [],
       viewingPreferences: [],
+      interests: [],
       isOnboarded: false,
 
       // Initialize user (defaults to renter type for rental platform)
@@ -234,7 +249,7 @@ export const useAppStore = create<AppState>()(
         }
 
         // Get renter profile from useAuthStore to pass to checkForMatch
-        let renterProfile: RenterProfile | undefined = undefined;
+        let renterProfile: Partial<RenterProfile> | undefined = undefined;
         try {
           const authData = localStorage.getItem('get-on-auth');
           if (authData) {
@@ -1106,6 +1121,7 @@ export const useAppStore = create<AppState>()(
           passedProperties: [],
           matches: [],
           viewingPreferences: [],
+          interests: [],
           isOnboarded: false,
         });
       },
@@ -1169,6 +1185,285 @@ export const useAppStore = create<AppState>()(
 
         set({ matches: updatedMatches });
       },
+
+      // ========================================
+      // TWO-SIDED MATCHING (Phase 3)
+      // ========================================
+
+      /**
+       * Create an interest record when a renter likes a property
+       * This replaces the random match creation - now creates a pending interest
+       */
+      createInterest: async (propertyId, renterId, renterProfile) => {
+        const { allProperties, interests } = get();
+
+        const property = allProperties.find((p) => p.id === propertyId);
+        if (!property) {
+          console.error('[TwoSidedMatch] Property not found:', propertyId);
+          return null;
+        }
+
+        if (!property.landlordId || property.landlordId.trim() === '') {
+          console.warn('[TwoSidedMatch] Property has no landlord:', propertyId);
+          return null;
+        }
+
+        // Check if interest already exists
+        const existingInterest = interests.find(
+          (i) => i.renterId === renterId && i.propertyId === propertyId
+        );
+
+        if (existingInterest) {
+          console.log('[TwoSidedMatch] Interest already exists:', existingInterest.id);
+          return existingInterest;
+        }
+
+        // Calculate compatibility score
+        const compatibilityScore = calculateCompatibility(renterProfile, property);
+
+        // Create new interest
+        const newInterest: Interest = {
+          id: `interest-${Date.now()}`,
+          renterId,
+          landlordId: property.landlordId,
+          propertyId,
+          interestedAt: new Date(),
+          status: 'pending',
+          expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+          compatibilityScore: compatibilityScore.overall,
+          compatibilityBreakdown: compatibilityScore.breakdown,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+
+        console.log('[TwoSidedMatch] Created interest:', newInterest.id, 'Score:', compatibilityScore.overall);
+
+        set({ interests: [...interests, newInterest] });
+
+        return newInterest;
+      },
+
+      /**
+       * Get all interested renters for a landlord's properties
+       * Returns RenterCard format for display in LandlordSwipePage
+       */
+      getInterestedRenters: async (landlordId, propertyId) => {
+        const { interests, allProperties } = get();
+
+        // Filter interests for this landlord's properties
+        let relevantInterests = interests.filter(
+          (i) => i.landlordId === landlordId && i.status === 'pending'
+        );
+
+        // Filter by specific property if provided
+        if (propertyId) {
+          relevantInterests = relevantInterests.filter((i) => i.propertyId === propertyId);
+        }
+
+        // Convert interests to RenterCards
+        const renterCards: RenterCard[] = [];
+
+        for (const interest of relevantInterests) {
+          // Get renter profile from localStorage (in production, would be from API)
+          let renterProfile: RenterProfile | null = null;
+
+          try {
+            const rentersData = localStorage.getItem('get-on-renters');
+            if (rentersData) {
+              const renters = JSON.parse(rentersData);
+              renterProfile = renters.find((r: RenterProfile) => r.id === interest.renterId);
+            }
+          } catch {
+            console.warn('[TwoSidedMatch] Could not load renter profile');
+          }
+
+          if (!renterProfile) continue;
+
+          const property = allProperties.find((p) => p.id === interest.propertyId);
+          if (!property) continue;
+
+          // Calculate fresh compatibility score
+          const compatibilityScore = calculateCompatibility(renterProfile, property);
+
+          const renterCard: RenterCard = {
+            renterId: interest.renterId,
+            interestId: interest.id,
+            situation: renterProfile.situation,
+            employmentStatus: renterProfile.employmentStatus,
+            monthlyIncome: renterProfile.monthlyIncome,
+            hasPets: renterProfile.hasPets,
+            petDetails: renterProfile.petDetails?.map((p) => ({
+              type: p.type,
+              count: p.count,
+              hasInsurance: p.hasInsurance,
+            })),
+            hasGuarantor: renterProfile.hasGuarantor,
+            hasRentalHistory: renterProfile.hasRentalHistory,
+            preferredMoveInDate: renterProfile.preferredMoveInDate,
+            smokingStatus: renterProfile.smokingStatus,
+            rating: renterProfile.ratingsSummary,
+            compatibilityScore,
+            interestedAt: interest.interestedAt,
+            propertyId: interest.propertyId,
+            propertyAddress: `${property.address.street}, ${property.address.city}`,
+          };
+
+          renterCards.push(renterCard);
+        }
+
+        // Sort by compatibility score (highest first)
+        renterCards.sort((a, b) => b.compatibilityScore.overall - a.compatibilityScore.overall);
+
+        console.log('[TwoSidedMatch] Returning', renterCards.length, 'interested renters for landlord:', landlordId);
+
+        return renterCards;
+      },
+
+      /**
+       * Landlord confirms interest - creates a mutual match
+       */
+      confirmMatch: async (interestId) => {
+        const { interests, allProperties, matches } = get();
+
+        const interestIndex = interests.findIndex((i) => i.id === interestId);
+        if (interestIndex === -1) {
+          console.error('[TwoSidedMatch] Interest not found:', interestId);
+          return null;
+        }
+
+        const interest = interests[interestIndex];
+        const property = allProperties.find((p) => p.id === interest.propertyId);
+
+        if (!property) {
+          console.error('[TwoSidedMatch] Property not found for interest:', interest.propertyId);
+          return null;
+        }
+
+        // Get renter name from localStorage
+        let renterName = 'Renter';
+        try {
+          const rentersData = localStorage.getItem('get-on-renters');
+          if (rentersData) {
+            const renters = JSON.parse(rentersData);
+            const renter = renters.find((r: RenterProfile) => r.id === interest.renterId);
+            if (renter) {
+              renterName = renter.names;
+            }
+          }
+        } catch {
+          console.warn('[TwoSidedMatch] Could not load renter name');
+        }
+
+        // Get landlord name
+        let landlordName = `Landlord for ${property.address.street}`;
+        try {
+          const authData = localStorage.getItem('get-on-auth');
+          if (authData) {
+            const parsed = JSON.parse(authData);
+            if (parsed.state?.currentUser?.names) {
+              landlordName = parsed.state.currentUser.names;
+            }
+          }
+        } catch {
+          console.warn('[TwoSidedMatch] Could not retrieve landlord name');
+        }
+
+        // Create the match
+        const newMatchId = `match-${Date.now()}`;
+        const newMatch: Match = {
+          id: newMatchId,
+          propertyId: property.id,
+          property,
+          landlordId: interest.landlordId,
+          landlordName,
+          renterId: interest.renterId,
+          renterName,
+          timestamp: new Date().toISOString(),
+          tenancyStatus: 'prospective',
+          activeIssueIds: [],
+          totalIssuesRaised: 0,
+          totalIssuesResolved: 0,
+          messages: [
+            {
+              id: `msg-${Date.now()}`,
+              matchId: newMatchId,
+              senderId: interest.landlordId,
+              receiverId: interest.renterId,
+              senderType: 'landlord',
+              content: `Great news! I've reviewed your interest in ${property.address.street} and would love to discuss next steps. When would be a good time for a viewing?`,
+              timestamp: new Date().toISOString(),
+              isRead: false,
+            },
+          ],
+          lastMessageAt: new Date().toISOString(),
+          unreadCount: 1,
+          hasViewingScheduled: false,
+          applicationStatus: 'pending',
+          isUnderEvictionProceedings: false,
+          rentArrears: {
+            totalOwed: 0,
+            monthsMissed: 0,
+            consecutiveMonthsMissed: 0,
+          },
+          canRate: false,
+          hasLandlordRated: false,
+          hasRenterRated: false,
+        };
+
+        // Update interest status
+        const updatedInterests = [...interests];
+        updatedInterests[interestIndex] = {
+          ...interest,
+          status: 'matched',
+          landlordReviewedAt: new Date(),
+          createdMatchId: newMatchId,
+          updatedAt: new Date(),
+        };
+
+        console.log('[TwoSidedMatch] Created mutual match:', newMatchId, 'from interest:', interestId);
+
+        set({
+          interests: updatedInterests,
+          matches: [newMatch, ...matches],
+        });
+
+        return newMatch;
+      },
+
+      /**
+       * Landlord declines an interest
+       */
+      declineInterest: async (interestId) => {
+        const { interests } = get();
+
+        const interestIndex = interests.findIndex((i) => i.id === interestId);
+        if (interestIndex === -1) {
+          console.error('[TwoSidedMatch] Interest not found:', interestId);
+          return;
+        }
+
+        const updatedInterests = [...interests];
+        updatedInterests[interestIndex] = {
+          ...interests[interestIndex],
+          status: 'landlord_passed',
+          landlordReviewedAt: new Date(),
+          updatedAt: new Date(),
+        };
+
+        console.log('[TwoSidedMatch] Declined interest:', interestId);
+
+        set({ interests: updatedInterests });
+      },
+
+      /**
+       * Get count of pending interests for a landlord (for badge display)
+       */
+      getPendingInterestsCount: (landlordId) => {
+        const { interests } = get();
+        return interests.filter(
+          (i) => i.landlordId === landlordId && i.status === 'pending'
+        ).length;
+      },
     }),
     {
       name: STORAGE_KEYS.USER,
@@ -1178,6 +1473,7 @@ export const useAppStore = create<AppState>()(
         passedProperties: state.passedProperties,
         matches: state.matches,
         viewingPreferences: state.viewingPreferences,
+        interests: state.interests,
         isOnboarded: state.isOnboarded,
       }),
     }

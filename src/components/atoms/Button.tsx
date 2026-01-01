@@ -23,6 +23,9 @@ interface ButtonProps {
   disabled?: boolean;
   type?: 'button' | 'submit' | 'reset';
   children?: React.ReactNode;
+  'aria-label'?: string;
+  'aria-describedby'?: string;
+  tabIndex?: number;
 }
 
 /**
@@ -43,6 +46,9 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       className = '',
       onClick,
       type = 'button',
+      'aria-label': ariaLabel,
+      'aria-describedby': ariaDescribedBy,
+      tabIndex,
     },
     ref
   ) => {
@@ -84,6 +90,9 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         onClick={onClick}
         whileTap={{ scale: disabled || isLoading ? 1 : 0.95 }}
         whileHover={{ scale: disabled || isLoading ? 1 : 1.02 }}
+        aria-label={ariaLabel}
+        aria-describedby={ariaDescribedBy}
+        tabIndex={tabIndex}
       >
         {isLoading && (
           <svg

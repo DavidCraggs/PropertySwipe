@@ -68,7 +68,7 @@ export function VendorOnboarding({ onComplete, onLogin }: VendorOnboardingProps)
           }));
         } else {
           setErrors((prev) => {
-            const { estateAgentLink: _, ...rest } = prev;
+            const { estateAgentLink: _removed, ...rest } = prev;
             return rest;
           });
         }

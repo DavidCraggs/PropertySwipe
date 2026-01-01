@@ -10,6 +10,10 @@ import type {
   RenterProfile,
   AgencyProfile,
   Property,
+  PropertyType,
+  FurnishingType,
+  EPCRating,
+  PRSRegistrationStatus,
   Match,
   Rating,
   UserRatingsSummary,
@@ -62,7 +66,7 @@ export const saveLandlordProfile = async (profile: LandlordProfile): Promise<Lan
 
     if (isValidUUID) {
       // Update existing profile
-      console.log('[Storage] Updating landlord profile with data:', JSON.stringify(profileData, null, 2));
+      console.log('[Storage] Updating landlord profile with ID:', profile.id);
 
       const { data, error } = await supabase
         .from('landlord_profiles')
@@ -86,7 +90,7 @@ export const saveLandlordProfile = async (profile: LandlordProfile): Promise<Lan
       return { ...profile, id: data.id };
     } else {
       // Insert new profile (let Supabase generate UUID)
-      console.log('[Storage] Inserting new landlord profile with data:', JSON.stringify(profileData, null, 2));
+      console.log('[Storage] Inserting new landlord profile');
 
       const { data, error } = await supabase
         .from('landlord_profiles')
@@ -335,55 +339,58 @@ export const getBuyerProfile = getRenterProfile as unknown as (id: string) => Pr
 
 export const saveAgencyProfile = async (profile: AgencyProfile | Omit<AgencyProfile, 'id'>): Promise<AgencyProfile> => {
   if (isSupabaseConfigured()) {
-    // Handle both camelCase TypeScript objects and snake_case database objects
-    const profileData: Record<string, any> = {
+    // Cast to Record to handle both camelCase TypeScript objects and snake_case database objects
+    // This is needed because data may come from either the app (camelCase) or database (snake_case)
+    const p = profile as Record<string, unknown>;
+
+    const profileData: Record<string, unknown> = {
       email: profile.email,
-      password_hash: profile.password_hash || profile.passwordHash,
-      agency_type: profile.agency_type || profile.agencyType,
-      company_name: profile.company_name || profile.companyName,
-      registration_number: profile.registration_number || profile.registrationNumber,
-      primary_contact_name: profile.primary_contact_name || profile.primaryContactName,
+      password_hash: p.password_hash || profile.passwordHash,
+      agency_type: p.agency_type || profile.agencyType,
+      company_name: p.company_name || profile.companyName,
+      registration_number: p.registration_number || profile.registrationNumber,
+      primary_contact_name: p.primary_contact_name || profile.primaryContactName,
       phone: profile.phone,
-      service_areas: profile.service_areas || profile.serviceAreas,
-      managed_property_ids: profile.managed_property_ids || profile.managedPropertyIds,
-      landlord_client_ids: profile.landlord_client_ids || profile.landlordClientIds,
-      active_tenants_count: profile.active_tenants_count ?? profile.activeTenantsCount,
-      total_properties_managed: profile.total_properties_managed ?? profile.totalPropertiesManaged,
-      property_ombudsman_member: profile.property_ombudsman_member ?? profile.propertyOmbudsmanMember,
-      is_active: profile.is_active ?? profile.isActive,
-      is_complete: profile.is_complete ?? profile.onboardingComplete,
+      service_areas: p.service_areas || profile.serviceAreas,
+      managed_property_ids: p.managed_property_ids || profile.managedPropertyIds,
+      landlord_client_ids: p.landlord_client_ids || profile.landlordClientIds,
+      active_tenants_count: p.active_tenants_count ?? profile.activeTenantsCount,
+      total_properties_managed: p.total_properties_managed ?? profile.totalPropertiesManaged,
+      property_ombudsman_member: p.property_ombudsman_member ?? profile.propertyOmbudsmanMember,
+      is_active: p.is_active ?? profile.isActive,
+      is_complete: p.is_complete ?? profile.onboardingComplete,
     };
 
     // Handle address - either flat fields or nested object
-    if (profile.address_street || profile.address) {
-      profileData.address_street = profile.address_street || profile.address?.street;
-      profileData.address_city = profile.address_city || profile.address?.city;
-      profileData.address_postcode = profile.address_postcode || profile.address?.postcode;
+    if (p.address_street || profile.address) {
+      profileData.address_street = p.address_street || profile.address?.street;
+      profileData.address_city = p.address_city || profile.address?.city;
+      profileData.address_postcode = p.address_postcode || profile.address?.postcode;
     }
 
     // Handle SLA configuration - either flat fields or nested object
-    if (profile.sla_emergency_response_hours !== undefined || profile.slaConfiguration) {
-      profileData.sla_emergency_response_hours = profile.sla_emergency_response_hours ?? profile.slaConfiguration?.emergencyResponseHours;
-      profileData.sla_urgent_response_hours = profile.sla_urgent_response_hours ?? profile.slaConfiguration?.urgentResponseHours;
-      profileData.sla_routine_response_hours = profile.sla_routine_response_hours ?? profile.slaConfiguration?.routineResponseHours;
-      profileData.sla_maintenance_response_days = profile.sla_maintenance_response_days ?? profile.slaConfiguration?.maintenanceResponseDays;
+    if (p.sla_emergency_response_hours !== undefined || profile.slaConfiguration) {
+      profileData.sla_emergency_response_hours = p.sla_emergency_response_hours ?? profile.slaConfiguration?.emergencyResponseHours;
+      profileData.sla_urgent_response_hours = p.sla_urgent_response_hours ?? profile.slaConfiguration?.urgentResponseHours;
+      profileData.sla_routine_response_hours = p.sla_routine_response_hours ?? profile.slaConfiguration?.routineResponseHours;
+      profileData.sla_maintenance_response_days = p.sla_maintenance_response_days ?? profile.slaConfiguration?.maintenanceResponseDays;
     }
 
     // Handle performance metrics - either flat fields or nested object
-    if (profile.avg_response_time_hours !== undefined || profile.performanceMetrics) {
-      profileData.avg_response_time_hours = profile.avg_response_time_hours ?? profile.performanceMetrics?.averageResponseTimeHours;
-      profileData.sla_compliance_rate = profile.sla_compliance_rate ?? profile.performanceMetrics?.slaComplianceRate;
-      profileData.total_issues_resolved = profile.total_issues_resolved ?? profile.performanceMetrics?.totalIssuesResolved;
-      profileData.total_issues_raised = profile.total_issues_raised ?? profile.performanceMetrics?.totalIssuesRaised;
-      profileData.current_open_issues = profile.current_open_issues ?? profile.performanceMetrics?.currentOpenIssues;
+    if (p.avg_response_time_hours !== undefined || profile.performanceMetrics) {
+      profileData.avg_response_time_hours = p.avg_response_time_hours ?? profile.performanceMetrics?.averageResponseTimeHours;
+      profileData.sla_compliance_rate = p.sla_compliance_rate ?? profile.performanceMetrics?.slaComplianceRate;
+      profileData.total_issues_resolved = p.total_issues_resolved ?? profile.performanceMetrics?.totalIssuesResolved;
+      profileData.total_issues_raised = p.total_issues_raised ?? profile.performanceMetrics?.totalIssuesRaised;
+      profileData.current_open_issues = p.current_open_issues ?? profile.performanceMetrics?.currentOpenIssues;
     }
 
     // Add seed_tag if present
-    if (profile.seed_tag) {
-      profileData.seed_tag = profile.seed_tag;
+    if (p.seed_tag) {
+      profileData.seed_tag = p.seed_tag;
     }
 
-    if (profile.id) {
+    if ('id' in profile && profile.id) {
       // Update existing profile
       const { data, error } = await supabase
         .from('agency_profiles')
@@ -408,8 +415,8 @@ export const saveAgencyProfile = async (profile: AgencyProfile | Omit<AgencyProf
     }
   } else {
     // localStorage fallback
-    const agencyId = profile.id || `agency-${Date.now()}`;
-    const updatedProfile = { ...profile, id: agencyId };
+    const agencyId = ('id' in profile && profile.id) ? profile.id : `agency-${Date.now()}`;
+    const updatedProfile = { ...profile, id: agencyId } as AgencyProfile;
 
     // Store in array of agency profiles
     const storedProfiles = localStorage.getItem('get-on-agency-profiles');
@@ -475,61 +482,64 @@ export const getAgencyProfile = async (id: string): Promise<AgencyProfile | null
 
 export const saveProperty = async (property: Property | Omit<Property, 'id'>): Promise<Property> => {
   if (isSupabaseConfigured()) {
-    const propertyData: Record<string, any> = {
-      landlord_id: property.landlord_id || property.landlordId || null,
-      managing_agency_id: property.managing_agency_id || property.managingAgencyId || null,
-      marketing_agent_id: property.marketing_agent_id || property.marketingAgentId || null,
-      street: property.address?.street || property.street,
-      city: property.address?.city || property.city,
-      postcode: property.address?.postcode || property.postcode,
-      council: property.address?.council || property.council,
+    // Cast to Record to handle both camelCase TypeScript objects and snake_case database objects
+    const prop = property as Record<string, unknown>;
+
+    const propertyData: Record<string, unknown> = {
+      landlord_id: prop.landlord_id || property.landlordId || null,
+      managing_agency_id: prop.managing_agency_id || property.managingAgencyId || null,
+      marketing_agent_id: prop.marketing_agent_id || property.marketingAgentId || null,
+      street: property.address?.street || prop.street,
+      city: property.address?.city || prop.city,
+      postcode: property.address?.postcode || prop.postcode,
+      council: property.address?.council || prop.council,
 
       // Rental pricing (not purchase price)
-      rent_pcm: property.rentPcm || property.rent_pcm,
+      rent_pcm: property.rentPcm || prop.rent_pcm,
       deposit: property.deposit,
 
       bedrooms: property.bedrooms,
       bathrooms: property.bathrooms,
-      property_type: property.propertyType || property.property_type,
-      year_built: property.yearBuilt || property.year_built,
+      property_type: property.propertyType || prop.property_type,
+      year_built: property.yearBuilt || prop.year_built,
       description: property.description,
-      epc_rating: property.epcRating || property.epc_rating,
+      epc_rating: property.epcRating || prop.epc_rating,
       images: property.images,
       features: property.features,
 
       // Rental-specific fields
       furnishing: property.furnishing,
-      available_from: property.availableFrom || property.available_from,
-      tenancy_type: property.tenancyType || property.tenancy_type || 'Periodic', // RRA 2025
-      max_occupants: property.maxOccupants || property.max_occupants,
-      pets_policy: property.petsPolicy || property.pets_policy,
+      available_from: property.availableFrom || prop.available_from,
+      tenancy_type: property.tenancyType || prop.tenancy_type || 'Periodic', // RRA 2025
+      max_occupants: property.maxOccupants || prop.max_occupants,
+      pets_policy: property.petsPolicy || prop.pets_policy,
 
       // Bills
-      council_tax_band: property.bills?.councilTaxBand || property.council_tax_band,
-      gas_electric_included: property.bills?.gasElectricIncluded ?? property.gas_electric_included ?? false,
-      water_included: property.bills?.waterIncluded ?? property.water_included ?? false,
-      internet_included: property.bills?.internetIncluded ?? property.internet_included ?? false,
+      council_tax_band: property.bills?.councilTaxBand || prop.council_tax_band,
+      gas_electric_included: property.bills?.gasElectricIncluded ?? prop.gas_electric_included ?? false,
+      water_included: property.bills?.waterIncluded ?? prop.water_included ?? false,
+      internet_included: property.bills?.internetIncluded ?? prop.internet_included ?? false,
 
       // RRA 2025 Compliance
-      meets_decent_homes_standard: property.meetsDecentHomesStandard ?? property.meets_decent_homes_standard,
-      awaabs_law_compliant: property.awaabsLawCompliant ?? property.awaabs_law_compliant,
-      last_safety_inspection_date: property.lastSafetyInspectionDate || property.last_safety_inspection_date,
-      prs_property_registration_number: property.prsPropertyRegistrationNumber || property.prs_property_registration_number,
-      prs_property_registration_status: property.prsPropertyRegistrationStatus || property.prs_property_registration_status,
+      meets_decent_homes_standard: property.meetsDecentHomesStandard ?? prop.meets_decent_homes_standard,
+      awaabs_law_compliant: property.awaabsLawCompliant ?? prop.awaabs_law_compliant,
+      last_safety_inspection_date: property.lastSafetyInspectionDate || prop.last_safety_inspection_date,
+      prs_property_registration_number: property.prsPropertyRegistrationNumber || prop.prs_property_registration_number,
+      prs_property_registration_status: property.prsPropertyRegistrationStatus || prop.prs_property_registration_status,
 
-      is_available: property.isAvailable ?? property.is_available,
-      listing_date: property.listingDate || property.listing_date,
-      preferred_minimum_stay: property.preferredMinimumStay ?? property.preferred_minimum_stay,
-      accepts_short_term_tenants: property.acceptsShortTermTenants ?? property.accepts_short_term_tenants,
+      is_available: property.isAvailable ?? prop.is_available,
+      listing_date: property.listingDate || prop.listing_date,
+      preferred_minimum_stay: property.preferredMinimumStay ?? prop.preferred_minimum_stay,
+      accepts_short_term_tenants: property.acceptsShortTermTenants ?? prop.accepts_short_term_tenants,
     };
 
     // Add seed_tag if present
-    if (property.seed_tag) {
-      propertyData.seed_tag = property.seed_tag;
+    if (prop.seed_tag) {
+      propertyData.seed_tag = prop.seed_tag;
     }
 
     // Check if property has a valid UUID (for updates) or needs to be inserted
-    const isValidUUID = property.id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(property.id);
+    const isValidUUID = ('id' in property && property.id) && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(property.id);
 
     if (isValidUUID) {
       // Update existing property
@@ -549,7 +559,7 @@ export const saveProperty = async (property: Property | Omit<Property, 'id'>): P
       };
     } else {
       // Insert new property (let Supabase generate UUID)
-      console.log('[Storage] Inserting new property with data:', JSON.stringify(propertyData, null, 2));
+      console.log('[Storage] Inserting new property');
 
       const { data, error } = await supabase
         .from('properties')
@@ -578,14 +588,16 @@ export const saveProperty = async (property: Property | Omit<Property, 'id'>): P
     }
   } else {
     const allProperties = await getAllProperties();
-    const index = allProperties.findIndex(p => p.id === property.id);
+    const propertyId = ('id' in property && property.id) ? property.id : `prop-${Date.now()}`;
+    const propertyWithId = { ...property, id: propertyId } as Property;
+    const index = allProperties.findIndex(p => p.id === propertyId);
     if (index >= 0) {
-      allProperties[index] = property;
+      allProperties[index] = propertyWithId;
     } else {
-      allProperties.push(property);
+      allProperties.push(propertyWithId);
     }
     localStorage.setItem('properties', JSON.stringify(allProperties));
-    return property;
+    return propertyWithId;
   }
 };
 
@@ -872,35 +884,38 @@ export const deleteProperty = async (id: string): Promise<void> => {
 
 export const saveMatch = async (match: Match | Omit<Match, 'id'>): Promise<Match> => {
   if (isSupabaseConfigured()) {
-    const matchData: Record<string, any> = {
-      property_id: match.property_id || match.propertyId,
-      landlord_id: match.landlord_id || match.landlordId,
-      renter_id: match.renter_id || match.renterId,
-      managing_agency_id: match.managing_agency_id || match.managingAgencyId || null,
-      marketing_agent_id: match.marketing_agent_id || match.marketingAgentId || null,
-      renter_name: match.renter_name || match.renterName,
-      renter_profile: match.renter_profile || match.renterProfile,
+    // Cast to Record to handle both camelCase TypeScript objects and snake_case database objects
+    const m = match as Record<string, unknown>;
+
+    const matchData: Record<string, unknown> = {
+      property_id: m.property_id || match.propertyId,
+      landlord_id: m.landlord_id || match.landlordId,
+      renter_id: m.renter_id || match.renterId,
+      managing_agency_id: m.managing_agency_id || match.managingAgencyId || null,
+      marketing_agent_id: m.marketing_agent_id || match.marketingAgentId || null,
+      renter_name: m.renter_name || match.renterName,
+      renter_profile: m.renter_profile || match.renterProfile,
       messages: match.messages,
-      last_message_at: match.last_message_at || match.lastMessageAt,
-      unread_count: match.unread_count ?? match.unreadCount,
-      has_viewing_scheduled: match.has_viewing_scheduled ?? match.hasViewingScheduled,
-      confirmed_viewing_date: match.confirmed_viewing_date || match.confirmedViewingDate,
-      viewing_preference: match.viewing_preference || match.viewingPreference,
-      tenancy_start_date: match.tenancy_start_date || match.tenancyStartDate,
-      can_rate: match.can_rate ?? match.canRate,
-      has_landlord_rated: match.has_landlord_rated ?? match.hasLandlordRated,
-      has_renter_rated: match.has_renter_rated ?? match.hasRenterRated,
-      landlord_rating_id: match.landlord_rating_id || match.landlordRatingId,
-      renter_rating_id: match.renter_rating_id || match.renterRatingId,
+      last_message_at: m.last_message_at || match.lastMessageAt,
+      unread_count: m.unread_count ?? match.unreadCount,
+      has_viewing_scheduled: m.has_viewing_scheduled ?? match.hasViewingScheduled,
+      confirmed_viewing_date: m.confirmed_viewing_date || match.confirmedViewingDate,
+      viewing_preference: m.viewing_preference || match.viewingPreference,
+      tenancy_start_date: m.tenancy_start_date || match.tenancyStartDate,
+      can_rate: m.can_rate ?? match.canRate,
+      has_landlord_rated: m.has_landlord_rated ?? match.hasLandlordRated,
+      has_renter_rated: m.has_renter_rated ?? match.hasRenterRated,
+      landlord_rating_id: m.landlord_rating_id || match.landlordRatingId,
+      renter_rating_id: m.renter_rating_id || match.renterRatingId,
     };
 
     // Add seed_tag if present
-    if (match.seed_tag) {
-      matchData.seed_tag = match.seed_tag;
+    if (m.seed_tag) {
+      matchData.seed_tag = m.seed_tag;
     }
 
     // Check if match has a valid UUID
-    const isValidUUID = match.id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(match.id);
+    const isValidUUID = ('id' in match && match.id) && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(match.id);
 
     if (isValidUUID) {
       // Update existing match
@@ -912,7 +927,7 @@ export const saveMatch = async (match: Match | Omit<Match, 'id'>): Promise<Match
         .single();
 
       if (error) throw error;
-      return { ...match, id: data.id };
+      return { ...match, id: data.id } as Match;
     } else {
       // Insert new match (let Supabase generate UUID)
       const { data, error } = await supabase
@@ -922,18 +937,20 @@ export const saveMatch = async (match: Match | Omit<Match, 'id'>): Promise<Match
         .single();
 
       if (error) throw error;
-      return { ...match, id: data.id };
+      return { ...match, id: data.id } as Match;
     }
   } else {
     const allMatches = await getAllMatches();
-    const index = allMatches.findIndex(m => m.id === match.id);
+    const matchId = ('id' in match && match.id) ? match.id : `match-${Date.now()}`;
+    const matchWithId = { ...match, id: matchId } as Match;
+    const index = allMatches.findIndex(m => m.id === matchId);
     if (index >= 0) {
-      allMatches[index] = match;
+      allMatches[index] = matchWithId;
     } else {
-      allMatches.push(match);
+      allMatches.push(matchWithId);
     }
     localStorage.setItem('matches', JSON.stringify(allMatches));
-    return match;
+    return matchWithId;
   }
 };
 
@@ -967,6 +984,7 @@ export const getAllMatches = async (): Promise<Match[]> => {
         },
         rentPcm: d.property.rent_pcm,
         deposit: d.property.deposit,
+        maxRentInAdvance: 1 as const, // RRA 2025 requirement
         bedrooms: d.property.bedrooms,
         bathrooms: d.property.bathrooms,
         propertyType: d.property.property_type,
@@ -994,7 +1012,7 @@ export const getAllMatches = async (): Promise<Match[]> => {
         listingDate: d.property.listing_date,
         preferredMinimumStay: d.property.preferred_minimum_stay,
         acceptsShortTermTenants: d.property.accepts_short_term_tenants,
-      } : {} as Record<string, unknown>,
+      } as Property : {} as unknown as Property,
       landlordId: d.landlord_id,
       landlordName: `Landlord ${d.landlord_id?.substring(0, 8)}`,
       renterId: d.renter_id,
@@ -1054,7 +1072,7 @@ export const createViewingRequest = async (viewing: ViewingPreference): Promise<
     if (fetchError) throw fetchError;
 
     // Update the match with the viewing preference
-    const updateData: Record<string, any> = {
+    const updateData: Record<string, unknown> = {
       viewing_preference: viewing,
       has_viewing_scheduled: viewing.status === 'confirmed',
     };
@@ -1105,23 +1123,26 @@ export const createViewingRequest = async (viewing: ViewingPreference): Promise<
  */
 export const saveRating = async (rating: Rating | Omit<Rating, 'id' | 'createdAt'>): Promise<Rating> => {
   if (isSupabaseConfigured()) {
-    const ratingData: Record<string, any> = {
-      match_id: rating.match_id || rating.matchId,
-      rated_user_id: rating.rated_user_id || rating.toUserId,
-      rated_user_type: rating.rated_user_type || rating.toUserType,
-      rater_user_id: rating.rater_user_id || rating.fromUserId,
-      rater_user_type: rating.rater_user_type || rating.fromUserType,
-      rating: Math.round(rating.rating ?? rating.overallScore ?? 5),
-      comment: rating.comment || rating.review,
+    // Cast to Record to handle both camelCase TypeScript objects and snake_case database objects
+    const r = rating as Record<string, unknown>;
+
+    const ratingData: Record<string, unknown> = {
+      match_id: r.match_id || rating.matchId,
+      rated_user_id: r.rated_user_id || rating.toUserId,
+      rated_user_type: r.rated_user_type || rating.toUserType,
+      rater_user_id: r.rater_user_id || rating.fromUserId,
+      rater_user_type: r.rater_user_type || rating.fromUserType,
+      rating: Math.round((r.rating as number) ?? rating.overallScore ?? 5),
+      comment: (r.comment as string) || rating.review,
     };
 
     // Add seed_tag if present
-    if (rating.seed_tag) {
-      ratingData.seed_tag = rating.seed_tag;
+    if (r.seed_tag) {
+      ratingData.seed_tag = r.seed_tag;
     }
 
     // Check if rating has a valid UUID
-    const isValidUUID = rating.id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(rating.id);
+    const isValidUUID = ('id' in rating && rating.id) && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(rating.id);
 
     if (isValidUUID) {
       // Update existing rating
@@ -1133,7 +1154,7 @@ export const saveRating = async (rating: Rating | Omit<Rating, 'id' | 'createdAt
         .single();
 
       if (error) throw error;
-      return { ...rating, id: data.id };
+      return { ...rating, id: data.id } as Rating;
     } else {
       // Insert new rating (let Supabase generate UUID)
       const { data, error } = await supabase
@@ -1146,32 +1167,36 @@ export const saveRating = async (rating: Rating | Omit<Rating, 'id' | 'createdAt
         console.error('[Storage] Rating insert error:', error);
         throw error;
       }
-      return { ...rating, id: data.id };
+      return { ...rating, id: data.id } as Rating;
     }
   } else {
     const key = `ratings-${rating.toUserId}`;
     const stored = localStorage.getItem(key);
     const ratings = stored ? JSON.parse(stored) : [];
-    ratings.push(rating);
+    const ratingId = ('id' in rating && rating.id) ? rating.id : `rating-${Date.now()}`;
+    const createdAt = ('createdAt' in rating && rating.createdAt) ? rating.createdAt : new Date();
+    const ratingWithId = { ...rating, id: ratingId, createdAt } as Rating;
+    ratings.push(ratingWithId);
     localStorage.setItem(key, JSON.stringify(ratings));
-    return rating;
+    return ratingWithId;
   }
 };
 
 /**
  * Get all ratings for a specific user (landlord or renter)
+ * Maps database column names to TypeScript interface
  */
 export const getRatingsForUser = async (
   userId: string,
   userType: 'landlord' | 'renter'
 ): Promise<Rating[]> => {
   if (isSupabaseConfigured()) {
+    // Database uses: rated_user_id, rated_user_type, rater_user_id, rater_user_type, rating, comment
     const { data, error } = await supabase
       .from('ratings')
       .select('*')
-      .eq('to_user_id', userId)
-      .eq('to_user_type', userType)
-      .eq('is_hidden', false)
+      .eq('rated_user_id', userId)
+      .eq('rated_user_type', userType)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
@@ -1179,27 +1204,27 @@ export const getRatingsForUser = async (
     return (data || []).map(d => ({
       id: d.id,
       matchId: d.match_id,
-      fromUserId: d.from_user_id,
-      fromUserType: d.from_user_type,
-      toUserId: d.to_user_id,
-      toUserType: d.to_user_type,
-      propertyId: d.property_id,
-      overallScore: d.overall_score,
+      fromUserId: d.rater_user_id,
+      fromUserType: d.rater_user_type,
+      toUserId: d.rated_user_id,
+      toUserType: d.rated_user_type,
+      propertyId: d.property_id || undefined,
+      overallScore: d.rating, // DB uses 'rating' not 'overall_score'
       categoryScores: {
-        communication: d.communication_score,
-        cleanliness: d.cleanliness_score,
-        reliability: d.reliability_score,
-        property_condition: d.property_condition_score,
-        respect_for_property: d.respect_for_property_score,
+        communication: d.communication_score || d.rating,
+        cleanliness: d.cleanliness_score || d.rating,
+        reliability: d.reliability_score || d.rating,
+        property_condition: d.property_condition_score || d.rating,
+        respect_for_property: d.respect_for_property_score || d.rating,
       },
-      review: d.review,
-      wouldRecommend: d.would_recommend,
-      tenancyStartDate: new Date(d.tenancy_start_date),
-      tenancyEndDate: new Date(d.tenancy_end_date),
-      isVerified: d.is_verified,
+      review: d.comment || d.review || '', // DB uses 'comment' not 'review'
+      wouldRecommend: d.would_recommend ?? true,
+      tenancyStartDate: d.tenancy_start_date ? new Date(d.tenancy_start_date) : new Date(),
+      tenancyEndDate: d.tenancy_end_date ? new Date(d.tenancy_end_date) : new Date(),
+      isVerified: d.is_verified ?? false,
       createdAt: new Date(d.created_at),
       reportedAt: d.reported_at ? new Date(d.reported_at) : undefined,
-      isHidden: d.is_hidden,
+      isHidden: d.is_hidden ?? false,
     }));
   } else {
     const stored = localStorage.getItem(`ratings-${userId}`);
@@ -1528,7 +1553,7 @@ export const updateAgencyInvitation = async (
   if (isSupabaseConfigured()) {
     console.log('[Storage] Updating agency invitation:', invitationId, updates);
 
-    const updateData: Record<string, any> = {};
+    const updateData: Record<string, unknown> = {};
     if (updates.status) updateData.status = updates.status;
     if (updates.responseMessage) updateData.response_message = updates.responseMessage;
     if (updates.respondedAt) updateData.responded_at = updates.respondedAt;
@@ -1812,7 +1837,7 @@ export const updateAgencyPropertyLink = async (
   if (isSupabaseConfigured()) {
     console.log('[Storage] Updating agency property link:', linkId, updates);
 
-    const updateData: Record<string, any> = {};
+    const updateData: Record<string, unknown> = {};
     if (updates.commissionRate !== undefined) updateData.commission_rate = updates.commissionRate;
     if (updates.contractEndDate !== undefined) updateData.contract_end_date = updates.contractEndDate;
     if (updates.isActive !== undefined) updateData.is_active = updates.isActive;
@@ -1912,42 +1937,45 @@ export const deleteAgencyPropertyLink = async (linkId: string): Promise<void> =>
  */
 export const saveIssue = async (issue: Issue | Omit<Issue, 'id' | 'createdAt' | 'updatedAt'>): Promise<Issue> => {
   if (isSupabaseConfigured()) {
+    // Cast to Record to handle both camelCase TypeScript objects and snake_case database objects
+    const i = issue as Record<string, unknown>;
+
     // Handle both old and new multi-role schema
-    const issueData: Record<string, any> = {
+    const issueData: Record<string, unknown> = {
       // Multi-role schema (new)
-      property_id: issue.property_id || issue.propertyId,
-      renter_id: issue.renter_id || issue.renterId,
-      landlord_id: issue.landlord_id || issue.landlordId,
-      agency_id: issue.agency_id || issue.agencyId,
-      assigned_to_agent_id: issue.assigned_to_agent_id || issue.assignedToAgentId,
+      property_id: i.property_id || issue.propertyId,
+      renter_id: i.renter_id || issue.renterId,
+      landlord_id: i.landlord_id || issue.landlordId,
+      agency_id: i.agency_id || issue.agencyId,
+      assigned_to_agent_id: i.assigned_to_agent_id || issue.assignedToAgentId,
       category: issue.category,
       priority: issue.priority,
-      subject: issue.subject || issue.title, // Support both
+      subject: issue.subject || i.title, // Support both
       description: issue.description,
       images: issue.images || [],
-      raised_at: issue.raised_at || issue.raisedAt,
-      acknowledged_at: issue.acknowledged_at || issue.acknowledgedAt,
-      resolved_at: issue.resolved_at || issue.resolvedAt,
-      closed_at: issue.closed_at || issue.closedAt,
-      sla_deadline: issue.sla_deadline || issue.slaDeadline,
-      is_overdue: issue.is_overdue ?? issue.isOverdue ?? false,
-      response_time_hours: issue.response_time_hours ?? issue.responseTimeHours,
-      resolution_time_days: issue.resolution_time_days ?? issue.resolutionTimeDays,
+      raised_at: i.raised_at || issue.raisedAt,
+      acknowledged_at: i.acknowledged_at || issue.acknowledgedAt,
+      resolved_at: i.resolved_at || issue.resolvedAt,
+      closed_at: i.closed_at || issue.closedAt,
+      sla_deadline: i.sla_deadline || issue.slaDeadline,
+      is_overdue: i.is_overdue ?? issue.isOverdue ?? false,
+      response_time_hours: i.response_time_hours ?? issue.responseTimeHours,
+      resolution_time_days: i.resolution_time_days ?? issue.resolutionTimeDays,
       status: issue.status,
-      status_history: issue.status_history || issue.statusHistory || [],
+      status_history: i.status_history || issue.statusHistory || [],
       messages: issue.messages || [],
-      internal_notes: issue.internal_notes || issue.internalNotes || [],
-      resolution_summary: issue.resolution_summary || issue.resolutionSummary || issue.resolutionNotes,
-      resolution_cost: issue.resolution_cost ?? issue.resolutionCost,
-      renter_satisfaction_rating: issue.renter_satisfaction_rating ?? issue.renterSatisfactionRating,
+      internal_notes: i.internal_notes || issue.internalNotes || [],
+      resolution_summary: i.resolution_summary || issue.resolutionSummary || i.resolutionNotes,
+      resolution_cost: i.resolution_cost ?? issue.resolutionCost,
+      renter_satisfaction_rating: i.renter_satisfaction_rating ?? issue.renterSatisfactionRating,
     };
 
     // Add seed_tag if present
-    if (issue.seed_tag) {
-      issueData.seed_tag = issue.seed_tag;
+    if (i.seed_tag) {
+      issueData.seed_tag = i.seed_tag;
     }
 
-    const isValidUUID = issue.id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(issue.id);
+    const isValidUUID = ('id' in issue && issue.id) && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(issue.id);
 
     if (isValidUUID) {
       // Update existing issue
@@ -1959,7 +1987,7 @@ export const saveIssue = async (issue: Issue | Omit<Issue, 'id' | 'createdAt' | 
         .single();
 
       if (error) throw error;
-      return { ...issue, id: data.id };
+      return { ...issue, id: data.id } as Issue;
     } else {
       // Insert new issue
       const { data, error } = await supabase
@@ -1972,11 +2000,14 @@ export const saveIssue = async (issue: Issue | Omit<Issue, 'id' | 'createdAt' | 
         console.error('[Storage] Issue insert error:', error);
         throw error;
       }
-      return { ...issue, id: data.id };
+      return { ...issue, id: data.id } as Issue;
     }
   } else {
-    const issueId = issue.id || `issue-${Date.now()}`;
-    const updatedIssue = { ...issue, id: issueId };
+    const issueId = ('id' in issue && issue.id) ? issue.id : `issue-${Date.now()}`;
+    const now = new Date();
+    const createdAt = ('createdAt' in issue && issue.createdAt) ? issue.createdAt : now;
+    const updatedAt = ('updatedAt' in issue && issue.updatedAt) ? issue.updatedAt : now;
+    const updatedIssue = { ...issue, id: issueId, createdAt, updatedAt } as Issue;
 
     const stored = localStorage.getItem('issues');
     const issues: Issue[] = stored ? JSON.parse(stored) : [];
@@ -2166,10 +2197,12 @@ export const createIssue = async (
 };
 
 /**
- * Get all issues for a match
+ * Get all issues for a match (via propertyId lookup)
+ * Note: Issues are linked to properties, not matches directly
  */
 export const getIssuesForMatch = async (matchId: string): Promise<Issue[]> => {
   if (isSupabaseConfigured()) {
+    // In DB, issues may have a match_id column for legacy compatibility
     const { data, error } = await supabase
       .from('issues')
       .select('*')
@@ -2177,11 +2210,14 @@ export const getIssuesForMatch = async (matchId: string): Promise<Issue[]> => {
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    return data || [];
+    return (data || []) as Issue[];
   } else {
+    // In localStorage, filter by propertyId since matchId isn't on Issue type
+    // This is a compatibility layer - in practice, lookup by propertyId
     const stored = localStorage.getItem('issues');
     const issues: Issue[] = stored ? JSON.parse(stored) : [];
-    return issues.filter(i => i.matchId === matchId);
+    // Cast to access potential matchId from legacy data
+    return issues.filter(i => (i as unknown as Record<string, unknown>).matchId === matchId);
   }
 };
 
@@ -2240,7 +2276,7 @@ export const updateIssueStatus = async (
 
   if (status === 'resolved' || status === 'closed') {
     updates.resolvedAt = new Date();
-    updates.resolutionNotes = resolutionNotes;
+    updates.resolutionSummary = resolutionNotes; // resolutionSummary is the correct property name
   }
 
   if (isSupabaseConfigured()) {
@@ -2270,7 +2306,7 @@ export const updateIssueStatus = async (
 /**
  * Save a ticket (support ticket for issue)
  */
-export const saveTicket = async (ticket: Record<string, any>): Promise<Record<string, any>> => {
+export const saveTicket = async (ticket: Record<string, unknown>): Promise<Record<string, unknown>> => {
   if (isSupabaseConfigured()) {
     const ticketData = {
       issue_id: ticket.issueId,
@@ -2290,7 +2326,7 @@ export const saveTicket = async (ticket: Record<string, any>): Promise<Record<st
       resolution_notes: ticket.resolutionNotes,
     };
 
-    const isValidUUID = ticket.id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(ticket.id);
+    const isValidUUID = ticket.id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(ticket.id as string);
 
     if (isValidUUID) {
       // Update existing ticket
@@ -2315,11 +2351,11 @@ export const saveTicket = async (ticket: Record<string, any>): Promise<Record<st
       return { ...ticket, id: data.id };
     }
   } else {
-    const ticketId = ticket.id || `ticket-${Date.now()}`;
+    const ticketId = (ticket.id as string) || `ticket-${Date.now()}`;
     const updatedTicket = { ...ticket, id: ticketId };
 
     const stored = localStorage.getItem('tickets');
-    const tickets: Issue[] = stored ? JSON.parse(stored) : [];
+    const tickets: Record<string, unknown>[] = stored ? JSON.parse(stored) : [];
     const index = tickets.findIndex(t => t.id === ticketId);
 
     if (index >= 0) {
@@ -2336,7 +2372,7 @@ export const saveTicket = async (ticket: Record<string, any>): Promise<Record<st
 /**
  * Get all tickets for an issue
  */
-export const getTicketsForIssue = async (issueId: string): Promise<Issue[]> => {
+export const getTicketsForIssue = async (issueId: string): Promise<Record<string, unknown>[]> => {
   if (isSupabaseConfigured()) {
     const { data, error } = await supabase
       .from('tickets')
@@ -2345,10 +2381,10 @@ export const getTicketsForIssue = async (issueId: string): Promise<Issue[]> => {
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    return data || [];
+    return (data || []) as Record<string, unknown>[];
   } else {
     const stored = localStorage.getItem('tickets');
-    const tickets: Issue[] = stored ? JSON.parse(stored) : [];
+    const tickets: Record<string, unknown>[] = stored ? JSON.parse(stored) : [];
     return tickets.filter(t => t.issueId === issueId);
   }
 };
@@ -2356,7 +2392,7 @@ export const getTicketsForIssue = async (issueId: string): Promise<Issue[]> => {
 /**
  * Get all tickets for a match
  */
-export const getTicketsForMatch = async (matchId: string): Promise<Issue[]> => {
+export const getTicketsForMatch = async (matchId: string): Promise<Record<string, unknown>[]> => {
   if (isSupabaseConfigured()) {
     const { data, error } = await supabase
       .from('tickets')
@@ -2365,10 +2401,10 @@ export const getTicketsForMatch = async (matchId: string): Promise<Issue[]> => {
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    return data || [];
+    return (data || []) as Record<string, unknown>[];
   } else {
     const stored = localStorage.getItem('tickets');
-    const tickets: Issue[] = stored ? JSON.parse(stored) : [];
+    const tickets: Record<string, unknown>[] = stored ? JSON.parse(stored) : [];
     return tickets.filter(t => t.matchId === matchId);
   }
 };
@@ -2403,15 +2439,17 @@ export const addTicketMessage = async (
     return data;
   } else {
     const stored = localStorage.getItem('tickets');
-    const tickets: Issue[] = stored ? JSON.parse(stored) : [];
+    const tickets: Record<string, unknown>[] = stored ? JSON.parse(stored) : [];
     const index = tickets.findIndex(t => t.id === ticketId);
 
     if (index >= 0) {
-      tickets[index].messages = tickets[index].messages || [];
-      tickets[index].messages.push(message);
-      tickets[index].updatedAt = new Date();
+      const ticket = tickets[index];
+      const messages = (ticket.messages as Record<string, unknown>[]) || [];
+      messages.push(message);
+      ticket.messages = messages;
+      ticket.updatedAt = new Date();
       localStorage.setItem('tickets', JSON.stringify(tickets));
-      return tickets[index];
+      return ticket;
     }
     throw new Error('Ticket not found');
   }
@@ -2725,52 +2763,53 @@ function generateInviteCode(): string {
  * Transform Supabase property data (snake_case) to app format (camelCase)
  */
 function transformSupabasePropertyToApp(data: Record<string, unknown>): Property {
+  const bedrooms = (data.bedrooms as number) || 1;
   return {
-    id: data.id,
-    landlordId: data.landlord_id,
-    managingAgencyId: data.managing_agency_id,
-    marketingAgentId: data.marketing_agent_id,
+    id: data.id as string,
+    landlordId: (data.landlord_id as string) || '',
+    managingAgencyId: data.managing_agency_id as string | undefined,
+    marketingAgentId: data.marketing_agent_id as string | undefined,
     address: {
-      street: data.street,
-      city: data.city,
-      postcode: data.postcode,
-      council: data.council || '', // Add missing council field
+      street: (data.street as string) || '',
+      city: (data.city as string) || '',
+      postcode: (data.postcode as string) || '',
+      council: (data.council as string) || '',
     },
-    propertyType: data.property_type,
-    bedrooms: data.bedrooms,
-    bathrooms: data.bathrooms,
-    rentPcm: data.rent_pcm,
-    deposit: data.deposit || data.deposit_amount || 0,
-    maxRentInAdvance: 1,
-    furnishing: data.furnishing,
-    images: data.images || [],
-    description: data.description || '',
-    epcRating: data.epc_rating,
-    yearBuilt: data.year_built || new Date().getFullYear(),
-    features: data.features || [],
-    availableFrom: data.available_from || data.listing_date || new Date().toISOString(),
-    tenancyType: 'Periodic',
-    maxOccupants: data.max_occupants || data.bedrooms * 2,
-    petsPolicy: data.pets_policy || {
-      willConsiderPets: true,
-      preferredPetTypes: [],
+    propertyType: (data.property_type as PropertyType) || 'House',
+    bedrooms,
+    bathrooms: (data.bathrooms as number) || 1,
+    rentPcm: (data.rent_pcm as number) || 0,
+    deposit: ((data.deposit as number) || (data.deposit_amount as number) || 0),
+    maxRentInAdvance: 1 as const,
+    furnishing: (data.furnishing as FurnishingType) || 'Unfurnished',
+    images: (data.images as string[]) || [],
+    description: (data.description as string) || '',
+    epcRating: (data.epc_rating as EPCRating) || 'C',
+    yearBuilt: (data.year_built as number) || new Date().getFullYear(),
+    features: (data.features as string[]) || [],
+    availableFrom: (data.available_from as string) || (data.listing_date as string) || new Date().toISOString(),
+    tenancyType: 'Periodic' as const,
+    maxOccupants: (data.max_occupants as number) || bedrooms * 2,
+    petsPolicy: (data.pets_policy as Property['petsPolicy']) || {
+      willConsiderPets: true as const,
+      preferredPetTypes: [] as ('cat' | 'dog' | 'small_caged' | 'fish')[],
       requiresPetInsurance: false,
       maxPetsAllowed: 2,
     },
-    bills: data.bills || {
-      councilTaxBand: data.council_tax_band || '',
-      gasElectricIncluded: data.landlord_pays_utilities || false,
+    bills: (data.bills as Property['bills']) || {
+      councilTaxBand: (data.council_tax_band as string) || '',
+      gasElectricIncluded: (data.landlord_pays_utilities as boolean) || false,
       waterIncluded: false,
       internetIncluded: false,
     },
-    meetsDecentHomesStandard: data.meets_decent_homes_standard || false,
-    awaabsLawCompliant: data.awaabs_law_compliant || false,
-    prsPropertyRegistrationNumber: data.prs_property_registration_number,
-    prsPropertyRegistrationStatus: data.prs_property_registration_status || 'not_registered',
+    meetsDecentHomesStandard: (data.meets_decent_homes_standard as boolean) || false,
+    awaabsLawCompliant: (data.awaabs_law_compliant as boolean) || false,
+    prsPropertyRegistrationNumber: data.prs_property_registration_number as string | undefined,
+    prsPropertyRegistrationStatus: (data.prs_property_registration_status as PRSRegistrationStatus) || 'not_registered',
     canBeMarketed: data.can_be_marketed !== false,
     isAvailable: data.is_available !== false,
-    listingDate: data.listing_date,
-    preferredMinimumStay: data.preferred_minimum_stay || 6,
+    listingDate: (data.listing_date as string) || new Date().toISOString(),
+    preferredMinimumStay: (data.preferred_minimum_stay as number) || 6,
     acceptsShortTermTenants: data.accepts_short_term_tenants !== false,
   };
 }

@@ -3,7 +3,7 @@
  * Handles conversion between Supabase snake_case and TypeScript camelCase
  */
 
-import type { AgencyProfile } from '../../types';
+import type { AgencyProfile, LocalArea } from '../../types';
 import type { DbRecord } from './index';
 
 /**
@@ -11,45 +11,65 @@ import type { DbRecord } from './index';
  */
 export const transformAgencyProfile = (d: DbRecord): AgencyProfile => ({
   id: d.id as string,
-  fullName: d.full_name as string,
-  email: d.email as string,
-  phoneNumber: d.phone_number as string,
-  isVerified: (d.is_verified as boolean) || false,
-  createdAt: d.created_at as string,
-  updatedAt: d.updated_at as string,
+  agencyType: (d.agency_type as AgencyProfile['agencyType']) || 'estate_agent',
 
-  // Profile completeness
-  profileComplete: (d.profile_complete as boolean) || false,
-  onboardingComplete: (d.onboarding_complete as boolean) || false,
+  // Basic Info
+  companyName: (d.company_name as string) || '',
+  registrationNumber: (d.registration_number as string) || '',
+  tradingName: d.trading_name as string | undefined,
 
-  // Company info
-  companyName: d.company_name as string,
-  companyAddress: d.company_address as string,
-  companyRegistrationNumber: d.company_registration_number as string,
-  redasMemberId: d.redas_member_id as string,
+  // Contact
+  primaryContactName: (d.primary_contact_name as string) || '',
+  email: (d.email as string) || '',
+  passwordHash: (d.password_hash as string) || '',
+  phone: (d.phone as string) || '',
+  address: {
+    street: (d.address_street as string) || '',
+    city: (d.address_city as string) || '',
+    postcode: (d.address_postcode as string) || '',
+  },
 
-  // Agency type
-  agencyType: d.agency_type as AgencyProfile['agencyType'],
+  // Service Areas
+  serviceAreas: (d.service_areas as LocalArea[]) || [],
 
-  // Managed entities
+  // Portfolio
   managedPropertyIds: (d.managed_property_ids as string[]) || [],
   landlordClientIds: (d.landlord_client_ids as string[]) || [],
+  activeTenantsCount: (d.active_tenants_count as number) || 0,
+  totalPropertiesManaged: (d.total_properties_managed as number) || 0,
 
-  // SLA Settings
-  targetResponseTimeHours: (d.target_response_time_hours as number) || 24,
-  escalationEmailAddress: d.escalation_email_address as string,
+  // SLA Configuration
+  slaConfiguration: {
+    emergencyResponseHours: (d.sla_emergency_response_hours as number) || 4,
+    urgentResponseHours: (d.sla_urgent_response_hours as number) || 24,
+    routineResponseHours: (d.sla_routine_response_hours as number) || 72,
+    maintenanceResponseDays: (d.sla_maintenance_response_days as number) || 14,
+  },
 
-  // Stats
-  averageSlaPerformance: d.average_sla_performance as number,
-  totalIssuesManaged: (d.total_issues_managed as number) || 0,
-  totalIssuesResolved: (d.total_issues_resolved as number) || 0,
+  // Performance Tracking
+  performanceMetrics: {
+    averageResponseTimeHours: (d.avg_response_time_hours as number) || 0,
+    slaComplianceRate: (d.sla_compliance_rate as number) || 0,
+    totalIssuesResolved: (d.total_issues_resolved as number) || 0,
+    totalIssuesRaised: (d.total_issues_raised as number) || 0,
+    currentOpenIssues: (d.current_open_issues as number) || 0,
+  },
 
-  // Rating
-  averageRating: d.average_rating as number,
-  totalRatings: (d.total_ratings as number) || 0,
+  // Compliance
+  propertyOmbudsmanMember: (d.property_ombudsman_member as boolean) || false,
+  insuranceDetails: d.insurance_provider ? {
+    provider: d.insurance_provider as string,
+    policyNumber: (d.insurance_policy_number as string) || '',
+    expiryDate: new Date(d.insurance_expiry_date as string),
+  } : undefined,
 
-  // Tags
-  seedTag: d.seed_tag as string | undefined,
+  // Branding
+  logo: d.logo as string | undefined,
+  brandColor: d.brand_color as string | undefined,
+
+  createdAt: new Date(d.created_at as string),
+  isActive: (d.is_active as boolean) !== false,
+  onboardingComplete: (d.onboarding_complete as boolean) || (d.is_complete as boolean) || false,
 });
 
 /**
@@ -59,41 +79,54 @@ export const transformAgencyProfileToDb = (
   profile: Partial<AgencyProfile>
 ): Record<string, unknown> => ({
   id: profile.id,
-  full_name: profile.fullName,
-  email: profile.email,
-  phone_number: profile.phoneNumber,
-  is_verified: profile.isVerified,
-
-  // Profile completeness
-  profile_complete: profile.profileComplete,
-  onboarding_complete: profile.onboardingComplete,
-
-  // Company info
-  company_name: profile.companyName,
-  company_address: profile.companyAddress,
-  company_registration_number: profile.companyRegistrationNumber,
-  redas_member_id: profile.redasMemberId,
-
-  // Agency type
   agency_type: profile.agencyType,
 
-  // Managed entities
+  // Basic Info
+  company_name: profile.companyName,
+  registration_number: profile.registrationNumber,
+  trading_name: profile.tradingName,
+
+  // Contact
+  primary_contact_name: profile.primaryContactName,
+  email: profile.email,
+  password_hash: profile.passwordHash,
+  phone: profile.phone,
+  address_street: profile.address?.street,
+  address_city: profile.address?.city,
+  address_postcode: profile.address?.postcode,
+
+  // Service Areas
+  service_areas: profile.serviceAreas,
+
+  // Portfolio
   managed_property_ids: profile.managedPropertyIds,
   landlord_client_ids: profile.landlordClientIds,
+  active_tenants_count: profile.activeTenantsCount,
+  total_properties_managed: profile.totalPropertiesManaged,
 
-  // SLA Settings
-  target_response_time_hours: profile.targetResponseTimeHours,
-  escalation_email_address: profile.escalationEmailAddress,
+  // SLA Configuration
+  sla_emergency_response_hours: profile.slaConfiguration?.emergencyResponseHours,
+  sla_urgent_response_hours: profile.slaConfiguration?.urgentResponseHours,
+  sla_routine_response_hours: profile.slaConfiguration?.routineResponseHours,
+  sla_maintenance_response_days: profile.slaConfiguration?.maintenanceResponseDays,
 
-  // Stats
-  average_sla_performance: profile.averageSlaPerformance,
-  total_issues_managed: profile.totalIssuesManaged,
-  total_issues_resolved: profile.totalIssuesResolved,
+  // Performance Tracking
+  avg_response_time_hours: profile.performanceMetrics?.averageResponseTimeHours,
+  sla_compliance_rate: profile.performanceMetrics?.slaComplianceRate,
+  total_issues_resolved: profile.performanceMetrics?.totalIssuesResolved,
+  total_issues_raised: profile.performanceMetrics?.totalIssuesRaised,
+  current_open_issues: profile.performanceMetrics?.currentOpenIssues,
 
-  // Rating
-  average_rating: profile.averageRating,
-  total_ratings: profile.totalRatings,
+  // Compliance
+  property_ombudsman_member: profile.propertyOmbudsmanMember,
+  insurance_provider: profile.insuranceDetails?.provider,
+  insurance_policy_number: profile.insuranceDetails?.policyNumber,
+  insurance_expiry_date: profile.insuranceDetails?.expiryDate?.toISOString(),
 
-  // Tags
-  seed_tag: profile.seedTag,
+  // Branding
+  logo: profile.logo,
+  brand_color: profile.brandColor,
+
+  is_active: profile.isActive,
+  onboarding_complete: profile.onboardingComplete,
 });

@@ -40,7 +40,6 @@ const mockEnv = {
 };
 
 // Polyfill import.meta.env for Node.js environment
-// @ts-expect-error - This is intentional for Node.js compatibility
 if (typeof import.meta.env === 'undefined') {
     // @ts-expect-error - Assigning to read-only property for Node.js polyfill
     import.meta.env = mockEnv;

@@ -99,39 +99,46 @@ export async function createTestLandlord(): Promise<LandlordProfile> {
  * Create test estate agent profile (Sarah Bennett)
  */
 export async function createTestEstateAgent(): Promise<AgencyProfile> {
-    const agent: Omit<AgencyProfile, 'id'> & { seed_tag: string } = {
+    // Use Record to allow DB fields alongside interface fields
+    const agent: Record<string, unknown> = {
         seed_tag: SEED_CONSTANTS.ESTATE_AGENT_TAG,
         email: `test.estateagent@${SEED_CONSTANTS.EMAIL_DOMAIN}`,
-        password_hash: await hashPassword(SEED_CONSTANTS.DEFAULT_PASSWORD),
-        company_name: 'Liverpool Prime Lettings',
-        agency_type: 'estate_agent',
-        primary_contact_name: 'Sarah Bennett',
+        passwordHash: await hashPassword(SEED_CONSTANTS.DEFAULT_PASSWORD),
+        companyName: 'Liverpool Prime Lettings',
+        agencyType: 'estate_agent',
+        primaryContactName: 'Sarah Bennett',
         phone: '0151 123 4567',
-        address_street: '45 Castle Street',
-        address_city: 'Liverpool',
-        address_postcode: 'L2 4SQ',
-        service_areas: ['Liverpool', 'Southport'],
-        registration_number: '12345678',
-        property_ombudsman_member: true,
-        managed_property_ids: [],
-        landlord_client_ids: [],
-        active_tenants_count: 0,
-        total_properties_managed: 0,
-        sla_emergency_response_hours: 4,
-        sla_urgent_response_hours: 24,
-        sla_routine_response_hours: 72,
-        sla_maintenance_response_days: 14,
-        avg_response_time_hours: 24,
-        sla_compliance_rate: 98,
-        total_issues_resolved: 150,
-        total_issues_raised: 155,
-        current_open_issues: 5,
-        is_active: true,
-        created_at: new Date(),
-        is_complete: true,
+        address: {
+            street: '45 Castle Street',
+            city: 'Liverpool',
+            postcode: 'L2 4SQ',
+        },
+        serviceAreas: ['Liverpool', 'Southport'],
+        registrationNumber: '12345678',
+        propertyOmbudsmanMember: true,
+        managedPropertyIds: [],
+        landlordClientIds: [],
+        activeTenantsCount: 0,
+        totalPropertiesManaged: 0,
+        slaConfiguration: {
+            emergencyResponseHours: 4,
+            urgentResponseHours: 24,
+            routineResponseHours: 72,
+            maintenanceResponseDays: 14,
+        },
+        performanceMetrics: {
+            averageResponseTimeHours: 24,
+            slaComplianceRate: 98,
+            totalIssuesResolved: 150,
+            totalIssuesRaised: 155,
+            currentOpenIssues: 5,
+        },
+        isActive: true,
+        createdAt: new Date(),
+        onboardingComplete: true,
     };
 
-    const saved = await saveAgencyProfile(agent);
+    const saved = await saveAgencyProfile(agent as Omit<AgencyProfile, 'id'>);
     GENERATED_IDS.estateAgentId = saved.id;
     return saved;
 }
@@ -140,39 +147,46 @@ export async function createTestEstateAgent(): Promise<AgencyProfile> {
  * Create test management agency profile (PropertyCare Solutions)
  */
 export async function createTestManagementAgency(): Promise<AgencyProfile> {
-    const agency: Omit<AgencyProfile, 'id'> & { seed_tag: string } = {
+    // Use Record to allow DB fields alongside interface fields
+    const agency: Record<string, unknown> = {
         seed_tag: SEED_CONSTANTS.MANAGEMENT_AGENCY_TAG,
         email: `test.managementagency@${SEED_CONSTANTS.EMAIL_DOMAIN}`,
-        password_hash: await hashPassword(SEED_CONSTANTS.DEFAULT_PASSWORD),
-        company_name: 'PropertyCare Solutions',
-        agency_type: 'management_agency',
-        primary_contact_name: 'Michael Chen',
+        passwordHash: await hashPassword(SEED_CONSTANTS.DEFAULT_PASSWORD),
+        companyName: 'PropertyCare Solutions',
+        agencyType: 'management_agency',
+        primaryContactName: 'Michael Chen',
         phone: '0151 987 6543',
-        address_street: '78 Water Street',
-        address_city: 'Liverpool',
-        address_postcode: 'L2 8TD',
-        service_areas: ['Liverpool', 'Southport', 'Formby'],
-        registration_number: '87654321',
-        property_ombudsman_member: true,
-        managed_property_ids: [],
-        landlord_client_ids: [],
-        active_tenants_count: 0,
-        total_properties_managed: 0,
-        sla_emergency_response_hours: 4,
-        sla_urgent_response_hours: 24,
-        sla_routine_response_hours: 72,
-        sla_maintenance_response_days: 5,
-        avg_response_time_hours: 12,
-        sla_compliance_rate: 99,
-        total_issues_resolved: 300,
-        total_issues_raised: 305,
-        current_open_issues: 5,
-        is_active: true,
-        created_at: new Date(),
-        is_complete: true,
+        address: {
+            street: '78 Water Street',
+            city: 'Liverpool',
+            postcode: 'L2 8TD',
+        },
+        serviceAreas: ['Liverpool', 'Southport', 'Formby'],
+        registrationNumber: '87654321',
+        propertyOmbudsmanMember: true,
+        managedPropertyIds: [],
+        landlordClientIds: [],
+        activeTenantsCount: 0,
+        totalPropertiesManaged: 0,
+        slaConfiguration: {
+            emergencyResponseHours: 4,
+            urgentResponseHours: 24,
+            routineResponseHours: 72,
+            maintenanceResponseDays: 5,
+        },
+        performanceMetrics: {
+            averageResponseTimeHours: 12,
+            slaComplianceRate: 99,
+            totalIssuesResolved: 300,
+            totalIssuesRaised: 305,
+            currentOpenIssues: 5,
+        },
+        isActive: true,
+        createdAt: new Date(),
+        onboardingComplete: true,
     };
 
-    const saved = await saveAgencyProfile(agency);
+    const saved = await saveAgencyProfile(agency as Omit<AgencyProfile, 'id'>);
     GENERATED_IDS.managementAgencyId = saved.id;
     return saved;
 }

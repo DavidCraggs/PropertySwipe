@@ -18,9 +18,6 @@ vi.mock('../../../src/lib/supabase', () => ({
 
 const { createIssue } = storageModule;
 
-// Spy on getAgencyProfile
-const getAgencyProfileSpy = vi.spyOn(storageModule, 'getAgencyProfile');
-
 describe('createIssue', () => {
     beforeEach(() => {
         // Clear localStorage before each test
@@ -290,7 +287,8 @@ describe('createIssue', () => {
                 createdAt: new Date(),
             };
 
-            getAgencyProfileSpy.mockResolvedValue(mockAgency);
+            // Store agency profile in localStorage so getAgencyProfile can find it
+            localStorage.setItem('get-on-agency-profiles', JSON.stringify([mockAgency]));
 
             const now = new Date();
             const issueData: any = {
@@ -314,11 +312,11 @@ describe('createIssue', () => {
             const timeDiff = Math.abs(result.slaDeadline.getTime() - expectedDeadline.getTime());
 
             expect(timeDiff).toBeLessThan(100);
-            expect(getAgencyProfileSpy).toHaveBeenCalledWith('agency-123');
         });
 
-        it('should fallback to default SLA if agency fetch fails', async () => {
-            getAgencyProfileSpy.mockRejectedValue(new Error('Network error'));
+        it('should fallback to default SLA if agency is not found', async () => {
+            // Don't set up any agency data in localStorage
+            // When getAgencyProfile is called with 'agency-123', it will return null
 
             const now = new Date();
             const issueData: any = {
@@ -445,6 +443,10 @@ describe('createIssue', () => {
     describe('Supabase Storage', () => {
         beforeEach(() => {
             vi.mocked(supabaseModule.isSupabaseConfigured).mockReturnValue(true);
+        });
+
+        afterEach(() => {
+            vi.mocked(supabaseModule.isSupabaseConfigured).mockReturnValue(false);
         });
 
         it('should insert issue to Supabase when configured', async () => {

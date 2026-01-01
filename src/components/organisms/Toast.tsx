@@ -2,6 +2,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, CheckCircle, AlertCircle, Info, Heart } from 'lucide-react';
 import { useToastStore, type Toast } from './toastUtils';
 
+// NOTE: Import useToastStore and useToast directly from './toastUtils' in your components
+// This file only exports the ToastContainer component for Fast Refresh compatibility
+
 type ToastType = 'success' | 'error' | 'danger' | 'info' | 'match';
 
 /**

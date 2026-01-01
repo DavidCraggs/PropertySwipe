@@ -44,7 +44,6 @@
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-router-dom": "^7.9.4",
-    "supabase": "^2.62.5",
     "tailwindcss": "^4.1.16",
     "xlsx": "^0.18.5",
     "zustand": "^5.0.8"
@@ -70,6 +69,7 @@
     "happy-dom": "^20.0.10",
     "jsdom": "^27.1.0",
     "prettier": "^3.6.2",
+    "supabase": "^2.70.5",
     "tsx": "^4.21.0",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.45.0",

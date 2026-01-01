@@ -31,7 +31,7 @@ export async function createViewing1(): Promise<ViewingPreference> {
         updatedAt: daysAgo(1),
     };
 
-    return await createViewingRequest(viewing);
+    return await createViewingRequest(viewing as unknown as ViewingPreference);
 }
 
 /**
@@ -52,7 +52,7 @@ export async function createViewing2(): Promise<ViewingPreference> {
         updatedAt: daysAgo(1),
     };
 
-    return await createViewingRequest(viewing);
+    return await createViewingRequest(viewing as unknown as ViewingPreference);
 }
 
 /**
@@ -74,7 +74,7 @@ export async function createViewing3(): Promise<ViewingPreference> {
         updatedAt: daysAgo(2),
     };
 
-    return await createViewingRequest(viewing);
+    return await createViewingRequest(viewing as unknown as ViewingPreference);
 }
 
 /**

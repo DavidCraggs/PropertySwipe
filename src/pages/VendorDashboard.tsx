@@ -9,7 +9,7 @@ import { PropertyForm } from '../components/organisms/PropertyForm';
 import { PropertyImage } from '../components/atoms/PropertyImage';
 import { AgencyLinkManager } from '../components/organisms/AgencyLinkManager';
 import { CreateRenterInviteModal } from '../components/organisms/CreateRenterInviteModal';
-import { useToastStore } from '../components/organisms/Toast';
+import { useToastStore } from '../components/organisms/toastUtils';
 
 /**
  * Dashboard for landlords showing their rental property listing and interested renters

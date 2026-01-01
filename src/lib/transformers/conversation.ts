@@ -19,15 +19,12 @@ export const transformConversation = (d: DbRecord): Conversation => ({
 
   // Timestamps
   lastMessageAt: d.last_message_at as string | undefined,
-  createdAt: d.created_at as string,
-  updatedAt: d.updated_at as string,
+  createdAt: new Date(d.created_at as string),
+  updatedAt: new Date(d.updated_at as string),
 
   // Unread counts
   unreadCountRenter: (d.unread_count_renter as number) || 0,
   unreadCountOther: (d.unread_count_other as number) || 0,
-
-  // Tags
-  seedTag: d.seed_tag as string | undefined,
 });
 
 /**
@@ -45,11 +42,10 @@ export const transformConversationToDb = (
 
   // Timestamps
   last_message_at: conversation.lastMessageAt,
+  created_at: conversation.createdAt?.toISOString(),
+  updated_at: conversation.updatedAt?.toISOString(),
 
   // Unread counts
   unread_count_renter: conversation.unreadCountRenter,
   unread_count_other: conversation.unreadCountOther,
-
-  // Tags
-  seed_tag: conversation.seedTag,
 });

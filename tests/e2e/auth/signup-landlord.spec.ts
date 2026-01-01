@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { clearStorage, signupAndLogin, getProfiles } from '../utils/auth-helpers';
+import { clearStorage, signupAndLogin, getAuthState } from '../utils/auth-helpers';
 import { expectLandlordDashboard } from '../utils/assertions';
 
 test.describe('Landlord Signup Flow', () => {
@@ -8,14 +8,14 @@ test.describe('Landlord Signup Flow', () => {
   });
 
   test('should complete full landlord signup with RRA 2025 compliance', async ({ page }) => {
-    const user = await signupAndLogin(page, 'landlord');
+    await signupAndLogin(page, 'landlord');
 
     // Verify on landlord dashboard
     await expectLandlordDashboard(page);
 
-    // Verify compliance data saved
-    const profiles = await getProfiles(page, 'landlord');
-    const landlord = profiles.find((p: any) => p.email === user.email);
+    // Verify compliance data saved - use auth state (works in both Supabase and localStorage mode)
+    const authState = await getAuthState(page);
+    const landlord = authState?.state?.currentUser;
 
     expect(landlord).toBeTruthy();
     expect(landlord.prsRegistrationNumber).toBeTruthy();
@@ -38,7 +38,7 @@ test.describe('Landlord Signup Flow', () => {
     await page.getByRole('button', { name: /continue/i }).click();
 
     await page.waitForTimeout(500);
-    await page.getByRole('button', { name: /flat/i }).first().click();
+    await page.getByText('Flat', { exact: true }).click();
     await page.getByRole('button', { name: /continue/i }).click();
 
     await page.waitForTimeout(500);
@@ -57,18 +57,21 @@ test.describe('Landlord Signup Flow', () => {
     await expect(page.locator('#prsRegistrationNumber')).toBeVisible();
   });
 
-  test('should save landlord profile with certification data', async ({ page }) => {
-    const user = await signupAndLogin(page, 'landlord');
+  test('should save landlord profile with compliance data', async ({ page }) => {
+    await signupAndLogin(page, 'landlord');
 
-    // Verify profile saved with certification flags
-    const profiles = await getProfiles(page, 'landlord');
-    const landlord = profiles.find((p: any) => p.email === user.email);
+    // Wait for dashboard to ensure onboarding is complete
+    await expectLandlordDashboard(page);
+
+    // Verify profile saved - use auth state (works in both Supabase and localStorage mode)
+    const authState = await getAuthState(page);
+    const landlord = authState?.state?.currentUser;
 
     expect(landlord).toBeTruthy();
-    expect(landlord.certifiedEPC).toBeTruthy();
-    expect(landlord.certifiedGasSafety).toBeTruthy();
-    expect(landlord.certifiedElectricalSafety).toBeTruthy();
-    expect(landlord.certifiedSmokeAlarms).toBeTruthy();
-    expect(landlord.certifiedCOAlarms).toBeTruthy();
+    // RRA 2025 mandatory fields
+    expect(landlord.prsRegistrationNumber).toBeTruthy();
+    expect(landlord.ombudsmanScheme).toBeTruthy();
+    expect(landlord.isFullyCompliant).toBe(true);
+    expect(landlord.onboardingComplete).toBe(true);
   });
 });

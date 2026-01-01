@@ -149,13 +149,18 @@ export function AgencyLinkManager({
 
   // Create invitation (landlord invites agency)
   const handleCreateInvitation = async (data: {
-    agencyId: string;
+    landlordId?: string;
+    agencyId?: string;
     propertyId?: string;
     invitationType: 'estate_agent' | 'management_agency';
     proposedCommissionRate?: number;
     proposedContractLengthMonths?: number;
     message?: string;
   }) => {
+    if (!data.agencyId) {
+      console.error('[AgencyLinkManager] agencyId is required');
+      return;
+    }
     try {
       await createAgencyInvitation({
         landlordId,

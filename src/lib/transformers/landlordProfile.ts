@@ -3,7 +3,7 @@
  * Handles conversion between Supabase snake_case and TypeScript camelCase
  */
 
-import type { LandlordProfile } from '../../types';
+import type { LandlordProfile, PropertyType, FurnishingType, RenterType, PRSRegistrationStatus, OmbudsmanScheme } from '../../types';
 import type { DbRecord } from './index';
 
 /**
@@ -11,35 +11,54 @@ import type { DbRecord } from './index';
  */
 export const transformLandlordProfile = (d: DbRecord): LandlordProfile => ({
   id: d.id as string,
-  fullName: d.full_name as string,
-  email: d.email as string,
-  phoneNumber: d.phone_number as string,
-  isVerified: (d.is_verified as boolean) || false,
-  createdAt: d.created_at as string,
-  updatedAt: d.updated_at as string,
+  email: (d.email as string) || '',
+  passwordHash: (d.password_hash as string) || '',
+  names: (d.names as string) || '',
+  propertyType: (d.property_type as PropertyType) || 'house',
 
-  // Profile completeness
-  profileComplete: (d.profile_complete as boolean) || false,
-  onboardingComplete: (d.onboarding_complete as boolean) || false,
+  // Preferences
+  furnishingPreference: (d.furnishing_preference as FurnishingType) || 'flexible',
+  preferredTenantTypes: (d.preferred_tenant_types as RenterType[]) || [],
 
-  // Properties
-  propertyIds: (d.property_ids as string[]) || [],
+  // Pets policy
+  defaultPetsPolicy: {
+    willConsiderPets: true,
+    requiresPetInsurance: (d.requires_pet_insurance as boolean) || false,
+    preferredPetTypes: (d.preferred_pet_types as ('cat' | 'dog' | 'small_caged' | 'fish')[]) || [],
+    maxPetsAllowed: (d.max_pets_allowed as number) || 2,
+  },
 
-  // Agency relationship
-  managingAgencyId: d.managing_agency_id as string | undefined,
-  hasAgencyManagement: (d.has_agency_management as boolean) || false,
+  // RRA 2025: PRS Database Registration
+  prsRegistrationNumber: d.prs_registration_number as string | undefined,
+  prsRegistrationStatus: (d.prs_registration_status as PRSRegistrationStatus) || 'not_registered',
+  prsRegistrationDate: d.prs_registration_date ? new Date(d.prs_registration_date as string) : undefined,
+  prsRegistrationExpiryDate: d.prs_registration_expiry_date ? new Date(d.prs_registration_expiry_date as string) : undefined,
 
-  // Rating
-  averageRating: d.average_rating as number,
-  totalRatings: (d.total_ratings as number) || 0,
-  ratingHistory: (d.rating_history as string[]) || [],
+  // RRA 2025: Ombudsman Membership
+  ombudsmanScheme: (d.ombudsman_scheme as OmbudsmanScheme) || 'none',
+  ombudsmanMembershipNumber: d.ombudsman_membership_number as string | undefined,
 
   // Compliance
-  registeredWithPrs: (d.registered_with_prs as boolean) || false,
-  prsRegistrationNumber: d.prs_registration_number as string | undefined,
+  isFullyCompliant: (d.is_fully_compliant as boolean) || false,
+  depositScheme: (d.deposit_scheme as string) || 'DPS',
+  isRegisteredLandlord: (d.is_registered_landlord as boolean) || false,
 
-  // Tags
-  seedTag: d.seed_tag as string | undefined,
+  estateAgentLink: (d.estate_agent_link as string) || '',
+  propertyId: d.property_id as string | undefined,
+  createdAt: new Date(d.created_at as string),
+  onboardingComplete: (d.onboarding_complete as boolean) || false,
+
+  // Agency relationships
+  managementAgencyId: d.management_agency_id as string | undefined,
+  estateAgentId: d.estate_agent_id as string | undefined,
+  agentCommissionRate: d.agent_commission_rate as number | undefined,
+
+  // Contact preferences
+  preferredContactMethod: d.preferred_contact_method as 'in_app' | 'email' | 'both' | undefined,
+  notificationEmail: d.notification_email as string | undefined,
+
+  // Rating summary
+  ratingsSummary: d.ratings_summary as LandlordProfile['ratingsSummary'],
 });
 
 /**
@@ -49,31 +68,48 @@ export const transformLandlordProfileToDb = (
   profile: Partial<LandlordProfile>
 ): Record<string, unknown> => ({
   id: profile.id,
-  full_name: profile.fullName,
   email: profile.email,
-  phone_number: profile.phoneNumber,
-  is_verified: profile.isVerified,
+  password_hash: profile.passwordHash,
+  names: profile.names,
+  property_type: profile.propertyType,
 
-  // Profile completeness
-  profile_complete: profile.profileComplete,
-  onboarding_complete: profile.onboardingComplete,
+  // Preferences
+  furnishing_preference: profile.furnishingPreference,
+  preferred_tenant_types: profile.preferredTenantTypes,
 
-  // Properties
-  property_ids: profile.propertyIds,
+  // Pets policy
+  requires_pet_insurance: profile.defaultPetsPolicy?.requiresPetInsurance,
+  preferred_pet_types: profile.defaultPetsPolicy?.preferredPetTypes,
+  max_pets_allowed: profile.defaultPetsPolicy?.maxPetsAllowed,
 
-  // Agency relationship
-  managing_agency_id: profile.managingAgencyId,
-  has_agency_management: profile.hasAgencyManagement,
+  // RRA 2025: PRS Database Registration
+  prs_registration_number: profile.prsRegistrationNumber,
+  prs_registration_status: profile.prsRegistrationStatus,
+  prs_registration_date: profile.prsRegistrationDate?.toISOString(),
+  prs_registration_expiry_date: profile.prsRegistrationExpiryDate?.toISOString(),
 
-  // Rating
-  average_rating: profile.averageRating,
-  total_ratings: profile.totalRatings,
-  rating_history: profile.ratingHistory,
+  // RRA 2025: Ombudsman Membership
+  ombudsman_scheme: profile.ombudsmanScheme,
+  ombudsman_membership_number: profile.ombudsmanMembershipNumber,
 
   // Compliance
-  registered_with_prs: profile.registeredWithPrs,
-  prs_registration_number: profile.prsRegistrationNumber,
+  is_fully_compliant: profile.isFullyCompliant,
+  deposit_scheme: profile.depositScheme,
+  is_registered_landlord: profile.isRegisteredLandlord,
 
-  // Tags
-  seed_tag: profile.seedTag,
+  estate_agent_link: profile.estateAgentLink,
+  property_id: profile.propertyId,
+  onboarding_complete: profile.onboardingComplete,
+
+  // Agency relationships
+  management_agency_id: profile.managementAgencyId,
+  estate_agent_id: profile.estateAgentId,
+  agent_commission_rate: profile.agentCommissionRate,
+
+  // Contact preferences
+  preferred_contact_method: profile.preferredContactMethod,
+  notification_email: profile.notificationEmail,
+
+  // Rating summary
+  ratings_summary: profile.ratingsSummary,
 });

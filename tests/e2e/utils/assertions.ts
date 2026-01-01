@@ -43,15 +43,22 @@ export async function expectRenterDashboard(page: Page) {
  * Assert user is on landlord dashboard
  */
 export async function expectLandlordDashboard(page: Page) {
-  await expect(page.getByText(/landlord dashboard|my properties/i)).toBeVisible();
-  await expect(page.getByRole('button', { name: /add property/i })).toBeVisible();
+  await expect(page.getByText(/landlord dashboard|my properties/i)).toBeVisible({ timeout: 10000 });
+  // Dashboard shows "Create New Property" or "Link Existing" buttons when no property is linked
+  await expect(
+    page.getByRole('button', { name: /create new property/i })
+      .or(page.getByRole('button', { name: /add property/i }))
+  ).toBeVisible();
 }
 
 /**
  * Assert user is on agency dashboard
  */
 export async function expectAgencyDashboard(page: Page) {
-  await expect(page.getByText(/agency dashboard|client properties/i)).toBeVisible();
+  // AgencyDashboard shows "[CompanyName]" as h1 and "Estate Agent Dashboard" or "Management Agency Dashboard" as subtitle
+  await expect(
+    page.getByText(/estate agent dashboard|management agency dashboard/i)
+  ).toBeVisible({ timeout: 10000 });
 }
 
 /**

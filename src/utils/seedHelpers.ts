@@ -163,7 +163,7 @@ export function generatePlaceholderImage(
 /**
  * Validate seed data completeness
  */
-export function validateSeedRecord<T extends Record<string, any>>(
+export function validateSeedRecord<T extends Record<string, unknown>>(
     record: T,
     requiredFields: (keyof T)[]
 ): { isValid: boolean; missingFields: string[] } {

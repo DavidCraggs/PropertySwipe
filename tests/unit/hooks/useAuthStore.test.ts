@@ -34,6 +34,12 @@ import { hashPassword } from '../../../src/utils/validation';
 import type { LandlordProfile, RenterProfile, AgencyProfile } from '../../../src/types';
 import { setupStorageMocks, clearAllStorage } from '../../__mocks__/localStorage';
 
+// Mock Supabase to ensure localStorage is used in tests
+vi.mock('../../../src/lib/supabase', () => ({
+  isSupabaseConfigured: vi.fn(() => false),
+  supabase: null,
+}));
+
 // Mock the storage module to prevent real Supabase calls
 vi.mock('../../../src/lib/storage', () => ({
   saveLandlordProfile: vi.fn(async (profile: LandlordProfile) => {
@@ -99,6 +105,24 @@ vi.mock('../../../src/lib/storage', () => ({
 
     localStorage.setItem(key, JSON.stringify(existing));
     return savedProfile;
+  }),
+
+  getLandlordProfile: vi.fn(async (email: string) => {
+    const key = 'get-on-landlord-profiles';
+    const profiles: LandlordProfile[] = JSON.parse(localStorage.getItem(key) || '[]');
+    return profiles.find((p: LandlordProfile) => p.email.toLowerCase() === email.toLowerCase()) || null;
+  }),
+
+  getRenterProfile: vi.fn(async (email: string) => {
+    const key = 'get-on-renter-profiles';
+    const profiles: RenterProfile[] = JSON.parse(localStorage.getItem(key) || '[]');
+    return profiles.find((p: RenterProfile) => p.email.toLowerCase() === email.toLowerCase()) || null;
+  }),
+
+  getAgencyProfile: vi.fn(async (email: string) => {
+    const key = 'get-on-agency-profiles';
+    const profiles: AgencyProfile[] = JSON.parse(localStorage.getItem(key) || '[]');
+    return profiles.find((p: AgencyProfile) => p.email.toLowerCase() === email.toLowerCase()) || null;
   }),
 }));
 

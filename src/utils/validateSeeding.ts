@@ -131,7 +131,7 @@ export async function validateSeeding(verbose: boolean = true): Promise<Validati
         } else if (verbose) {
             console.log('[Validation] ✓ All properties have agency IDs');
         }
-    } catch (error) {
+    } catch (_error) {
         errors.push('Failed to validate property agency relationships');
     }
 
@@ -150,7 +150,7 @@ export async function validateSeeding(verbose: boolean = true): Promise<Validati
         } else if (verbose) {
             console.log('[Validation] ✓ All matches have agency IDs');
         }
-    } catch (error) {
+    } catch (_error) {
         errors.push('Failed to validate match agency relationships');
     }
 
@@ -276,7 +276,7 @@ export async function getSeedingStats(): Promise<Record<string, number>> {
                 .not('seed_tag', 'is', null);
 
             stats[table] = count || 0;
-        } catch (error) {
+        } catch (_error) {
             stats[table] = 0;
         }
     }

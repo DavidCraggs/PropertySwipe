@@ -51,7 +51,18 @@
       "Bash(wc:*)",
       "Bash(for file in \"/c/Users/david/PropertySwipe/src/pages\"/*.tsx)",
       "Bash(done)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(timeout 10 npm run dev:*)",
+      "Bash(taskkill:*)",
+      "Bash(cmd //c \"taskkill /PID 171992 /F\")",
+      "Bash(cmd //c \"taskkill /PID 169872 /F\")",
+      "Bash(cmd //c \"taskkill /IM node.exe /F\")",
+      "Bash(ls:*)",
+      "Bash(if [ -f .env ])",
+      "Bash(then echo \"=== .env file exists ===\")",
+      "Bash(else echo \"No .env file found\")",
+      "Bash(test:*)",
+      "Bash(npx playwright:*)"
     ],
     "deny": [],
     "ask": []

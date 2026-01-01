@@ -14,7 +14,7 @@ import { Button } from '../components/atoms/Button';
 import { useAuthStore } from '../hooks/useAuthStore';
 import type { Issue, IssueMessage, IssueStatus, RenterProfile, LandlordProfile, AgencyProfile } from '../types';
 import { getIssue, updateIssueStatus } from '../lib/storage';
-import { useToastStore } from '../components/organisms/Toast';
+import { useToastStore } from '../components/organisms/toastUtils';
 
 /**
  * IssueDetailPage - Detailed view of a single issue
@@ -106,7 +106,7 @@ export function IssueDetailPage() {
 
         try {
             const senderName =
-              userType === 'agency'
+              userType === 'estate_agent' || userType === 'management_agency'
                 ? (currentUser as AgencyProfile).companyName
                 : (currentUser as RenterProfile | LandlordProfile).names || 'User';
 
