@@ -12,6 +12,7 @@ import { LandlordDashboard } from './pages/LandlordDashboard';
 import { AgencyDashboard } from './pages/AgencyDashboard';
 import { MatchesPage } from './pages/MatchesPage';
 import { AgencyMessagesPage } from './pages/AgencyMessagesPage';
+import { LandlordMessagesPage } from './pages/LandlordMessagesPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { CurrentRenterDashboard } from './pages/CurrentRenterDashboard';
 import { LandlordDiscoverPage } from './pages/LandlordDiscoverPage';
@@ -27,7 +28,7 @@ import { useAppStore } from './hooks/useAppStore';
 import type { UserType, RenterProfile } from './types';
 
 type AppRoute = 'welcome' | 'role-select' | 'login' | 'renter-onboarding' | 'landlord-onboarding' | 'agency-onboarding' | 'admin-login' | 'admin-dashboard' | 'app';
-type AppPage = 'swipe' | 'matches' | 'profile' | 'tenancy';
+type AppPage = 'swipe' | 'matches' | 'profile' | 'tenancy' | 'agency-messages';
 
 /**
  * Main App component with authentication and routing
@@ -228,7 +229,10 @@ function App() {
                     ) : userType === 'estate_agent' || userType === 'management_agency' ? (
                       <AgencyDashboard />
                     ) : (
-                      <LandlordDashboard onNavigateToMatches={() => setCurrentPage('matches')} />
+                      <LandlordDashboard
+                          onNavigateToMatches={() => setCurrentPage('matches')}
+                          onNavigateToAgencyMessages={() => setCurrentPage('agency-messages')}
+                        />
                     )}
                   </motion.div>
                 )}
@@ -263,6 +267,16 @@ function App() {
                         sessionStorage.setItem('autoOpenConversationType', conversationType);
                       }
                     }} />
+                  </motion.div>
+                )}
+                {currentPage === 'agency-messages' && userType === 'landlord' && (
+                  <motion.div
+                    key="agency-messages"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                  >
+                    <LandlordMessagesPage onBack={() => setCurrentPage('swipe')} />
                   </motion.div>
                 )}
                 {currentPage === 'profile' && (

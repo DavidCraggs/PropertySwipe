@@ -15,13 +15,14 @@ import { getIssuesForMatch, updateIssueStatus, saveProperty } from '../lib/stora
 
 interface VendorDashboardProps {
   onNavigateToMatches?: (matchId?: string) => void;
+  onNavigateToAgencyMessages?: () => void;
 }
 
 /**
  * Dashboard for landlords showing their rental property listing and interested renters
  * Different from renter swipe interface
  */
-export function VendorDashboard({ onNavigateToMatches }: VendorDashboardProps) {
+export function VendorDashboard({ onNavigateToMatches, onNavigateToAgencyMessages }: VendorDashboardProps) {
   const { currentUser, updateProfile } = useAuthStore();
   const {
     matches,
@@ -500,6 +501,30 @@ export function VendorDashboard({ onNavigateToMatches }: VendorDashboardProps) {
             </div>
           )}
         </div>
+
+        {/* Agency Messages Card */}
+        {landlordProfile?.id && landlordProperty?.managingAgencyId && (
+          <div className="bg-white rounded-2xl shadow-sm p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 bg-secondary-100 rounded-xl flex items-center justify-center">
+                <MessageSquare size={24} className="text-secondary-600" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-bold text-neutral-900">Agency Messages</h3>
+                <p className="text-sm text-neutral-500">
+                  Communicate with your managing agency
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={onNavigateToAgencyMessages}
+              className="w-full px-4 py-3 bg-secondary-500 hover:bg-secondary-600 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
+            >
+              <MessageSquare size={20} />
+              Open Agency Messages
+            </button>
+          </div>
+        )}
 
         {/* Agency Relationships Section */}
         {landlordProfile?.id && landlordProperty && (
