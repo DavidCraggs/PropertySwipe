@@ -3,8 +3,9 @@ import { Home, MessageCircle, AlertTriangle, Clock, CheckCircle2, Package, LogOu
 import { useAuthStore } from '../hooks/useAuthStore';
 import { Button } from '../components/atoms/Button';
 import { useToastStore } from '../components/organisms/toastUtils';
-import type { RenterProfile, Property, AgencyProfile, Issue, IssueCategory, IssuePriority, ConversationType } from '../types';
-import { getPropertyById, getAgencyProfile, getIssuesForMatch, createIssue } from '../lib/storage';
+import { IssueDetailsModal } from '../components/organisms/IssueDetailsModal';
+import type { RenterProfile, Property, AgencyProfile, Issue, IssueCategory, IssuePriority, IssueStatus, ConversationType } from '../types';
+import { getPropertyById, getAgencyProfile, getIssuesForMatch, createIssue, updateIssueStatus } from '../lib/storage';
 import { useAppStore } from '../hooks';
 
 interface CurrentRenterDashboardProps {
@@ -26,6 +27,7 @@ export const CurrentRenterDashboard: React.FC<CurrentRenterDashboardProps> = ({ 
   const [issues, setIssues] = useState<Issue[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [currentMatchId, setCurrentMatchId] = useState<string | null>(null);
+  const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null);
 
   const renterProfile = currentUser as RenterProfile;
 
@@ -146,6 +148,21 @@ export const CurrentRenterDashboard: React.FC<CurrentRenterDashboardProps> = ({ 
     window.location.reload();
   };
 
+  // Handler for updating issue status
+  const handleIssueStatusUpdate = async (issueId: string, newStatus: IssueStatus) => {
+    try {
+      await updateIssueStatus(issueId, newStatus);
+      setIssues(prev => prev.map(issue =>
+        issue.id === issueId ? { ...issue, status: newStatus } : issue
+      ));
+      setSelectedIssue(null);
+      addToast({ type: 'success', title: 'Status Updated', message: `Issue marked as ${newStatus.replace('_', ' ')}` });
+    } catch (error) {
+      console.error('Failed to update issue status:', error);
+      addToast({ type: 'danger', title: 'Error', message: 'Failed to update issue status' });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-success-50 pb-24">
       {/* Header */}
@@ -257,10 +274,19 @@ export const CurrentRenterDashboard: React.FC<CurrentRenterDashboardProps> = ({ 
             />
 
             {/* Active Issues Section */}
-            <IssueSection issues={issues} />
+            <IssueSection issues={issues} onViewIssue={setSelectedIssue} />
           </div>
         )}
       </main>
+
+      {/* Issue Details Modal */}
+      <IssueDetailsModal
+        issue={selectedIssue}
+        isOpen={!!selectedIssue}
+        onClose={() => setSelectedIssue(null)}
+        onStatusUpdate={handleIssueStatusUpdate}
+        showStatusActions={true}
+      />
     </div>
   );
 };
@@ -810,9 +836,10 @@ const RenterIssueReporter: React.FC<RenterIssueReporterProps> = ({
  */
 interface IssueSectionProps {
   issues: Issue[];
+  onViewIssue?: (issue: Issue) => void;
 }
 
-const IssueSection: React.FC<IssueSectionProps> = ({ issues }) => {
+const IssueSection: React.FC<IssueSectionProps> = ({ issues, onViewIssue }) => {
   const activeIssues = issues.filter(i => i.status !== 'resolved' && i.status !== 'closed');
   const resolvedIssues = issues.filter(i => i.status === 'resolved' || i.status === 'closed');
 
@@ -838,7 +865,7 @@ const IssueSection: React.FC<IssueSectionProps> = ({ issues }) => {
           </h3>
           <div className="space-y-3">
             {activeIssues.map((issue) => (
-              <IssueCard key={issue.id} issue={issue} />
+              <IssueCard key={issue.id} issue={issue} onClick={() => onViewIssue?.(issue)} />
             ))}
           </div>
         </div>
@@ -852,7 +879,7 @@ const IssueSection: React.FC<IssueSectionProps> = ({ issues }) => {
           </h3>
           <div className="space-y-3">
             {resolvedIssues.map((issue) => (
-              <IssueCard key={issue.id} issue={issue} />
+              <IssueCard key={issue.id} issue={issue} onClick={() => onViewIssue?.(issue)} />
             ))}
           </div>
         </div>
@@ -867,9 +894,10 @@ const IssueSection: React.FC<IssueSectionProps> = ({ issues }) => {
  */
 interface IssueCardProps {
   issue: Issue;
+  onClick?: () => void;
 }
 
-const IssueCard: React.FC<IssueCardProps> = ({ issue }) => {
+const IssueCard: React.FC<IssueCardProps> = ({ issue, onClick }) => {
   const priorityColors = {
     emergency: 'bg-danger-100 text-danger-700',
     urgent: 'bg-warning-100 text-warning-700',
@@ -877,18 +905,22 @@ const IssueCard: React.FC<IssueCardProps> = ({ issue }) => {
     low: 'bg-neutral-100 text-neutral-700',
   };
 
-  const statusIcons = {
+  const statusIcons: Record<IssueStatus, React.ReactNode> = {
     open: <Clock size={16} />,
     acknowledged: <Clock size={16} />,
     in_progress: <Clock size={16} />,
     awaiting_parts: <Clock size={16} />,
     awaiting_access: <Clock size={16} />,
+    scheduled: <Clock size={16} />,
     resolved: <CheckCircle2 size={16} />,
     closed: <CheckCircle2 size={16} />,
   };
 
   return (
-    <div className="border border-neutral-200 rounded-lg p-4 hover:border-primary-300 transition-colors cursor-pointer">
+    <div
+      onClick={onClick}
+      className="border border-neutral-200 rounded-lg p-4 hover:border-primary-300 transition-colors cursor-pointer"
+    >
       <div className="flex items-start justify-between mb-2">
         <h4 className="font-semibold text-neutral-900">{issue.subject}</h4>
         <span className={`px-2 py-1 text-xs font-medium rounded ${priorityColors[issue.priority]}`}>

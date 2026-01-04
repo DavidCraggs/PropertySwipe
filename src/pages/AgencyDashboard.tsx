@@ -1,22 +1,37 @@
 import { useState, useEffect } from 'react';
-import { Building2, Users, AlertTriangle, CheckCircle2, Clock, TrendingUp, Home, MessageSquare } from 'lucide-react';
+import { Building2, Users, AlertTriangle, CheckCircle2, Clock, TrendingUp, Home, MessageSquare, Settings, Edit, Shield } from 'lucide-react';
 import { useAuthStore } from '../hooks/useAuthStore';
 import type { AgencyProfile, Issue, Property, Match } from '../types';
 import { AgencyLandlordManager } from '../components/organisms/AgencyLandlordManager';
-import { getPropertiesByIds, getIssuesForProperty } from '../lib/storage';
+import { PropertyDetailsModal } from '../components/organisms/PropertyDetailsModal';
+import { IssueDetailsModal } from '../components/organisms/IssueDetailsModal';
+import { TenancyDetailsModal } from '../components/organisms/TenancyDetailsModal';
+import { SLAConfigurationModal, type SLAConfig } from '../components/organisms/SLAConfigurationModal';
+import { PropertyForm } from '../components/organisms/PropertyForm';
+import { getPropertiesByIds, getIssuesForProperty, saveAgencyProfile, updateIssueStatus, saveProperty } from '../lib/storage';
+import type { IssueStatus } from '../types';
 import { useAppStore } from '../hooks';
+import { useToast } from '../components/organisms/toastUtils';
 
 /**
  * Phase 6: Dashboard for estate agents and management agencies
  * Shows portfolio overview, SLA performance, active issues, and tenant management
  */
 export function AgencyDashboard() {
-  const { currentUser, userType } = useAuthStore();
+  const { currentUser, userType, updateProfile } = useAuthStore();
   const { matches } = useAppStore();
+  const toast = useToast();
   const [activeTab, setActiveTab] = useState<'overview' | 'landlords' | 'properties' | 'tenancies' | 'issues'>('overview');
   const [properties, setProperties] = useState<Property[]>([]);
   const [allIssues, setAllIssues] = useState<Issue[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Modal state
+  const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
+  const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null);
+  const [selectedTenancy, setSelectedTenancy] = useState<Match | null>(null);
+  const [isSLAModalOpen, setIsSLAModalOpen] = useState(false);
+  const [editingProperty, setEditingProperty] = useState<Property | null>(null);
 
   const agencyProfile = currentUser as AgencyProfile;
 
@@ -77,6 +92,69 @@ export function AgencyDashboard() {
     averageResponseTime: agencyProfile.slaConfiguration?.urgentResponseHours ?? 24,
     totalIssuesResolved: allIssues.filter(i => i.status === 'resolved' || i.status === 'closed').length,
     totalIssuesRaised: allIssues.length,
+  };
+
+  // Handler for saving SLA configuration
+  const handleSaveSLA = async (newConfig: SLAConfig) => {
+    try {
+      const updatedProfile = {
+        ...agencyProfile,
+        slaConfiguration: newConfig,
+      };
+      await saveAgencyProfile(updatedProfile);
+      await updateProfile(updatedProfile);
+      toast.success('SLA configuration updated successfully');
+    } catch (error) {
+      console.error('Failed to save SLA configuration:', error);
+      toast.error('Failed to update SLA configuration');
+    }
+  };
+
+  // Handler for updating issue status
+  const handleIssueStatusUpdate = async (issueId: string, newStatus: IssueStatus) => {
+    try {
+      await updateIssueStatus(issueId, newStatus);
+      // Update local state
+      setAllIssues(prev => prev.map(issue =>
+        issue.id === issueId ? { ...issue, status: newStatus } : issue
+      ));
+      setSelectedIssue(null);
+      toast.success(`Issue marked as ${newStatus.replace('_', ' ')}`);
+    } catch (error) {
+      console.error('Failed to update issue status:', error);
+      toast.error('Failed to update issue status');
+    }
+  };
+
+  // Handler for property update (agency editing)
+  const handlePropertyUpdate = async (propertyData: Omit<Property, 'id'>) => {
+    if (!editingProperty) return;
+
+    try {
+      // Merge with existing property and add audit trail
+      const updatedProperty: Property = {
+        ...editingProperty,
+        ...propertyData,
+        id: editingProperty.id,
+        landlordId: editingProperty.landlordId, // Preserve original landlord
+        managingAgencyId: editingProperty.managingAgencyId, // Preserve agency relationship
+        lastEditedBy: agencyProfile.id,
+        lastEditedAt: new Date(),
+      };
+
+      await saveProperty(updatedProperty);
+
+      // Update local state
+      setProperties(prev => prev.map(p =>
+        p.id === editingProperty.id ? updatedProperty : p
+      ));
+
+      setEditingProperty(null);
+      toast.success('Property updated successfully');
+    } catch (error) {
+      console.error('Failed to update property:', error);
+      toast.error('Failed to update property');
+    }
   };
 
   if (isLoading) {
@@ -149,6 +227,7 @@ export function AgencyDashboard() {
                 routineResponseHours: 72,
                 maintenanceResponseDays: 14,
               }}
+              onEditSLA={() => setIsSLAModalOpen(true)}
             />
 
             {/* Recent Issues Summary */}
@@ -165,7 +244,7 @@ export function AgencyDashboard() {
                   View All →
                 </button>
               </div>
-              <AgencyIssuesDashboard issues={allIssues} limit={5} />
+              <AgencyIssuesDashboard issues={allIssues} limit={5} onViewIssue={setSelectedIssue} />
             </div>
           </div>
         )}
@@ -183,7 +262,11 @@ export function AgencyDashboard() {
               <Home size={24} className="text-primary-600" />
               Managed Properties
             </h3>
-            <AgencyPropertiesTable properties={properties} />
+            <AgencyPropertiesTable
+              properties={properties}
+              onViewDetails={setSelectedProperty}
+              onEditProperty={setEditingProperty}
+            />
           </div>
         )}
 
@@ -193,7 +276,7 @@ export function AgencyDashboard() {
               <Users size={24} className="text-success-600" />
               Active Tenancies
             </h3>
-            <AgencyTenanciesTable tenancies={activeTenancies} />
+            <AgencyTenanciesTable tenancies={activeTenancies} onViewDetails={setSelectedTenancy} />
           </div>
         )}
 
@@ -203,10 +286,59 @@ export function AgencyDashboard() {
               <AlertTriangle size={24} className="text-warning-600" />
               All Issues
             </h3>
-            <AgencyIssuesDashboard issues={allIssues} />
+            <AgencyIssuesDashboard issues={allIssues} onViewIssue={setSelectedIssue} />
           </div>
         )}
       </main>
+
+      {/* Modals */}
+      <PropertyDetailsModal
+        property={selectedProperty}
+        isOpen={!!selectedProperty}
+        onClose={() => setSelectedProperty(null)}
+      />
+
+      <IssueDetailsModal
+        issue={selectedIssue}
+        isOpen={!!selectedIssue}
+        onClose={() => setSelectedIssue(null)}
+        onStatusUpdate={handleIssueStatusUpdate}
+        showStatusActions={true}
+      />
+
+      <TenancyDetailsModal
+        tenancy={selectedTenancy}
+        isOpen={!!selectedTenancy}
+        onClose={() => setSelectedTenancy(null)}
+      />
+
+      <SLAConfigurationModal
+        isOpen={isSLAModalOpen}
+        onClose={() => setIsSLAModalOpen(false)}
+        currentConfig={agencyProfile.slaConfiguration ?? {
+          emergencyResponseHours: 4,
+          urgentResponseHours: 24,
+          routineResponseHours: 72,
+          maintenanceResponseDays: 14,
+        }}
+        onSave={handleSaveSLA}
+      />
+
+      {/* Property Editor Modal */}
+      {editingProperty && (
+        <div className="fixed inset-0 bg-black/50 z-50 overflow-y-auto">
+          <div className="min-h-screen flex items-center justify-center p-4 py-8">
+            <div className="bg-white rounded-2xl w-full max-w-3xl shadow-2xl">
+              <PropertyForm
+                mode="edit"
+                initialData={editingProperty}
+                onSubmit={handlePropertyUpdate}
+                onCancel={() => setEditingProperty(null)}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -296,9 +428,10 @@ interface SLAPerformanceSectionProps {
     routineResponseHours: number;
     maintenanceResponseDays: number;
   };
+  onEditSLA?: () => void;
 }
 
-function SLAPerformanceSection({ complianceRate, averageResponseTime, slaConfig }: SLAPerformanceSectionProps) {
+function SLAPerformanceSection({ complianceRate, averageResponseTime, slaConfig, onEditSLA }: SLAPerformanceSectionProps) {
   // Determine color based on compliance rate (per plan: 80%+ green, 60-80% yellow, <60% red)
   const getComplianceColor = (rate: number) => {
     if (rate >= 80) return { bg: 'bg-success-100', border: 'border-success-500', text: 'text-success-700' };
@@ -368,6 +501,19 @@ function SLAPerformanceSection({ complianceRate, averageResponseTime, slaConfig 
           <div className="text-xs text-neutral-600 mt-1">Maintenance SLA</div>
         </div>
       </div>
+
+      {/* Edit SLA Button */}
+      {onEditSLA && (
+        <div className="mt-4 flex justify-end">
+          <button
+            onClick={onEditSLA}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-primary-600 hover:text-primary-700 hover:bg-primary-50 rounded-lg transition-colors"
+          >
+            <Settings size={16} />
+            Edit SLA Configuration
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -378,9 +524,11 @@ function SLAPerformanceSection({ complianceRate, averageResponseTime, slaConfig 
  */
 interface AgencyPropertiesTableProps {
   properties: Property[];
+  onViewDetails?: (property: Property) => void;
+  onEditProperty?: (property: Property) => void;
 }
 
-function AgencyPropertiesTable({ properties }: AgencyPropertiesTableProps) {
+function AgencyPropertiesTable({ properties, onViewDetails, onEditProperty }: AgencyPropertiesTableProps) {
   if (properties.length === 0) {
     return (
       <div className="text-center py-12">
@@ -400,6 +548,7 @@ function AgencyPropertiesTable({ properties }: AgencyPropertiesTableProps) {
             <th className="text-left py-3 px-4 text-sm font-semibold text-neutral-700">Type</th>
             <th className="text-left py-3 px-4 text-sm font-semibold text-neutral-700">Rent</th>
             <th className="text-left py-3 px-4 text-sm font-semibold text-neutral-700">Status</th>
+            <th className="text-left py-3 px-4 text-sm font-semibold text-neutral-700">Management</th>
             <th className="text-left py-3 px-4 text-sm font-semibold text-neutral-700">Actions</th>
           </tr>
         </thead>
@@ -423,9 +572,31 @@ function AgencyPropertiesTable({ properties }: AgencyPropertiesTableProps) {
                 </span>
               </td>
               <td className="py-3 px-4">
-                <button className="text-primary-600 hover:text-primary-700 text-sm font-medium">
-                  View Details
-                </button>
+                {property.isFullyManagedByAgency ? (
+                  <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-primary-100 text-primary-700">
+                    <Shield size={12} />
+                    Full Management
+                  </span>
+                ) : (
+                  <span className="text-xs text-neutral-500">Standard</span>
+                )}
+              </td>
+              <td className="py-3 px-4">
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => onViewDetails?.(property)}
+                    className="text-primary-600 hover:text-primary-700 text-sm font-medium"
+                  >
+                    View
+                  </button>
+                  <button
+                    onClick={() => onEditProperty?.(property)}
+                    className="inline-flex items-center gap-1 text-secondary-600 hover:text-secondary-700 text-sm font-medium"
+                  >
+                    <Edit size={14} />
+                    Edit
+                  </button>
+                </div>
               </td>
             </tr>
           ))}
@@ -441,9 +612,10 @@ function AgencyPropertiesTable({ properties }: AgencyPropertiesTableProps) {
  */
 interface AgencyTenanciesTableProps {
   tenancies: Match[];
+  onViewDetails?: (tenancy: Match) => void;
 }
 
-function AgencyTenanciesTable({ tenancies }: AgencyTenanciesTableProps) {
+function AgencyTenanciesTable({ tenancies, onViewDetails }: AgencyTenanciesTableProps) {
   if (tenancies.length === 0) {
     return (
       <div className="text-center py-12">
@@ -496,7 +668,10 @@ function AgencyTenanciesTable({ tenancies }: AgencyTenanciesTableProps) {
                 )}
               </td>
               <td className="py-3 px-4">
-                <button className="text-primary-600 hover:text-primary-700 text-sm font-medium">
+                <button
+                  onClick={() => onViewDetails?.(tenancy)}
+                  className="text-primary-600 hover:text-primary-700 text-sm font-medium"
+                >
                   View Details
                 </button>
               </td>
@@ -515,9 +690,10 @@ function AgencyTenanciesTable({ tenancies }: AgencyTenanciesTableProps) {
 interface AgencyIssuesDashboardProps {
   issues: Issue[];
   limit?: number;
+  onViewIssue?: (issue: Issue) => void;
 }
 
-function AgencyIssuesDashboard({ issues, limit }: AgencyIssuesDashboardProps) {
+function AgencyIssuesDashboard({ issues, limit, onViewIssue }: AgencyIssuesDashboardProps) {
   const displayIssues = limit ? issues.slice(0, limit) : issues;
 
   if (issues.length === 0) {
@@ -533,7 +709,7 @@ function AgencyIssuesDashboard({ issues, limit }: AgencyIssuesDashboardProps) {
   return (
     <div className="space-y-3">
       {displayIssues.map((issue) => (
-        <AgencyIssueRow key={issue.id} issue={issue} />
+        <AgencyIssueRow key={issue.id} issue={issue} onViewDetails={() => onViewIssue?.(issue)} />
       ))}
     </div>
   );
@@ -545,9 +721,10 @@ function AgencyIssuesDashboard({ issues, limit }: AgencyIssuesDashboardProps) {
  */
 interface AgencyIssueRowProps {
   issue: Issue;
+  onViewDetails?: () => void;
 }
 
-function AgencyIssueRow({ issue }: AgencyIssueRowProps) {
+function AgencyIssueRow({ issue, onViewDetails }: AgencyIssueRowProps) {
   const priorityColors = {
     emergency: { bg: 'bg-danger-100', text: 'text-danger-700', border: 'border-danger-300' },
     urgent: { bg: 'bg-warning-100', text: 'text-warning-700', border: 'border-warning-300' },
@@ -555,12 +732,13 @@ function AgencyIssueRow({ issue }: AgencyIssueRowProps) {
     low: { bg: 'bg-neutral-100', text: 'text-neutral-700', border: 'border-neutral-300' },
   };
 
-  const statusIcons = {
+  const statusIcons: Record<IssueStatus, React.ReactNode> = {
     open: <Clock size={16} className="text-warning-600" />,
     acknowledged: <MessageSquare size={16} className="text-primary-600" />,
     in_progress: <TrendingUp size={16} className="text-primary-600" />,
     awaiting_parts: <Clock size={16} className="text-warning-600" />,
     awaiting_access: <Clock size={16} className="text-warning-600" />,
+    scheduled: <Clock size={16} className="text-primary-600" />,
     resolved: <CheckCircle2 size={16} className="text-success-600" />,
     closed: <CheckCircle2 size={16} className="text-neutral-600" />,
   };
@@ -597,7 +775,7 @@ function AgencyIssueRow({ issue }: AgencyIssueRowProps) {
             <span className="capitalize">{issue.status.replace('_', ' ')}</span>
           </div>
           <div className="text-xs text-neutral-500">
-            Raised {new Date(issue.raisedAt).toLocaleDateString()}
+            Raised {issue.raisedAt ? new Date(issue.raisedAt).toLocaleDateString() : 'N/A'}
           </div>
         </div>
       </div>
@@ -605,9 +783,12 @@ function AgencyIssueRow({ issue }: AgencyIssueRowProps) {
       {/* SLA Deadline */}
       <div className="flex items-center justify-between pt-3 border-t border-neutral-200">
         <div className="text-xs text-neutral-600">
-          SLA Deadline: {new Date(issue.slaDeadline).toLocaleString()}
+          SLA Deadline: {issue.slaDeadline ? new Date(issue.slaDeadline).toLocaleString() : 'N/A'}
         </div>
-        <button className="text-primary-600 hover:text-primary-700 text-sm font-medium">
+        <button
+          onClick={onViewDetails}
+          className="text-primary-600 hover:text-primary-700 text-sm font-medium"
+        >
           View Details →
         </button>
       </div>

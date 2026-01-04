@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { Heart, MessageCircle, MapPin, Calendar, Clock, CheckCircle, Star, AlertTriangle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Heart, MessageCircle, MapPin, Calendar, Clock, CheckCircle, Star, AlertTriangle, Users, ArrowRight } from 'lucide-react';
 import { useAppStore, useAuthStore } from '../hooks';
 import { useToastStore } from '../components/organisms/toastUtils';
 import { formatRelativeTime } from '../utils/formatters';
@@ -14,7 +15,8 @@ type TabType = 'matches' | 'viewings';
 
 
 export const MatchesPage: React.FC = () => {
-  const { matches: storeMatches, submitRating } = useAppStore();
+  const navigate = useNavigate();
+  const { matches: storeMatches, submitRating, getPendingInterestsCount } = useAppStore();
   const { userType, currentUser } = useAuthStore();
   const { addToast } = useToastStore();
   const [selectedMatch, setSelectedMatch] = useState<string | null>(null);
@@ -342,6 +344,39 @@ export const MatchesPage: React.FC = () => {
       </header>
 
       <main className="max-w-4xl mx-auto px-4 py-8">
+        {/* Pending Interests Banner (Landlords Only) */}
+        {userType === 'landlord' && currentUser && (() => {
+          const pendingCount = getPendingInterestsCount(currentUser.id);
+          if (pendingCount === 0) return null;
+
+          return (
+            <div className="mb-6 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-4 shadow-sm">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center">
+                    <Users className="w-6 h-6 text-amber-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-neutral-900">
+                      {pendingCount} Interested Renter{pendingCount !== 1 ? 's' : ''} to Review
+                    </h3>
+                    <p className="text-sm text-neutral-600">
+                      Renters have shown interest in your properties
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => navigate('/landlord/discover')}
+                  className="flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                >
+                  Review Now
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          );
+        })()}
+
         {/* Matches Tab */}
         {activeTab === 'matches' && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

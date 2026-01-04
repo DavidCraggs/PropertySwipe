@@ -164,12 +164,13 @@ export function IssueDetailPage() {
         low: { bg: 'bg-neutral-100', text: 'text-neutral-700', border: 'border-neutral-300' },
     };
 
-    const statusIcons = {
+    const statusIcons: Record<IssueStatus, React.ReactNode> = {
         open: <Clock size={20} className="text-warning-600" />,
         acknowledged: <MessageSquare size={20} className="text-primary-600" />,
         in_progress: <TrendingUp size={20} className="text-primary-600" />,
         awaiting_parts: <Clock size={20} className="text-warning-600" />,
         awaiting_access: <Clock size={20} className="text-warning-600" />,
+        scheduled: <Clock size={20} className="text-primary-600" />,
         resolved: <CheckCircle2 size={20} className="text-success-600" />,
         closed: <CheckCircle2 size={20} className="text-neutral-600" />,
     };
@@ -394,13 +395,13 @@ export function IssueDetailPage() {
                                 <div className="flex items-center gap-2 text-neutral-600">
                                     <Calendar size={16} />
                                     <span className="font-medium">Reported:</span>
-                                    <span>{new Date(issue.raisedAt).toLocaleDateString()}</span>
+                                    <span>{issue.raisedAt ? new Date(issue.raisedAt).toLocaleDateString() : 'N/A'}</span>
                                 </div>
 
                                 <div className="flex items-center gap-2 text-neutral-600">
                                     <Clock size={16} />
                                     <span className="font-medium">SLA Deadline:</span>
-                                    <span>{new Date(issue.slaDeadline).toLocaleDateString()}</span>
+                                    <span>{issue.slaDeadline ? new Date(issue.slaDeadline).toLocaleDateString() : 'N/A'}</span>
                                 </div>
 
                                 {issue.resolvedAt && (

@@ -117,6 +117,7 @@ export type IssueStatus =
   | 'in_progress'
   | 'awaiting_parts'
   | 'awaiting_access'
+  | 'scheduled'
   | 'resolved'
   | 'closed';
 
@@ -259,6 +260,12 @@ export interface Property {
   managingAgencyId?: string;
   marketingAgentId?: string;
 
+  // Full management delegation
+  isFullyManagedByAgency?: boolean;       // Agency has full management control
+  landlordCanEditWhenManaged?: boolean;   // Landlord retains edit rights when fully managed
+  lastEditedBy?: string;                  // User ID for audit trail
+  lastEditedAt?: Date;                    // Timestamp for audit trail
+
   // Availability
   isAvailable: boolean;
   canBeMarketed: boolean; // Calculated: requires PRS registration + compliance
@@ -321,6 +328,13 @@ export interface RenterProfile {
 
   // Rating summary
   ratingsSummary?: UserRatingsSummary;
+
+  // ID Verification (Right to Rent)
+  rightToRentVerified?: boolean;
+  rightToRentVerifiedAt?: Date;
+  rightToRentExpiresAt?: Date;
+  rightToRentDocumentType?: 'passport' | 'driving_license' | 'biometric_residence_permit' | 'share_code' | 'other';
+  verificationStatus?: 'not_started' | 'pending' | 'processing' | 'verified' | 'failed' | 'expired';
 }
 
 // =====================================================
@@ -643,6 +657,46 @@ export interface SendMessageParams {
   senderType: UserType;
 }
 
+// =====================================================
+// AGENCY-LANDLORD CONVERSATION INTERFACE
+// =====================================================
+
+/**
+ * AgencyLandlordConversation
+ * Direct messaging between agencies and landlords they manage.
+ * Separate from renter-match conversations.
+ */
+export interface AgencyLandlordConversation {
+  id: string;
+  agencyId: string;
+  landlordId: string;
+  propertyId?: string; // Optional - for property-specific discussions
+  messages: AgencyLandlordMessage[];
+  lastMessageAt?: string;
+  unreadCountAgency: number;
+  unreadCountLandlord: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface AgencyLandlordMessage {
+  id: string;
+  conversationId: string;
+  senderId: string;
+  senderType: 'agency' | 'landlord';
+  content: string;
+  timestamp: Date;
+  isRead: boolean;
+}
+
+export interface SendAgencyLandlordMessageParams {
+  agencyId: string;
+  landlordId: string;
+  content: string;
+  senderId: string;
+  senderType: 'agency' | 'landlord';
+  propertyId?: string; // Optional context
+}
 
 // =====================================================
 // VIEWING PREFERENCE

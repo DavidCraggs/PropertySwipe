@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Routes, Route } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { WelcomeScreen } from './pages/WelcomeScreen';
 import { RoleSelectionScreen } from './pages/RoleSelectionScreen';
@@ -10,8 +11,10 @@ import { SwipePage } from './pages/SwipePage';
 import { LandlordDashboard } from './pages/LandlordDashboard';
 import { AgencyDashboard } from './pages/AgencyDashboard';
 import { MatchesPage } from './pages/MatchesPage';
+import { AgencyMessagesPage } from './pages/AgencyMessagesPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { CurrentRenterDashboard } from './pages/CurrentRenterDashboard';
+import { LandlordDiscoverPage } from './pages/LandlordDiscoverPage';
 import { AdminLoginPage } from './pages/AdminLoginPage';
 import { AdminDashboard } from './pages/AdminDashboard';
 import { AdminModeIndicator } from './components/AdminModeIndicator';
@@ -23,7 +26,7 @@ import { useAuthStore } from './hooks/useAuthStore';
 import { useAppStore } from './hooks/useAppStore';
 import type { UserType, RenterProfile } from './types';
 
-type Route = 'welcome' | 'role-select' | 'login' | 'renter-onboarding' | 'landlord-onboarding' | 'agency-onboarding' | 'admin-login' | 'admin-dashboard' | 'app';
+type AppRoute = 'welcome' | 'role-select' | 'login' | 'renter-onboarding' | 'landlord-onboarding' | 'agency-onboarding' | 'admin-login' | 'admin-dashboard' | 'app';
 type AppPage = 'swipe' | 'matches' | 'profile' | 'tenancy';
 
 /**
@@ -35,7 +38,7 @@ function App() {
   const { addToast } = useToastStore();
   const { loadProperties } = useAppStore();
 
-  const [currentRoute, setCurrentRoute] = useState<Route>('welcome');
+  const [currentRoute, setCurrentRoute] = useState<AppRoute>('welcome');
   const [currentPage, setCurrentPage] = useState<AppPage>('swipe');
   const [selectedRole, setSelectedRole] = useState<UserType | null>(null);
 
@@ -87,7 +90,7 @@ function App() {
       setCurrentRoute('app');
     } else if (isAuthenticated && currentUser && 'onboardingComplete' in currentUser && !currentUser.onboardingComplete) {
       // Route to appropriate onboarding based on user type
-      let route: Route = 'renter-onboarding';
+      let route: AppRoute = 'renter-onboarding';
       if (userType === 'renter') {
         route = 'renter-onboarding';
       } else if (userType === 'landlord') {
@@ -133,7 +136,7 @@ function App() {
   const handleSelectRole = (role: UserType) => {
     setSelectedRole(role);
     // Route to appropriate onboarding
-    let route: Route = 'renter-onboarding';
+    let route: AppRoute = 'renter-onboarding';
     if (role === 'renter') {
       route = 'renter-onboarding';
     } else if (role === 'landlord') {
@@ -225,7 +228,7 @@ function App() {
                     ) : userType === 'estate_agent' || userType === 'management_agency' ? (
                       <AgencyDashboard />
                     ) : (
-                      <LandlordDashboard />
+                      <LandlordDashboard onNavigateToMatches={() => setCurrentPage('matches')} />
                     )}
                   </motion.div>
                 )}
@@ -236,7 +239,11 @@ function App() {
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                   >
-                    <MatchesPage />
+                    {(userType === 'estate_agent' || userType === 'management_agency') ? (
+                      <AgencyMessagesPage />
+                    ) : (
+                      <MatchesPage />
+                    )}
                   </motion.div>
                 )}
                 {currentPage === 'tenancy' && ( // Added tenancy page rendering
@@ -281,7 +288,23 @@ function App() {
 
   return (
     <ErrorBoundary>
-      {renderRoute()}
+      <Routes>
+        {/* React Router managed routes */}
+        <Route path="/landlord/discover" element={
+          isAuthenticated && (userType === 'landlord' || isAdminMode) ? (
+            <>
+              {isAdminMode && <AdminModeIndicator />}
+              <div className={isAdminMode ? 'pt-12' : ''}>
+                <LandlordDiscoverPage />
+              </div>
+            </>
+          ) : (
+            <WelcomeScreen onGetStarted={handleGetStarted} onLogin={() => setCurrentRoute('login')} />
+          )
+        } />
+        {/* Default: use existing state-based routing */}
+        <Route path="*" element={renderRoute()} />
+      </Routes>
       <ToastContainer />
     </ErrorBoundary>
   );

@@ -248,30 +248,29 @@ export const useAppStore = create<AppState>()(
           });
         }
 
-        // Get renter profile from useAuthStore to pass to checkForMatch
-        let renterProfile: Partial<RenterProfile> | undefined = undefined;
+        // Get full renter profile for two-sided matching
+        let renterProfile: RenterProfile | undefined = undefined;
         try {
           const authData = localStorage.getItem('get-on-auth');
           if (authData) {
             const parsed = JSON.parse(authData);
             const currentUser = parsed.state?.currentUser;
             if (currentUser && 'situation' in currentUser) {
-              // It's a RenterProfile (or legacy BuyerProfile)
-              renterProfile = {
-                situation: currentUser.situation,
-                ages: currentUser.ages,
-                localArea: currentUser.localArea,
-                renterType: currentUser.renterType || currentUser.buyerType, // Backward compatibility
-                employmentStatus: currentUser.employmentStatus || 'Employed Full-Time',
-              };
+              renterProfile = currentUser as RenterProfile;
             }
           }
         } catch {
           console.warn('[Like] Could not retrieve renter profile from auth store');
         }
 
-        // Check for match with renter profile
-        get().checkForMatch(propertyId, renterProfile);
+        // Two-sided matching: Create interest instead of random match
+        // The landlord will review and approve/decline this interest
+        if (renterProfile && user) {
+          get().createInterest(propertyId, user.id, renterProfile);
+        } else {
+          // Fallback to random match for demo/anonymous users
+          get().checkForMatch(propertyId);
+        }
       },
 
       // Dislike a property
@@ -1221,9 +1220,9 @@ export const useAppStore = create<AppState>()(
         // Calculate compatibility score
         const compatibilityScore = calculateCompatibility(renterProfile, property);
 
-        // Create new interest
+        // Create new interest with unique ID
         const newInterest: Interest = {
-          id: `interest-${Date.now()}`,
+          id: `interest-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
           renterId,
           landlordId: property.landlordId,
           propertyId,
@@ -1414,7 +1413,7 @@ export const useAppStore = create<AppState>()(
         const updatedInterests = [...interests];
         updatedInterests[interestIndex] = {
           ...interest,
-          status: 'matched',
+          status: 'landlord_liked',
           landlordReviewedAt: new Date(),
           createdMatchId: newMatchId,
           updatedAt: new Date(),

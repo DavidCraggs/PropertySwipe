@@ -1,4 +1,4 @@
-import { Home, Heart, User, LayoutDashboard, HousePlus, HouseHeart } from 'lucide-react';
+import { Home, Heart, User, LayoutDashboard, HousePlus, HouseHeart, MessageSquare, Building2 } from 'lucide-react';
 import { useAppStore } from '../../hooks';
 import { useAuthStore } from '../../hooks/useAuthStore';
 import type { RenterProfile } from '../../types';
@@ -12,7 +12,7 @@ interface BottomNavProps {
  * BottomNav component
  * Fixed bottom navigation with active state indicators
  * Badge for unread matches
- * Shows different labels for landlords vs renters
+ * Shows different labels for landlords vs renters vs agencies
  * Shows "My Tenancy" tab for current renters
  */
 export const BottomNav: React.FC<BottomNavProps> = ({ currentPage, onNavigate }) => {
@@ -21,9 +21,33 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentPage, onNavigate })
   const unreadCount = matches.reduce((sum, match) => sum + (match.unreadCount || 0), 0);
 
   const isLandlord = userType === 'landlord';
+  const isAgency = userType === 'estate_agent' || userType === 'management_agency';
   const isCurrentRenter = userType === 'renter' && (currentUser as RenterProfile)?.status === 'current';
 
-  const navItems = isCurrentRenter ? [
+  // Agency-specific navigation
+  const agencyNavItems = [
+    {
+      id: 'swipe' as const,
+      label: 'Dashboard',
+      icon: Building2,
+      badge: null,
+    },
+    {
+      id: 'matches' as const,
+      label: 'Messages',
+      icon: MessageSquare,
+      badge: unreadCount > 0 ? unreadCount : null,
+    },
+    {
+      id: 'profile' as const,
+      label: 'Profile',
+      icon: User,
+      badge: null,
+    },
+  ];
+
+  // Current renter navigation (with tenancy tab)
+  const currentRenterNavItems = [
     {
       id: 'tenancy' as const,
       label: 'My Tenancy',
@@ -48,7 +72,10 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentPage, onNavigate })
       icon: User,
       badge: null,
     },
-  ] : [
+  ];
+
+  // Default navigation (renters looking, landlords)
+  const defaultNavItems = [
     {
       id: 'swipe' as const,
       label: isLandlord ? 'Dashboard' : 'Swipe',
@@ -68,6 +95,13 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentPage, onNavigate })
       badge: null,
     },
   ];
+
+  // Select appropriate nav items based on user type
+  const navItems = isAgency
+    ? agencyNavItems
+    : isCurrentRenter
+      ? currentRenterNavItems
+      : defaultNavItems;
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-neutral-200 safe-area-inset-bottom z-30">

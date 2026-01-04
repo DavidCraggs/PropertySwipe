@@ -1,21 +1,27 @@
-import { useState, useCallback } from 'react';
-import { Home, TrendingUp, Users, Heart, MessageSquare, Calendar, Eye, Clock, Edit, Trash2, LinkIcon, PlusCircle, AlertTriangle, CheckCircle2, UserPlus } from 'lucide-react';
+import { useState, useCallback, useEffect } from 'react';
+import { Home, TrendingUp, Users, Heart, MessageSquare, Calendar, Eye, Clock, Edit, Trash2, LinkIcon, PlusCircle, AlertTriangle, CheckCircle2, UserPlus, Shield } from 'lucide-react';
 import { useAuthStore } from '../hooks/useAuthStore';
 import { useAppStore } from '../hooks';
-import type { LandlordProfile, Match } from '../types';
+import type { LandlordProfile, Match, Issue, IssueStatus, Property } from '../types';
 import { ViewingScheduler } from '../components/organisms/ViewingScheduler';
 import { PropertyLinker } from '../components/organisms/PropertyLinker';
 import { PropertyForm } from '../components/organisms/PropertyForm';
 import { PropertyImage } from '../components/atoms/PropertyImage';
 import { AgencyLinkManager } from '../components/organisms/AgencyLinkManager';
 import { CreateRenterInviteModal } from '../components/organisms/CreateRenterInviteModal';
+import { IssueDetailsModal } from '../components/organisms/IssueDetailsModal';
 import { useToastStore } from '../components/organisms/toastUtils';
+import { getIssuesForMatch, updateIssueStatus, saveProperty } from '../lib/storage';
+
+interface VendorDashboardProps {
+  onNavigateToMatches?: (matchId?: string) => void;
+}
 
 /**
  * Dashboard for landlords showing their rental property listing and interested renters
  * Different from renter swipe interface
  */
-export function VendorDashboard() {
+export function VendorDashboard({ onNavigateToMatches }: VendorDashboardProps) {
   const { currentUser, updateProfile } = useAuthStore();
   const {
     matches,
@@ -34,8 +40,18 @@ export function VendorDashboard() {
   const [showPropertyEditor, setShowPropertyEditor] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
+  const [allIssues, setAllIssues] = useState<Issue[]>([]);
+  const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null);
 
   const landlordProfile = currentUser as LandlordProfile;
+
+  // Handler to navigate to matches page with a specific match selected
+  const handleViewMatch = useCallback((match: Match) => {
+    if (onNavigateToMatches) {
+      sessionStorage.setItem('autoOpenMatchId', match.id);
+      onNavigateToMatches(match.id);
+    }
+  }, [onNavigateToMatches]);
 
   // Find landlord's property if linked
   const landlordProperty = landlordProfile?.propertyId
@@ -68,6 +84,79 @@ export function VendorDashboard() {
   // Phase 4: Separate active tenancies from prospective matches
   const activeTenancies = allLandlordMatches.filter((m) => m.tenancyStatus === 'active');
   const renterInterests = allLandlordMatches.filter((m) => m.tenancyStatus === 'prospective');
+
+  // Fetch issues for active tenancies
+  useEffect(() => {
+    const fetchIssues = async () => {
+      if (activeTenancies.length === 0) {
+        setAllIssues([]);
+        return;
+      }
+      try {
+        const issuesPromises = activeTenancies.map(t => getIssuesForMatch(t.id));
+        const issuesArrays = await Promise.all(issuesPromises);
+        setAllIssues(issuesArrays.flat());
+      } catch (error) {
+        console.error('Failed to fetch issues:', error);
+      }
+    };
+    fetchIssues();
+  }, [activeTenancies.length, landlordProfile?.id]);
+
+  // Handler for updating issue status
+  const handleIssueStatusUpdate = async (issueId: string, newStatus: IssueStatus) => {
+    try {
+      await updateIssueStatus(issueId, newStatus);
+      setAllIssues(prev => prev.map(issue =>
+        issue.id === issueId ? { ...issue, status: newStatus } : issue
+      ));
+      setSelectedIssue(null);
+      addToast({ type: 'success', title: 'Status Updated', message: `Issue marked as ${newStatus.replace('_', ' ')}` });
+    } catch (error) {
+      console.error('Failed to update issue status:', error);
+      addToast({ type: 'danger', title: 'Error', message: 'Failed to update issue status' });
+    }
+  };
+
+  // Handler for management delegation settings
+  const handleManagementSettingsChange = async (
+    isFullyManaged: boolean,
+    landlordRetainsEdit: boolean
+  ) => {
+    if (!landlordProperty) return;
+
+    try {
+      const updatedProperty: Property = {
+        ...landlordProperty,
+        isFullyManagedByAgency: isFullyManaged,
+        landlordCanEditWhenManaged: landlordRetainsEdit,
+        lastEditedBy: landlordProfile?.id,
+        lastEditedAt: new Date(),
+      };
+
+      await saveProperty(updatedProperty);
+      updateProperty(landlordProperty.id, updatedProperty);
+
+      addToast({
+        type: 'success',
+        title: 'Settings Updated',
+        message: isFullyManaged
+          ? 'Full management delegation enabled'
+          : 'Standard management restored'
+      });
+    } catch (error) {
+      console.error('Failed to update management settings:', error);
+      addToast({
+        type: 'danger',
+        title: 'Error',
+        message: 'Failed to update management settings'
+      });
+    }
+  };
+
+  // Check if landlord can edit based on management settings
+  const canLandlordEdit = !landlordProperty?.isFullyManagedByAgency ||
+    landlordProperty?.landlordCanEditWhenManaged;
 
   // FIX BUG #12: Calculate real stats from match data instead of random numbers
   const stats = {
@@ -213,7 +302,13 @@ export function VendorDashboard() {
                 </button>
                 <button
                   onClick={() => setShowPropertyEditor(true)}
-                  className="flex-1 min-w-[120px] px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-lg font-medium text-sm transition-colors flex items-center justify-center gap-2"
+                  disabled={!canLandlordEdit}
+                  className={`flex-1 min-w-[120px] px-4 py-2 rounded-lg font-medium text-sm transition-colors flex items-center justify-center gap-2 ${
+                    canLandlordEdit
+                      ? 'bg-primary-500 hover:bg-primary-600 text-white'
+                      : 'bg-neutral-200 text-neutral-500 cursor-not-allowed'
+                  }`}
+                  title={!canLandlordEdit ? 'Property editing is managed by your agency' : undefined}
                 >
                   <Edit className="w-4 h-4" />
                   Edit Property
@@ -261,6 +356,92 @@ export function VendorDashboard() {
           </div>
         )}
 
+        {/* Agency Management Delegation Settings */}
+        {landlordProperty?.managingAgencyId && (
+          <div className="bg-white rounded-2xl shadow-sm p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <Shield size={24} className="text-primary-600" />
+              <h3 className="text-xl font-bold text-neutral-900">Agency Management Settings</h3>
+            </div>
+
+            <p className="text-neutral-600 text-sm mb-4">
+              Control how your managing agency can interact with this property.
+            </p>
+
+            <div className="space-y-4">
+              {/* Full Management Toggle */}
+              <label className="flex items-start gap-3 p-4 bg-neutral-50 rounded-lg border border-neutral-200 cursor-pointer hover:border-primary-300 transition-colors">
+                <input
+                  type="checkbox"
+                  checked={landlordProperty?.isFullyManagedByAgency || false}
+                  onChange={(e) => handleManagementSettingsChange(
+                    e.target.checked,
+                    landlordProperty?.landlordCanEditWhenManaged || false
+                  )}
+                  className="mt-0.5 w-5 h-5 text-primary-600 rounded border-neutral-300 focus:ring-primary-500"
+                />
+                <div>
+                  <div className="font-medium text-neutral-900">
+                    Delegate full property management to agency
+                  </div>
+                  <p className="text-sm text-neutral-600 mt-1">
+                    When enabled, the agency can update property details, pricing, and availability on your behalf.
+                  </p>
+                </div>
+              </label>
+
+              {/* Landlord Retains Edit Rights Toggle - only shown when full management is enabled */}
+              {landlordProperty?.isFullyManagedByAgency && (
+                <label className="flex items-start gap-3 p-4 bg-primary-50 rounded-lg border border-primary-200 cursor-pointer hover:border-primary-400 transition-colors ml-6">
+                  <input
+                    type="checkbox"
+                    checked={landlordProperty?.landlordCanEditWhenManaged || false}
+                    onChange={(e) => handleManagementSettingsChange(
+                      true,
+                      e.target.checked
+                    )}
+                    className="mt-0.5 w-5 h-5 text-primary-600 rounded border-neutral-300 focus:ring-primary-500"
+                  />
+                  <div>
+                    <div className="font-medium text-neutral-900">
+                      I still want to be able to edit property details
+                    </div>
+                    <p className="text-sm text-neutral-600 mt-1">
+                      Keep the ability to edit property details yourself, even with full agency management enabled.
+                    </p>
+                  </div>
+                </label>
+              )}
+
+              {/* Status Display */}
+              {landlordProperty?.isFullyManagedByAgency && (
+                <div className="mt-4 p-4 bg-primary-50 border border-primary-200 rounded-lg">
+                  <div className="flex items-center gap-2 text-primary-700 mb-2">
+                    <Shield size={18} />
+                    <span className="font-medium">Full Management Active</span>
+                  </div>
+                  <p className="text-sm text-primary-600">
+                    {landlordProperty?.landlordCanEditWhenManaged
+                      ? 'Your agency has full management control, and you retain editing rights.'
+                      : 'Your agency has exclusive control over property details. Contact them to request changes.'}
+                  </p>
+                  {landlordProperty?.lastEditedAt && (
+                    <p className="text-xs text-neutral-500 mt-2">
+                      Last edited: {new Date(landlordProperty.lastEditedAt).toLocaleDateString('en-GB', {
+                        day: 'numeric',
+                        month: 'short',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Phase 4: Active Tenancies Section */}
         {activeTenancies.length > 0 && (
           <div className="bg-white rounded-2xl shadow-sm p-6">
@@ -274,7 +455,13 @@ export function VendorDashboard() {
 
             <div className="space-y-4">
               {activeTenancies.map((match) => (
-                <ActiveTenancyCard key={match.id} match={match} />
+                <ActiveTenancyCard
+                  key={match.id}
+                  match={match}
+                  issues={allIssues.filter(i => match.activeIssueIds?.includes(i.id))}
+                  onViewMessages={handleViewMatch}
+                  onViewIssue={setSelectedIssue}
+                />
               ))}
             </div>
           </div>
@@ -307,6 +494,7 @@ export function VendorDashboard() {
                   key={match.id}
                   match={match}
                   onScheduleViewing={setSchedulingMatch}
+                  onViewChat={handleViewMatch}
                 />
               ))}
             </div>
@@ -551,6 +739,15 @@ export function VendorDashboard() {
           </div>
         </div>
       )}
+
+      {/* Issue Details Modal */}
+      <IssueDetailsModal
+        issue={selectedIssue}
+        isOpen={!!selectedIssue}
+        onClose={() => setSelectedIssue(null)}
+        onStatusUpdate={handleIssueStatusUpdate}
+        showStatusActions={true}
+      />
     </div>
   );
 }
@@ -558,9 +755,10 @@ export function VendorDashboard() {
 interface RenterInterestCardProps {
   match: Match;
   onScheduleViewing: (match: Match) => void;
+  onViewChat?: (match: Match) => void;
 }
 
-function RenterInterestCard({ match, onScheduleViewing }: RenterInterestCardProps) {
+function RenterInterestCard({ match, onScheduleViewing, onViewChat }: RenterInterestCardProps) {
   const lastMessage = match.messages[match.messages.length - 1];
 
   return (
@@ -699,7 +897,10 @@ function RenterInterestCard({ match, onScheduleViewing }: RenterInterestCardProp
           )}
 
           <div className="mt-3 flex gap-2">
-            <button className="flex-1 px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-lg font-medium text-sm transition-colors">
+            <button
+              onClick={() => onViewChat?.(match)}
+              className="flex-1 px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-lg font-medium text-sm transition-colors"
+            >
               View Chat
             </button>
             {!match.hasViewingScheduled && (
@@ -723,9 +924,12 @@ function RenterInterestCard({ match, onScheduleViewing }: RenterInterestCardProp
  */
 interface ActiveTenancyCardProps {
   match: Match;
+  issues?: Issue[];
+  onViewMessages?: (match: Match) => void;
+  onViewIssue?: (issue: Issue) => void;
 }
 
-function ActiveTenancyCard({ match }: ActiveTenancyCardProps) {
+function ActiveTenancyCard({ match, issues = [], onViewMessages, onViewIssue }: ActiveTenancyCardProps) {
   const lastMessage = match.messages[match.messages.length - 1];
   const openIssuesCount = match.activeIssueIds?.length || 0;
   const totalIssues = match.totalIssuesRaised || 0;
@@ -813,18 +1017,47 @@ function ActiveTenancyCard({ match }: ActiveTenancyCardProps) {
             </div>
           )}
 
+          {/* Issues List */}
+          {issues.length > 0 && (
+            <div className="mb-3 space-y-2">
+              <p className="text-xs font-medium text-neutral-600">Issues:</p>
+              {issues.slice(0, 3).map(issue => (
+                <button
+                  key={issue.id}
+                  onClick={() => onViewIssue?.(issue)}
+                  className={`w-full text-left p-2 rounded-lg border transition-colors ${
+                    issue.status === 'resolved' || issue.status === 'closed'
+                      ? 'bg-success-50 border-success-200 hover:border-success-400'
+                      : 'bg-warning-50 border-warning-200 hover:border-warning-400'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-neutral-900 truncate">{issue.subject}</span>
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${
+                      issue.status === 'resolved' || issue.status === 'closed'
+                        ? 'bg-success-100 text-success-700'
+                        : 'bg-warning-100 text-warning-700'
+                    }`}>
+                      {issue.status.replace('_', ' ')}
+                    </span>
+                  </div>
+                </button>
+              ))}
+              {issues.length > 3 && (
+                <p className="text-xs text-neutral-500 text-center">+{issues.length - 3} more issues</p>
+              )}
+            </div>
+          )}
+
           {/* Action Buttons */}
           <div className="flex gap-2">
-            <button className="flex-1 px-4 py-2 bg-success-500 hover:bg-success-600 text-white rounded-lg font-medium text-sm transition-colors flex items-center justify-center gap-2">
+            <button
+              onClick={() => onViewMessages?.(match)}
+              className="flex-1 px-4 py-2 bg-success-500 hover:bg-success-600 text-white rounded-lg font-medium text-sm transition-colors flex items-center justify-center gap-2"
+            >
               <MessageSquare size={16} />
               View Messages
             </button>
-            {openIssuesCount > 0 && (
-              <button className="px-4 py-2 bg-warning-500 hover:bg-warning-600 text-white rounded-lg font-medium text-sm transition-colors flex items-center gap-2">
-                <AlertTriangle size={16} />
-                View Issues ({openIssuesCount})
-              </button>
-            )}
           </div>
         </div>
       </div>

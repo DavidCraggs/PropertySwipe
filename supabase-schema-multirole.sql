@@ -11,6 +11,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- DROP EXISTING TABLES (Clean deployment)
 -- =====================================================
 -- Drop tables in reverse dependency order (CASCADE will handle triggers)
+DROP TABLE IF EXISTS agency_landlord_conversations CASCADE;
 DROP TABLE IF EXISTS email_notifications CASCADE;
 DROP TABLE IF EXISTS ratings CASCADE;
 DROP TABLE IF EXISTS issues CASCADE;
@@ -230,6 +231,12 @@ CREATE TABLE properties (
     listing_date DATE NOT NULL DEFAULT CURRENT_DATE,
     preferred_minimum_stay INTEGER,
     accepts_short_term_tenants BOOLEAN DEFAULT FALSE,
+
+    -- Full Management Delegation
+    is_fully_managed_by_agency BOOLEAN DEFAULT FALSE,
+    landlord_can_edit_when_managed BOOLEAN DEFAULT FALSE,
+    last_edited_by UUID,
+    last_edited_at TIMESTAMPTZ,
 
     -- Metadata
     created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -597,13 +604,55 @@ $$ LANGUAGE plpgsql;
 -- SELECT cron.schedule('expire-invitations', '0 0 * * *', 'SELECT expire_old_invitations()');
 
 -- =====================================================
+-- AGENCY-LANDLORD CONVERSATIONS TABLE
+-- =====================================================
+-- Direct messaging between agencies and landlords they manage
+-- Separate from renter-match conversations
+
+CREATE TABLE agency_landlord_conversations (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    agency_id UUID NOT NULL REFERENCES agency_profiles(id) ON DELETE CASCADE,
+    landlord_id UUID NOT NULL REFERENCES landlord_profiles(id) ON DELETE CASCADE,
+    property_id UUID REFERENCES properties(id) ON DELETE SET NULL, -- Optional property context
+    messages JSONB DEFAULT '[]'::jsonb,
+    last_message_at TIMESTAMPTZ,
+    unread_count_agency INTEGER DEFAULT 0,
+    unread_count_landlord INTEGER DEFAULT 0,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(agency_id, landlord_id) -- One conversation per agency-landlord pair
+);
+
+-- Enable RLS
+ALTER TABLE agency_landlord_conversations ENABLE ROW LEVEL SECURITY;
+
+-- Agencies can view/manage their own conversations
+CREATE POLICY agency_landlord_conversations_agency_policy ON agency_landlord_conversations
+    FOR ALL USING (agency_id = auth.uid());
+
+-- Landlords can view/manage their own conversations
+CREATE POLICY agency_landlord_conversations_landlord_policy ON agency_landlord_conversations
+    FOR ALL USING (landlord_id = auth.uid());
+
+-- Performance indexes
+CREATE INDEX idx_alc_agency_id ON agency_landlord_conversations(agency_id);
+CREATE INDEX idx_alc_landlord_id ON agency_landlord_conversations(landlord_id);
+CREATE INDEX idx_alc_last_message_at ON agency_landlord_conversations(last_message_at DESC);
+
+-- Auto-update timestamp trigger
+CREATE TRIGGER update_agency_landlord_conversations_updated_at
+    BEFORE UPDATE ON agency_landlord_conversations
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- =====================================================
 -- SUCCESS MESSAGE
 -- =====================================================
 DO $$
 BEGIN
     RAISE NOTICE '✅ PropertySwipe Multi-Role Schema Created Successfully!';
-    RAISE NOTICE '📊 Tables created: 10 (renter_profiles, landlord_profiles, agency_profiles, properties, matches, issues, email_notifications, ratings, agency_link_invitations, agency_property_links)';
+    RAISE NOTICE '📊 Tables created: 11 (renter_profiles, landlord_profiles, agency_profiles, properties, matches, issues, email_notifications, ratings, agency_link_invitations, agency_property_links, agency_landlord_conversations)';
     RAISE NOTICE '🔗 Agency linking system enabled with bidirectional invitations';
+    RAISE NOTICE '💬 Agency-landlord messaging system enabled';
     RAISE NOTICE '🔒 RLS enabled with permissive policies for development';
     RAISE NOTICE '⚡ Performance indexes created';
     RAISE NOTICE '🚀 Ready for deployment!';

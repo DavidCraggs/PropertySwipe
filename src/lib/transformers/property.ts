@@ -81,6 +81,12 @@ export const transformProperty = (d: DbRecord): Property => ({
   // Preferences
   preferredMinimumStay: d.preferred_minimum_stay as number | undefined,
   acceptsShortTermTenants: (d.accepts_short_term_tenants as boolean) || false,
+
+  // Full management delegation
+  isFullyManagedByAgency: (d.is_fully_managed_by_agency as boolean) || false,
+  landlordCanEditWhenManaged: (d.landlord_can_edit_when_managed as boolean) || false,
+  lastEditedBy: d.last_edited_by as string | undefined,
+  lastEditedAt: d.last_edited_at ? new Date(d.last_edited_at as string) : undefined,
 });
 
 /**
@@ -149,4 +155,10 @@ export const transformPropertyToDb = (
   // Preferences
   preferred_minimum_stay: property.preferredMinimumStay,
   accepts_short_term_tenants: property.acceptsShortTermTenants,
+
+  // Full management delegation
+  is_fully_managed_by_agency: property.isFullyManagedByAgency,
+  landlord_can_edit_when_managed: property.landlordCanEditWhenManaged,
+  last_edited_by: property.lastEditedBy,
+  last_edited_at: property.lastEditedAt?.toISOString(),
 });

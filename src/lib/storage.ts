@@ -30,6 +30,9 @@ import type {
   Issue,
   RenterInvite,
   InviteValidationResult,
+  AgencyLandlordConversation,
+  AgencyLandlordMessage,
+  SendAgencyLandlordMessageParams,
   // Legacy aliases for backward compatibility
   VendorProfile,
   BuyerProfile,
@@ -2740,6 +2743,363 @@ export const getMessagesForMatch = async (matchId: string): Promise<Message[]> =
     const match = matches.find(m => m.id === matchId);
     return match ? match.messages || [] : [];
   }
+};
+
+// =====================================================
+// AGENCY-LANDLORD MESSAGING SYSTEM
+// =====================================================
+
+// Helper function to get conversations from localStorage
+function getConversationsFromLocalStorage(): AgencyLandlordConversation[] {
+  const stored = localStorage.getItem('agency-landlord-conversations');
+  return stored ? JSON.parse(stored) : [];
+}
+
+/**
+ * Get all conversations for an agency
+ */
+export const getAgencyLandlordConversations = async (
+  agencyId: string
+): Promise<AgencyLandlordConversation[]> => {
+  if (isSupabaseConfigured()) {
+    try {
+      const { data, error } = await supabase
+        .from('agency_landlord_conversations')
+        .select('*')
+        .eq('agency_id', agencyId)
+        .order('last_message_at', { ascending: false, nullsFirst: false });
+
+      if (error) {
+        // Table doesn't exist yet - fall back to localStorage
+        if (error.code === 'PGRST205' || error.code === '42P01') {
+          console.warn('[Storage] agency_landlord_conversations table not found, using localStorage');
+        } else {
+          console.error('[Storage] Error fetching agency conversations:', error);
+        }
+        // Fall through to localStorage
+      } else {
+        return (data || []).map(d => ({
+          id: d.id,
+          agencyId: d.agency_id,
+          landlordId: d.landlord_id,
+          propertyId: d.property_id,
+          messages: d.messages || [],
+          lastMessageAt: d.last_message_at,
+          unreadCountAgency: d.unread_count_agency || 0,
+          unreadCountLandlord: d.unread_count_landlord || 0,
+          createdAt: new Date(d.created_at),
+          updatedAt: new Date(d.updated_at),
+        }));
+      }
+    } catch (err) {
+      console.warn('[Storage] Error fetching agency-landlord conversations:', err);
+    }
+  }
+  // LocalStorage fallback
+  const conversations = getConversationsFromLocalStorage();
+  return conversations
+    .filter(c => c.agencyId === agencyId)
+    .sort((a, b) => {
+      if (!a.lastMessageAt) return 1;
+      if (!b.lastMessageAt) return -1;
+      return new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime();
+    });
+};
+
+/**
+ * Get all conversations for a landlord (with agencies)
+ */
+export const getLandlordAgencyConversations = async (
+  landlordId: string
+): Promise<AgencyLandlordConversation[]> => {
+  if (isSupabaseConfigured()) {
+    try {
+      const { data, error } = await supabase
+        .from('agency_landlord_conversations')
+        .select('*')
+        .eq('landlord_id', landlordId)
+        .order('last_message_at', { ascending: false, nullsFirst: false });
+
+      if (error) {
+        if (error.code === 'PGRST205' || error.code === '42P01') {
+          console.warn('[Storage] agency_landlord_conversations table not found, using localStorage');
+        } else {
+          console.error('[Storage] Error fetching landlord conversations:', error);
+        }
+      } else {
+        return (data || []).map(d => ({
+          id: d.id,
+          agencyId: d.agency_id,
+          landlordId: d.landlord_id,
+          propertyId: d.property_id,
+          messages: d.messages || [],
+          lastMessageAt: d.last_message_at,
+          unreadCountAgency: d.unread_count_agency || 0,
+          unreadCountLandlord: d.unread_count_landlord || 0,
+          createdAt: new Date(d.created_at),
+          updatedAt: new Date(d.updated_at),
+        }));
+      }
+    } catch (err) {
+      console.warn('[Storage] Error fetching landlord-agency conversations:', err);
+    }
+  }
+  // LocalStorage fallback
+  const conversations = getConversationsFromLocalStorage();
+  return conversations
+    .filter(c => c.landlordId === landlordId)
+    .sort((a, b) => {
+      if (!a.lastMessageAt) return 1;
+      if (!b.lastMessageAt) return -1;
+      return new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime();
+    });
+};
+
+/**
+ * Get a specific conversation between agency and landlord
+ */
+export const getAgencyLandlordConversation = async (
+  agencyId: string,
+  landlordId: string
+): Promise<AgencyLandlordConversation | null> => {
+  if (isSupabaseConfigured()) {
+    try {
+      const { data, error } = await supabase
+        .from('agency_landlord_conversations')
+        .select('*')
+        .eq('agency_id', agencyId)
+        .eq('landlord_id', landlordId)
+        .single();
+
+      if (error) {
+        if (error.code === 'PGRST116') return null; // Not found
+        if (error.code === 'PGRST205' || error.code === '42P01') {
+          console.warn('[Storage] agency_landlord_conversations table not found, using localStorage');
+        } else {
+          console.error('[Storage] Error fetching conversation:', error);
+        }
+      } else if (data) {
+        return {
+          id: data.id,
+          agencyId: data.agency_id,
+          landlordId: data.landlord_id,
+          propertyId: data.property_id,
+          messages: data.messages || [],
+          lastMessageAt: data.last_message_at,
+          unreadCountAgency: data.unread_count_agency || 0,
+          unreadCountLandlord: data.unread_count_landlord || 0,
+          createdAt: new Date(data.created_at),
+          updatedAt: new Date(data.updated_at),
+        };
+      }
+    } catch (err) {
+      console.warn('[Storage] Error fetching agency-landlord conversation:', err);
+    }
+  }
+  // LocalStorage fallback
+  const conversations = getConversationsFromLocalStorage();
+  return conversations.find(c => c.agencyId === agencyId && c.landlordId === landlordId) || null;
+};
+
+// Helper function to save message to localStorage
+function saveMessageToLocalStorage(
+  params: SendAgencyLandlordMessageParams,
+  message: AgencyLandlordMessage
+): AgencyLandlordMessage {
+  const conversations = getConversationsFromLocalStorage();
+
+  const existingIndex = conversations.findIndex(
+    c => c.agencyId === params.agencyId && c.landlordId === params.landlordId
+  );
+
+  if (existingIndex >= 0) {
+    message.conversationId = conversations[existingIndex].id;
+    conversations[existingIndex].messages.push(message);
+    conversations[existingIndex].lastMessageAt = message.timestamp.toISOString();
+    if (params.senderType === 'agency') {
+      conversations[existingIndex].unreadCountLandlord += 1;
+    } else {
+      conversations[existingIndex].unreadCountAgency += 1;
+    }
+    conversations[existingIndex].updatedAt = new Date();
+  } else {
+    const newConversation: AgencyLandlordConversation = {
+      id: `alc-${Date.now()}`,
+      agencyId: params.agencyId,
+      landlordId: params.landlordId,
+      propertyId: params.propertyId,
+      messages: [message],
+      lastMessageAt: message.timestamp.toISOString(),
+      unreadCountAgency: params.senderType === 'agency' ? 0 : 1,
+      unreadCountLandlord: params.senderType === 'landlord' ? 0 : 1,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    message.conversationId = newConversation.id;
+    conversations.push(newConversation);
+  }
+
+  localStorage.setItem('agency-landlord-conversations', JSON.stringify(conversations));
+  return message;
+}
+
+/**
+ * Send a message in an agency-landlord conversation
+ */
+export const sendAgencyLandlordMessage = async (
+  params: SendAgencyLandlordMessageParams
+): Promise<AgencyLandlordMessage> => {
+  const message: AgencyLandlordMessage = {
+    id: Math.random().toString(36).substring(2, 15),
+    conversationId: '', // Will be set when we find/create conversation
+    senderId: params.senderId,
+    senderType: params.senderType,
+    content: params.content,
+    timestamp: new Date(),
+    isRead: false,
+  };
+
+  if (isSupabaseConfigured()) {
+    try {
+      // Check for existing conversation
+      const conversation = await getAgencyLandlordConversation(params.agencyId, params.landlordId);
+
+      if (!conversation) {
+        // Create new conversation
+        const { data: newConv, error: createError } = await supabase
+          .from('agency_landlord_conversations')
+          .insert({
+            agency_id: params.agencyId,
+            landlord_id: params.landlordId,
+            property_id: params.propertyId || null,
+            messages: [message],
+            last_message_at: message.timestamp.toISOString(),
+            unread_count_agency: params.senderType === 'agency' ? 0 : 1,
+            unread_count_landlord: params.senderType === 'landlord' ? 0 : 1,
+          })
+          .select()
+          .single();
+
+        if (createError) {
+          if (createError.code === 'PGRST205' || createError.code === '42P01') {
+            console.warn('[Storage] Table not found, using localStorage');
+            return saveMessageToLocalStorage(params, message);
+          }
+          throw createError;
+        }
+
+        message.conversationId = newConv.id;
+        console.log('[Storage] Created agency-landlord conversation:', newConv.id);
+      } else {
+        // Append message to existing conversation
+        message.conversationId = conversation.id;
+        const updatedMessages = [...conversation.messages, message];
+
+        const { error: updateError } = await supabase
+          .from('agency_landlord_conversations')
+          .update({
+            messages: updatedMessages,
+            last_message_at: message.timestamp.toISOString(),
+            unread_count_agency: params.senderType === 'agency'
+              ? conversation.unreadCountAgency
+              : conversation.unreadCountAgency + 1,
+            unread_count_landlord: params.senderType === 'landlord'
+              ? conversation.unreadCountLandlord
+              : conversation.unreadCountLandlord + 1,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', conversation.id);
+
+        if (updateError) {
+          if (updateError.code === 'PGRST205' || updateError.code === '42P01') {
+            console.warn('[Storage] Table not found, using localStorage');
+            return saveMessageToLocalStorage(params, message);
+          }
+          throw updateError;
+        }
+
+        console.log('[Storage] Added message to agency-landlord conversation:', conversation.id);
+      }
+
+      return message;
+    } catch (err) {
+      console.warn('[Storage] Error sending message, using localStorage:', err);
+      return saveMessageToLocalStorage(params, message);
+    }
+  }
+  // LocalStorage fallback
+  return saveMessageToLocalStorage(params, message);
+};
+
+// Helper function to mark messages read in localStorage
+function markMessagesReadInLocalStorage(conversationId: string, readerType: 'agency' | 'landlord'): void {
+  const conversations = getConversationsFromLocalStorage();
+  const index = conversations.findIndex(c => c.id === conversationId);
+  if (index >= 0) {
+    if (readerType === 'agency') {
+      conversations[index].unreadCountAgency = 0;
+    } else {
+      conversations[index].unreadCountLandlord = 0;
+    }
+    conversations[index].updatedAt = new Date();
+    localStorage.setItem('agency-landlord-conversations', JSON.stringify(conversations));
+  }
+}
+
+/**
+ * Mark agency-landlord conversation messages as read
+ */
+export const markAgencyLandlordMessagesRead = async (
+  conversationId: string,
+  readerType: 'agency' | 'landlord'
+): Promise<void> => {
+  if (isSupabaseConfigured()) {
+    try {
+      const updateField = readerType === 'agency'
+        ? 'unread_count_agency'
+        : 'unread_count_landlord';
+
+      const { error } = await supabase
+        .from('agency_landlord_conversations')
+        .update({
+          [updateField]: 0,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', conversationId);
+
+      if (error) {
+        if (error.code === 'PGRST205' || error.code === '42P01') {
+          console.warn('[Storage] Table not found, using localStorage');
+          markMessagesReadInLocalStorage(conversationId, readerType);
+          return;
+        }
+        console.error('[Storage] Error marking as read:', error);
+      } else {
+        console.log('[Storage] Marked agency-landlord conversation as read:', conversationId);
+        return;
+      }
+    } catch (err) {
+      console.warn('[Storage] Error marking messages read:', err);
+    }
+  }
+  // LocalStorage fallback
+  markMessagesReadInLocalStorage(conversationId, readerType);
+};
+
+/**
+ * Get total unread count for agency messages
+ */
+export const getAgencyUnreadMessageCount = async (agencyId: string): Promise<number> => {
+  const conversations = await getAgencyLandlordConversations(agencyId);
+  return conversations.reduce((sum, c) => sum + c.unreadCountAgency, 0);
+};
+
+/**
+ * Get total unread count for landlord from agency messages
+ */
+export const getLandlordAgencyUnreadMessageCount = async (landlordId: string): Promise<number> => {
+  const conversations = await getLandlordAgencyConversations(landlordId);
+  return conversations.reduce((sum, c) => sum + c.unreadCountLandlord, 0);
 };
 
 // =====================================================

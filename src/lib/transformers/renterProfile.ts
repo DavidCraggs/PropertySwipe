@@ -51,6 +51,13 @@ export const transformRenterProfile = (d: DbRecord): RenterProfile => ({
 
   // Rating summary
   ratingsSummary: d.ratings_summary as RenterProfile['ratingsSummary'],
+
+  // ID Verification (Right to Rent)
+  rightToRentVerified: (d.right_to_rent_verified as boolean) || false,
+  rightToRentVerifiedAt: d.right_to_rent_verified_at ? new Date(d.right_to_rent_verified_at as string) : undefined,
+  rightToRentExpiresAt: d.right_to_rent_expires_at ? new Date(d.right_to_rent_expires_at as string) : undefined,
+  rightToRentDocumentType: d.right_to_rent_document_type as RenterProfile['rightToRentDocumentType'],
+  verificationStatus: (d.verification_status as RenterProfile['verificationStatus']) || 'not_started',
 });
 
 /**
@@ -99,4 +106,11 @@ export const transformRenterProfileToDb = (
 
   // Rating summary
   ratings_summary: profile.ratingsSummary,
+
+  // ID Verification (Right to Rent)
+  right_to_rent_verified: profile.rightToRentVerified,
+  right_to_rent_verified_at: profile.rightToRentVerifiedAt?.toISOString(),
+  right_to_rent_expires_at: profile.rightToRentExpiresAt?.toISOString(),
+  right_to_rent_document_type: profile.rightToRentDocumentType,
+  verification_status: profile.verificationStatus,
 });
