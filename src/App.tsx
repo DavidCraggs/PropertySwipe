@@ -290,7 +290,10 @@ function App() {
                   </motion.div>
                 )}
               </AnimatePresence>
-              <BottomNav currentPage={currentPage} onNavigate={setCurrentPage} />
+              <BottomNav 
+                currentPage={(['swipe', 'matches', 'profile', 'tenancy'].includes(currentPage) ? currentPage : 'swipe') as 'swipe' | 'matches' | 'profile' | 'tenancy'} 
+                onNavigate={setCurrentPage} 
+              />
             </div>
           </>
         );
