@@ -125,7 +125,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentPage, onNavigate })
                 <Icon
                   size={24}
                   strokeWidth={isActive ? 2.5 : 2}
-                  fill={isActive ? 'currentColor' : 'none'}
+                  className={isActive ? 'fill-primary-200' : ''}
                 />
                 {item.badge !== null && (
                   <div className="absolute -top-2 -right-2 w-5 h-5 bg-danger-500 text-white rounded-full flex items-center justify-center text-xs font-bold">

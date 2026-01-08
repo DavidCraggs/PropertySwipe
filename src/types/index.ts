@@ -699,6 +699,44 @@ export interface SendAgencyLandlordMessageParams {
 }
 
 // =====================================================
+// PROPERTY-GROUPED CONVERSATION INTERFACES
+// =====================================================
+
+/**
+ * PropertyConversationGroup
+ * Represents a conversation thread for a specific property (or general discussion)
+ */
+export interface PropertyConversationGroup {
+  propertyId: string | null; // null = general discussion
+  propertyAddress?: string;
+  conversation: AgencyLandlordConversation | null;
+  unreadCount: number;
+  lastMessageAt?: string;
+}
+
+/**
+ * LandlordConversationGroup
+ * Groups all property conversations for a single landlord (used in agency view)
+ */
+export interface LandlordConversationGroup {
+  landlord: LandlordProfile;
+  propertyConversations: PropertyConversationGroup[];
+  totalUnreadCount: number;
+  properties: Property[]; // All properties linked to this landlord
+}
+
+/**
+ * AgencyConversationGroup
+ * Groups all property conversations for a single agency (used in landlord view)
+ */
+export interface AgencyConversationGroup {
+  agency: AgencyProfile;
+  propertyConversations: PropertyConversationGroup[];
+  totalUnreadCount: number;
+  properties: Property[]; // All properties linked to this agency
+}
+
+// =====================================================
 // VIEWING PREFERENCE
 // =====================================================
 

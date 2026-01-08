@@ -1,28 +1,17 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { MessageSquare, Send, ChevronLeft, ArrowLeft } from 'lucide-react';
+import { MessageSquare, Send, ChevronLeft, ChevronDown, ChevronRight, Home, ArrowLeft } from 'lucide-react';
 import { useAuthStore } from '../hooks';
 import { Button } from '../components/atoms/Button';
 import {
-  getLandlordAgencyConversations,
-  sendAgencyLandlordMessage,
+  getLandlordConversationsGrouped,
+  sendPropertyMessage,
   markAgencyLandlordMessagesRead,
-  getAgencyLinksForLandlord,
-  getAgencyProfile,
 } from '../lib/storage';
 import type {
-  AgencyLandlordConversation,
   AgencyLandlordMessage,
-  AgencyPropertyLink,
-  AgencyProfile,
   LandlordProfile,
+  AgencyConversationGroup,
 } from '../types';
-
-interface AgencyWithConversation {
-  agency: AgencyProfile;
-  conversation: AgencyLandlordConversation | null;
-  link: AgencyPropertyLink;
-  propertyCount: number;
-}
 
 interface LandlordMessagesPageProps {
   onBack?: () => void;
@@ -30,66 +19,39 @@ interface LandlordMessagesPageProps {
 
 /**
  * LandlordMessagesPage
- * Displays landlord-agency messaging interface
- * Shows list of connected agencies with conversation threads
+ * Displays landlord-agency messaging interface with property-level organization
+ * Shows list of connected agencies with expandable property threads
  */
 export const LandlordMessagesPage: React.FC<LandlordMessagesPageProps> = ({ onBack }) => {
   const { currentUser } = useAuthStore();
   const landlordProfile = currentUser as LandlordProfile;
 
-  const [agencies, setAgencies] = useState<AgencyWithConversation[]>([]);
+  const [agencyGroups, setAgencyGroups] = useState<AgencyConversationGroup[]>([]);
+  const [expandedAgencies, setExpandedAgencies] = useState<Set<string>>(new Set());
   const [selectedAgencyId, setSelectedAgencyId] = useState<string | null>(null);
+  const [selectedPropertyId, setSelectedPropertyId] = useState<string | null | undefined>(undefined);
   const [messageText, setMessageText] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Load agencies and conversations
+  // Load agencies and conversations grouped by property
   const loadData = useCallback(async () => {
     if (!landlordProfile?.id) return;
 
     setLoading(true);
     try {
-      // Get agency property links to find connected agencies
-      const links = await getAgencyLinksForLandlord(landlordProfile.id);
-      const activeLinks = links.filter(l => l.isActive);
+      const groups = await getLandlordConversationsGrouped(landlordProfile.id);
+      setAgencyGroups(groups);
 
-      // Get unique agency IDs and count properties per agency
-      const agencyPropertyCounts = new Map<string, number>();
-      activeLinks.forEach(l => {
-        agencyPropertyCounts.set(l.agencyId, (agencyPropertyCounts.get(l.agencyId) || 0) + 1);
-      });
-      const uniqueAgencyIds = [...agencyPropertyCounts.keys()];
-
-      // Fetch all conversations
-      const conversations = await getLandlordAgencyConversations(landlordProfile.id);
-
-      // Fetch agency profiles and match with conversations
-      const agenciesWithConversations: AgencyWithConversation[] = [];
-
-      for (const agencyId of uniqueAgencyIds) {
-        try {
-          const agency = await getAgencyProfile(agencyId);
-          if (agency) {
-            const conversation = conversations.find(c => c.agencyId === agencyId) || null;
-            const link = activeLinks.find(l => l.agencyId === agencyId)!;
-            const propertyCount = agencyPropertyCounts.get(agencyId) || 1;
-            agenciesWithConversations.push({ agency, conversation, link, propertyCount });
-          }
-        } catch (err) {
-          console.error(`[LandlordMessagesPage] Error fetching agency ${agencyId}:`, err);
+      // Auto-expand agencies with unread messages
+      const agenciesWithUnread = new Set<string>();
+      groups.forEach(g => {
+        if (g.totalUnreadCount > 0) {
+          agenciesWithUnread.add(g.agency.id);
         }
-      }
-
-      // Sort by last message time (most recent first), then by agency name
-      agenciesWithConversations.sort((a, b) => {
-        const aTime = a.conversation?.lastMessageAt ? new Date(a.conversation.lastMessageAt).getTime() : 0;
-        const bTime = b.conversation?.lastMessageAt ? new Date(b.conversation.lastMessageAt).getTime() : 0;
-        if (aTime !== bTime) return bTime - aTime;
-        return a.agency.companyName.localeCompare(b.agency.companyName);
       });
-
-      setAgencies(agenciesWithConversations);
+      setExpandedAgencies(prev => new Set([...prev, ...agenciesWithUnread]));
     } catch (error) {
       console.error('[LandlordMessagesPage] Error loading data:', error);
     } finally {
@@ -104,28 +66,33 @@ export const LandlordMessagesPage: React.FC<LandlordMessagesPageProps> = ({ onBa
   // Auto-scroll to bottom when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [selectedAgencyId, agencies]);
+  }, [selectedAgencyId, selectedPropertyId, agencyGroups]);
 
   // Mark messages as read when selecting a conversation
   useEffect(() => {
-    if (!selectedAgencyId) return;
+    if (selectedAgencyId === null || selectedPropertyId === undefined) return;
 
-    const selectedItem = agencies.find(a => a.agency.id === selectedAgencyId);
-    if (selectedItem?.conversation && selectedItem.conversation.unreadCountLandlord > 0) {
-      markAgencyLandlordMessagesRead(selectedItem.conversation.id, 'landlord')
+    const agencyGroup = agencyGroups.find(g => g.agency.id === selectedAgencyId);
+    const propertyConvo = agencyGroup?.propertyConversations.find(
+      pc => pc.propertyId === selectedPropertyId
+    );
+
+    if (propertyConvo?.conversation && propertyConvo.unreadCount > 0) {
+      markAgencyLandlordMessagesRead(propertyConvo.conversation.id, 'landlord')
         .then(() => loadData())
         .catch(err => console.error('[LandlordMessagesPage] Error marking as read:', err));
     }
-  }, [selectedAgencyId, agencies, loadData]);
+  }, [selectedAgencyId, selectedPropertyId, agencyGroups, loadData]);
 
   const handleSendMessage = async () => {
-    if (!messageText.trim() || !selectedAgencyId || !landlordProfile?.id) return;
+    if (!messageText.trim() || !selectedAgencyId || selectedPropertyId === undefined || !landlordProfile?.id) return;
 
     setSending(true);
     try {
-      await sendAgencyLandlordMessage({
+      await sendPropertyMessage({
         agencyId: selectedAgencyId,
         landlordId: landlordProfile.id,
+        propertyId: selectedPropertyId,
         content: messageText.trim(),
         senderId: landlordProfile.id,
         senderType: 'landlord',
@@ -147,7 +114,27 @@ export const LandlordMessagesPage: React.FC<LandlordMessagesPageProps> = ({ onBa
     }
   };
 
-  const selectedAgency = agencies.find(a => a.agency.id === selectedAgencyId);
+  const toggleAgencyExpanded = (agencyId: string) => {
+    setExpandedAgencies(prev => {
+      const next = new Set(prev);
+      if (next.has(agencyId)) {
+        next.delete(agencyId);
+      } else {
+        next.add(agencyId);
+      }
+      return next;
+    });
+  };
+
+  const handleSelectProperty = (agencyId: string, propertyId: string | null) => {
+    setSelectedAgencyId(agencyId);
+    setSelectedPropertyId(propertyId);
+  };
+
+  const selectedAgencyGroup = agencyGroups.find(g => g.agency.id === selectedAgencyId);
+  const selectedPropertyConvo = selectedAgencyGroup?.propertyConversations.find(
+    pc => pc.propertyId === selectedPropertyId
+  );
 
   // Format time relative to now
   const formatRelativeTime = (timestamp: Date | string) => {
@@ -183,7 +170,7 @@ export const LandlordMessagesPage: React.FC<LandlordMessagesPageProps> = ({ onBa
     );
   }
 
-  if (agencies.length === 0) {
+  if (agencyGroups.length === 0) {
     return (
       <div className="flex flex-col h-[calc(100vh-5rem)] bg-gradient-to-br from-primary-50 via-white to-neutral-50">
         {onBack && (
@@ -213,12 +200,12 @@ export const LandlordMessagesPage: React.FC<LandlordMessagesPageProps> = ({ onBa
   }
 
   // Mobile view: Show either list or conversation
-  const showConversation = selectedAgencyId !== null;
+  const showConversation = selectedAgencyId !== null && selectedPropertyId !== undefined;
 
   return (
     <div className="flex h-[calc(100vh-5rem)]">
-      {/* Agency List - Hidden on mobile when conversation is selected */}
-      <div className={`${showConversation ? 'hidden md:flex' : 'flex'} flex-col w-full md:w-80 bg-gradient-to-br from-primary-50 via-white to-neutral-50 border-r border-neutral-200`}>
+      {/* Agency List with Property Groups - Hidden on mobile when conversation is selected */}
+      <div className={`${showConversation ? 'hidden md:flex' : 'flex'} flex-col w-full md:w-96 bg-gradient-to-br from-primary-50 via-white to-neutral-50 border-r border-neutral-200`}>
         <div className="p-4 border-b border-neutral-200 bg-white/80 backdrop-blur-sm">
           <div className="flex items-center gap-3">
             {onBack && (
@@ -231,52 +218,121 @@ export const LandlordMessagesPage: React.FC<LandlordMessagesPageProps> = ({ onBa
             )}
             <div>
               <h1 className="text-lg font-bold text-neutral-900">Agency Messages</h1>
-              <p className="text-sm text-neutral-500">{agencies.length} {agencies.length === 1 ? 'agency' : 'agencies'}</p>
+              <p className="text-sm text-neutral-500">
+                {agencyGroups.length} {agencyGroups.length === 1 ? 'agency' : 'agencies'}
+              </p>
             </div>
           </div>
         </div>
 
         <div className="flex-1 overflow-y-auto">
-          {agencies.map(({ agency, conversation, propertyCount }) => {
-            const lastMessage = conversation?.messages[conversation.messages.length - 1];
-            const unreadCount = conversation?.unreadCountLandlord || 0;
-            const isSelected = selectedAgencyId === agency.id;
+          {agencyGroups.map((group) => {
+            const isExpanded = expandedAgencies.has(group.agency.id);
+            const mostRecentConvo = group.propertyConversations.find(pc => pc.lastMessageAt);
+            const lastMessage = mostRecentConvo?.conversation?.messages[
+              mostRecentConvo.conversation.messages.length - 1
+            ];
 
             return (
-              <button
-                key={agency.id}
-                onClick={() => setSelectedAgencyId(agency.id)}
-                className={`w-full p-4 flex items-start gap-3 border-b border-neutral-100 transition-all text-left ${
-                  isSelected
-                    ? 'bg-white shadow-sm'
-                    : 'hover:bg-white/80'
-                }`}
-              >
-                <div className="w-12 h-12 rounded-full bg-secondary-100 flex items-center justify-center flex-shrink-0">
-                  <span className="text-secondary-700 font-semibold">{getInitials(agency.companyName)}</span>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="font-medium text-neutral-900 truncate">{agency.companyName}</span>
-                    {lastMessage && (
-                      <span className="text-xs text-neutral-400 flex-shrink-0">
-                        {formatRelativeTime(lastMessage.timestamp)}
-                      </span>
-                    )}
+              <div key={group.agency.id} className="border-b border-neutral-100">
+                {/* Agency Header */}
+                <button
+                  onClick={() => toggleAgencyExpanded(group.agency.id)}
+                  className={`w-full p-4 flex items-start gap-3 transition-all text-left hover:bg-white/80`}
+                >
+                  <div className="w-12 h-12 rounded-full bg-secondary-100 flex items-center justify-center flex-shrink-0">
+                    <span className="text-secondary-700 font-semibold">
+                      {getInitials(group.agency.companyName)}
+                    </span>
                   </div>
-                  <p className="text-sm text-neutral-500 truncate">
-                    {lastMessage ? lastMessage.content : 'No messages yet'}
-                  </p>
-                  <p className="text-xs text-neutral-400 mt-0.5">
-                    Managing {propertyCount} {propertyCount === 1 ? 'property' : 'properties'}
-                  </p>
-                </div>
-                {unreadCount > 0 && (
-                  <div className="w-5 h-5 rounded-full bg-danger-500 text-white text-xs flex items-center justify-center flex-shrink-0">
-                    {unreadCount > 9 ? '9+' : unreadCount}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-medium text-neutral-900 truncate">
+                        {group.agency.companyName}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        {group.totalUnreadCount > 0 && (
+                          <div className="w-5 h-5 rounded-full bg-danger-500 text-white text-xs flex items-center justify-center flex-shrink-0">
+                            {group.totalUnreadCount > 9 ? '9+' : group.totalUnreadCount}
+                          </div>
+                        )}
+                        {isExpanded ? (
+                          <ChevronDown size={18} className="text-neutral-400" />
+                        ) : (
+                          <ChevronRight size={18} className="text-neutral-400" />
+                        )}
+                      </div>
+                    </div>
+                    <p className="text-sm text-neutral-500 truncate">
+                      {lastMessage ? lastMessage.content : 'No messages yet'}
+                    </p>
+                    <p className="text-xs text-neutral-400 mt-0.5">
+                      Managing {group.properties.length} {group.properties.length === 1 ? 'property' : 'properties'}
+                    </p>
+                  </div>
+                </button>
+
+                {/* Property Conversations (Expandable) */}
+                {isExpanded && (
+                  <div className="bg-neutral-50/50 border-t border-neutral-100">
+                    {group.propertyConversations.map((propConvo) => {
+                      const isSelected = selectedAgencyId === group.agency.id &&
+                        selectedPropertyId === propConvo.propertyId;
+                      const propLastMessage = propConvo.conversation?.messages[
+                        propConvo.conversation.messages.length - 1
+                      ];
+                      const isGeneral = propConvo.propertyId === null;
+
+                      return (
+                        <button
+                          key={propConvo.propertyId ?? 'general'}
+                          onClick={() => handleSelectProperty(group.agency.id, propConvo.propertyId)}
+                          className={`w-full pl-8 pr-4 py-3 flex items-start gap-3 text-left transition-colors ${isSelected
+                            ? 'bg-secondary-50 border-l-3 border-secondary-500'
+                            : 'hover:bg-white/80 border-l-3 border-transparent'
+                            }`}
+                        >
+                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${isGeneral ? 'bg-neutral-100' : 'bg-secondary-50'
+                            }`}>
+                            {isGeneral ? (
+                              <MessageSquare size={16} className="text-neutral-500" />
+                            ) : (
+                              <Home size={16} className="text-secondary-600" />
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className={`text-sm truncate ${isSelected ? 'font-medium text-secondary-700' : 'text-neutral-700'
+                                }`}>
+                                {propConvo.propertyAddress || 'Unknown Property'}
+                              </span>
+                              {propConvo.lastMessageAt && (
+                                <span className="text-xs text-neutral-400 shrink-0">
+                                  {formatRelativeTime(propConvo.lastMessageAt)}
+                                </span>
+                              )}
+                            </div>
+                            {propLastMessage ? (
+                              <p className="text-xs text-neutral-500 truncate mt-0.5">
+                                {propLastMessage.content}
+                              </p>
+                            ) : (
+                              <p className="text-xs text-neutral-400 italic mt-0.5">
+                                No messages yet
+                              </p>
+                            )}
+                          </div>
+                          {propConvo.unreadCount > 0 && (
+                            <div className="w-5 h-5 rounded-full bg-danger-500 text-white text-xs flex items-center justify-center shrink-0">
+                              {propConvo.unreadCount > 9 ? '9+' : propConvo.unreadCount}
+                            </div>
+                          )}
+                        </button>
+                      );
+                    })}
                   </div>
                 )}
-              </button>
+              </div>
             );
           })}
         </div>
@@ -284,26 +340,33 @@ export const LandlordMessagesPage: React.FC<LandlordMessagesPageProps> = ({ onBa
 
       {/* Conversation View */}
       <div className={`${!showConversation ? 'hidden md:flex' : 'flex'} flex-col flex-1 bg-neutral-50`}>
-        {selectedAgency ? (
+        {selectedAgencyGroup && selectedPropertyConvo ? (
           <>
             {/* Conversation Header */}
             <div className="p-4 bg-gradient-to-r from-secondary-50 to-neutral-50 border-b border-neutral-200">
               <div className="flex items-center gap-3">
                 <button
-                  onClick={() => setSelectedAgencyId(null)}
+                  onClick={() => {
+                    setSelectedAgencyId(null);
+                    setSelectedPropertyId(undefined);
+                  }}
                   className="md:hidden p-2 -ml-2 rounded-lg hover:bg-white/50 transition-colors"
                 >
                   <ChevronLeft size={20} className="text-neutral-600" />
                 </button>
                 <div className="w-12 h-12 rounded-full bg-secondary-100 flex items-center justify-center">
                   <span className="text-secondary-700 font-semibold text-lg">
-                    {getInitials(selectedAgency.agency.companyName)}
+                    {getInitials(selectedAgencyGroup.agency.companyName)}
                   </span>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h2 className="font-semibold text-neutral-900">{selectedAgency.agency.companyName}</h2>
-                  <p className="text-sm text-neutral-500">
-                    Managing {selectedAgency.propertyCount} {selectedAgency.propertyCount === 1 ? 'property' : 'properties'}
+                  <h2 className="font-semibold text-neutral-900">
+                    {selectedAgencyGroup.agency.companyName}
+                  </h2>
+                  <p className="text-sm text-neutral-500 truncate">
+                    {selectedPropertyConvo.propertyId === null
+                      ? 'General Discussion'
+                      : selectedPropertyConvo.propertyAddress}
                   </p>
                 </div>
               </div>
@@ -311,7 +374,7 @@ export const LandlordMessagesPage: React.FC<LandlordMessagesPageProps> = ({ onBa
 
             {/* Messages */}
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
-              {(!selectedAgency.conversation || selectedAgency.conversation.messages.length === 0) ? (
+              {(!selectedPropertyConvo.conversation || selectedPropertyConvo.conversation.messages.length === 0) ? (
                 <div className="flex flex-col items-center justify-center flex-1 p-8">
                   <div className="bg-white rounded-2xl shadow-sm p-8 text-center max-w-sm">
                     <div className="w-14 h-14 rounded-full bg-secondary-50 flex items-center justify-center mx-auto mb-4">
@@ -319,12 +382,13 @@ export const LandlordMessagesPage: React.FC<LandlordMessagesPageProps> = ({ onBa
                     </div>
                     <h3 className="text-lg font-semibold text-neutral-900 mb-2">No Messages Yet</h3>
                     <p className="text-neutral-500 text-sm">
-                      Start a conversation with {selectedAgency.agency.companyName}
+                      Start a conversation with {selectedAgencyGroup.agency.companyName}
+                      {selectedPropertyConvo.propertyId !== null && ` about ${selectedPropertyConvo.propertyAddress}`}
                     </p>
                   </div>
                 </div>
               ) : (
-                selectedAgency.conversation.messages.map((message: AgencyLandlordMessage) => {
+                selectedPropertyConvo.conversation.messages.map((message: AgencyLandlordMessage) => {
                   const isLandlord = message.senderType === 'landlord';
                   return (
                     <div
@@ -332,18 +396,16 @@ export const LandlordMessagesPage: React.FC<LandlordMessagesPageProps> = ({ onBa
                       className={`flex ${isLandlord ? 'justify-end' : 'justify-start'}`}
                     >
                       <div
-                        className={`max-w-[80%] p-3 shadow-sm ${
-                          isLandlord
-                            ? 'bg-primary-600 text-white rounded-2xl rounded-br-none'
-                            : 'bg-white text-neutral-800 border border-neutral-200 rounded-2xl rounded-bl-none'
-                        }`}
+                        className={`max-w-[80%] p-3 shadow-sm ${isLandlord
+                          ? 'bg-primary-600 text-white rounded-2xl rounded-br-none'
+                          : 'bg-white text-neutral-800 border border-neutral-200 rounded-2xl rounded-bl-none'
+                          }`}
                       >
                         <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                        <p className={`text-xs mt-1 ${
-                          isLandlord
-                            ? 'text-primary-200 text-right'
-                            : 'text-neutral-400'
-                        }`}>
+                        <p className={`text-xs mt-1 ${isLandlord
+                          ? 'text-primary-200 text-right'
+                          : 'text-neutral-400'
+                          }`}>
                           {formatRelativeTime(message.timestamp)}
                         </p>
                       </div>
@@ -383,7 +445,9 @@ export const LandlordMessagesPage: React.FC<LandlordMessagesPageProps> = ({ onBa
                 <MessageSquare size={32} className="text-secondary-400" />
               </div>
               <h2 className="text-xl font-bold text-neutral-900 mb-2">Select a Conversation</h2>
-              <p className="text-neutral-500">Choose an agency from the list to start messaging</p>
+              <p className="text-neutral-500">
+                Choose an agency and property from the list to start messaging
+              </p>
             </div>
           </div>
         )}

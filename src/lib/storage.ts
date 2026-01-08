@@ -33,6 +33,9 @@ import type {
   AgencyLandlordConversation,
   AgencyLandlordMessage,
   SendAgencyLandlordMessageParams,
+  PropertyConversationGroup,
+  LandlordConversationGroup,
+  AgencyConversationGroup,
   // Legacy aliases for backward compatibility
   VendorProfile,
   BuyerProfile,
@@ -3103,8 +3106,381 @@ export const getLandlordAgencyUnreadMessageCount = async (landlordId: string): P
 };
 
 // =====================================================
+// PROPERTY-GROUPED CONVERSATIONS
+// =====================================================
+
+/**
+ * Get or create a property-specific conversation
+ * @param propertyId - null for general discussion thread
+ */
+export const getOrCreatePropertyConversation = async (
+  agencyId: string,
+  landlordId: string,
+  propertyId: string | null
+): Promise<AgencyLandlordConversation> => {
+  if (isSupabaseConfigured()) {
+    try {
+      // Try to find existing conversation
+      let query = supabase
+        .from('agency_landlord_conversations')
+        .select('*')
+        .eq('agency_id', agencyId)
+        .eq('landlord_id', landlordId);
+
+      if (propertyId) {
+        query = query.eq('property_id', propertyId);
+      } else {
+        query = query.is('property_id', null);
+      }
+
+      const { data, error } = await query.single();
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('[Storage] Error finding conversation:', error);
+        throw error;
+      }
+
+      if (data) {
+        return {
+          id: data.id,
+          agencyId: data.agency_id,
+          landlordId: data.landlord_id,
+          propertyId: data.property_id,
+          messages: data.messages || [],
+          lastMessageAt: data.last_message_at,
+          unreadCountAgency: data.unread_count_agency || 0,
+          unreadCountLandlord: data.unread_count_landlord || 0,
+          createdAt: new Date(data.created_at),
+          updatedAt: new Date(data.updated_at),
+        };
+      }
+
+      // Create new conversation
+      const { data: newConv, error: createError } = await supabase
+        .from('agency_landlord_conversations')
+        .insert({
+          agency_id: agencyId,
+          landlord_id: landlordId,
+          property_id: propertyId,
+          messages: [],
+          unread_count_agency: 0,
+          unread_count_landlord: 0,
+        })
+        .select()
+        .single();
+
+      if (createError) throw createError;
+
+      console.log('[Storage] Created property conversation:', newConv.id, 'propertyId:', propertyId);
+
+      return {
+        id: newConv.id,
+        agencyId: newConv.agency_id,
+        landlordId: newConv.landlord_id,
+        propertyId: newConv.property_id,
+        messages: [],
+        lastMessageAt: undefined,
+        unreadCountAgency: 0,
+        unreadCountLandlord: 0,
+        createdAt: new Date(newConv.created_at),
+        updatedAt: new Date(newConv.updated_at),
+      };
+    } catch (err) {
+      console.error('[Storage] Error in getOrCreatePropertyConversation:', err);
+      throw err;
+    }
+  }
+
+  // LocalStorage fallback
+  const conversations = getConversationsFromLocalStorage();
+  const existing = conversations.find(
+    c => c.agencyId === agencyId &&
+      c.landlordId === landlordId &&
+      (propertyId ? c.propertyId === propertyId : !c.propertyId)
+  );
+
+  if (existing) return existing;
+
+  const newConversation: AgencyLandlordConversation = {
+    id: `alc-${Date.now()}-${propertyId || 'general'}`,
+    agencyId,
+    landlordId,
+    propertyId: propertyId || undefined,
+    messages: [],
+    lastMessageAt: undefined,
+    unreadCountAgency: 0,
+    unreadCountLandlord: 0,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+
+  conversations.push(newConversation);
+  localStorage.setItem('agency-landlord-conversations', JSON.stringify(conversations));
+  return newConversation;
+};
+
+/**
+ * Get all conversations for an agency, grouped by landlord and property
+ */
+export const getAgencyConversationsGrouped = async (
+  agencyId: string
+): Promise<LandlordConversationGroup[]> => {
+  // Get all agency property links to find connected landlords
+  const links = await getAgencyLinksForAgency(agencyId);
+  const activeLinks = links.filter(l => l.isActive);
+
+  // Get unique landlord IDs
+  const landlordIds = [...new Set(activeLinks.map(l => l.landlordId))];
+
+  // Fetch all conversations for this agency
+  const allConversations = await getAgencyLandlordConversations(agencyId);
+
+  // Group by landlord
+  const groups: LandlordConversationGroup[] = [];
+
+  for (const landlordId of landlordIds) {
+    try {
+      const landlord = await getLandlordProfile(landlordId);
+      if (!landlord) continue;
+
+      // Get properties for this landlord linked to this agency
+      const landlordLinks = activeLinks.filter(l => l.landlordId === landlordId);
+      const propertyIds = landlordLinks.map(l => l.propertyId);
+      const properties = await getPropertiesByIds(propertyIds);
+
+      // Get conversations for this landlord
+      const landlordConvos = allConversations.filter(c => c.landlordId === landlordId);
+
+      // Build property conversation groups
+      const propertyConversations: PropertyConversationGroup[] = [];
+
+      // Add general discussion thread (propertyId = null)
+      const generalConvo = landlordConvos.find(c => !c.propertyId);
+      propertyConversations.push({
+        propertyId: null,
+        propertyAddress: 'General Discussion',
+        conversation: generalConvo || null,
+        unreadCount: generalConvo?.unreadCountAgency || 0,
+        lastMessageAt: generalConvo?.lastMessageAt,
+      });
+
+      // Add property-specific threads
+      for (const property of properties) {
+        const propConvo = landlordConvos.find(c => c.propertyId === property.id);
+        propertyConversations.push({
+          propertyId: property.id,
+          propertyAddress: `${property.address.street}, ${property.address.city}`,
+          conversation: propConvo || null,
+          unreadCount: propConvo?.unreadCountAgency || 0,
+          lastMessageAt: propConvo?.lastMessageAt,
+        });
+      }
+
+      // Sort by last message time (most recent first)
+      propertyConversations.sort((a, b) => {
+        if (!a.lastMessageAt && !b.lastMessageAt) return 0;
+        if (!a.lastMessageAt) return 1;
+        if (!b.lastMessageAt) return -1;
+        return new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime();
+      });
+
+      const totalUnreadCount = propertyConversations.reduce((sum, pc) => sum + pc.unreadCount, 0);
+
+      groups.push({
+        landlord,
+        propertyConversations,
+        totalUnreadCount,
+        properties,
+      });
+    } catch (err) {
+      console.error(`[Storage] Error processing landlord ${landlordId}:`, err);
+    }
+  }
+
+  // Sort groups by most recent activity
+  groups.sort((a, b) => {
+    const aTime = a.propertyConversations[0]?.lastMessageAt;
+    const bTime = b.propertyConversations[0]?.lastMessageAt;
+    if (!aTime && !bTime) return a.landlord.names.localeCompare(b.landlord.names);
+    if (!aTime) return 1;
+    if (!bTime) return -1;
+    return new Date(bTime).getTime() - new Date(aTime).getTime();
+  });
+
+  return groups;
+};
+
+/**
+ * Get all conversations for a landlord, grouped by agency and property
+ */
+export const getLandlordConversationsGrouped = async (
+  landlordId: string
+): Promise<AgencyConversationGroup[]> => {
+  // Get all agency links for this landlord
+  const links = await getAgencyLinksForLandlord(landlordId);
+  const activeLinks = links.filter(l => l.isActive);
+
+  // Get unique agency IDs
+  const agencyIds = [...new Set(activeLinks.map(l => l.agencyId))];
+
+  // Fetch all conversations for this landlord
+  const allConversations = await getLandlordAgencyConversations(landlordId);
+
+  // Group by agency
+  const groups: AgencyConversationGroup[] = [];
+
+  for (const agencyId of agencyIds) {
+    try {
+      const agency = await getAgencyProfile(agencyId);
+      if (!agency) continue;
+
+      // Get properties linked through this agency
+      const agencyLinks = activeLinks.filter(l => l.agencyId === agencyId);
+      const propertyIds = agencyLinks.map(l => l.propertyId);
+      const properties = await getPropertiesByIds(propertyIds);
+
+      // Get conversations with this agency
+      const agencyConvos = allConversations.filter(c => c.agencyId === agencyId);
+
+      // Build property conversation groups
+      const propertyConversations: PropertyConversationGroup[] = [];
+
+      // Add general discussion thread (propertyId = null)
+      const generalConvo = agencyConvos.find(c => !c.propertyId);
+      propertyConversations.push({
+        propertyId: null,
+        propertyAddress: 'General Discussion',
+        conversation: generalConvo || null,
+        unreadCount: generalConvo?.unreadCountLandlord || 0,
+        lastMessageAt: generalConvo?.lastMessageAt,
+      });
+
+      // Add property-specific threads
+      for (const property of properties) {
+        const propConvo = agencyConvos.find(c => c.propertyId === property.id);
+        propertyConversations.push({
+          propertyId: property.id,
+          propertyAddress: `${property.address.street}, ${property.address.city}`,
+          conversation: propConvo || null,
+          unreadCount: propConvo?.unreadCountLandlord || 0,
+          lastMessageAt: propConvo?.lastMessageAt,
+        });
+      }
+
+      // Sort by last message time (most recent first)
+      propertyConversations.sort((a, b) => {
+        if (!a.lastMessageAt && !b.lastMessageAt) return 0;
+        if (!a.lastMessageAt) return 1;
+        if (!b.lastMessageAt) return -1;
+        return new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime();
+      });
+
+      const totalUnreadCount = propertyConversations.reduce((sum, pc) => sum + pc.unreadCount, 0);
+
+      groups.push({
+        agency,
+        propertyConversations,
+        totalUnreadCount,
+        properties,
+      });
+    } catch (err) {
+      console.error(`[Storage] Error processing agency ${agencyId}:`, err);
+    }
+  }
+
+  // Sort groups by most recent activity
+  groups.sort((a, b) => {
+    const aTime = a.propertyConversations[0]?.lastMessageAt;
+    const bTime = b.propertyConversations[0]?.lastMessageAt;
+    if (!aTime && !bTime) return a.agency.companyName.localeCompare(b.agency.companyName);
+    if (!aTime) return 1;
+    if (!bTime) return -1;
+    return new Date(bTime).getTime() - new Date(aTime).getTime();
+  });
+
+  return groups;
+};
+
+/**
+ * Send a message to a property-specific conversation
+ */
+export const sendPropertyMessage = async (params: {
+  agencyId: string;
+  landlordId: string;
+  propertyId: string | null;
+  content: string;
+  senderId: string;
+  senderType: 'agency' | 'landlord';
+}): Promise<AgencyLandlordMessage> => {
+  // Ensure conversation exists
+  const conversation = await getOrCreatePropertyConversation(
+    params.agencyId,
+    params.landlordId,
+    params.propertyId
+  );
+
+  const message: AgencyLandlordMessage = {
+    id: Math.random().toString(36).substring(2, 15),
+    conversationId: conversation.id,
+    senderId: params.senderId,
+    senderType: params.senderType,
+    content: params.content,
+    timestamp: new Date(),
+    isRead: false,
+  };
+
+  if (isSupabaseConfigured()) {
+    try {
+      const updatedMessages = [...conversation.messages, message];
+
+      const { error: updateError } = await supabase
+        .from('agency_landlord_conversations')
+        .update({
+          messages: updatedMessages,
+          last_message_at: message.timestamp.toISOString(),
+          unread_count_agency: params.senderType === 'agency'
+            ? conversation.unreadCountAgency
+            : conversation.unreadCountAgency + 1,
+          unread_count_landlord: params.senderType === 'landlord'
+            ? conversation.unreadCountLandlord
+            : conversation.unreadCountLandlord + 1,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', conversation.id);
+
+      if (updateError) throw updateError;
+
+      console.log('[Storage] Sent property message to conversation:', conversation.id);
+      return message;
+    } catch (err) {
+      console.error('[Storage] Error sending property message:', err);
+      throw err;
+    }
+  }
+
+  // LocalStorage fallback
+  const conversations = getConversationsFromLocalStorage();
+  const index = conversations.findIndex(c => c.id === conversation.id);
+
+  if (index >= 0) {
+    conversations[index].messages.push(message);
+    conversations[index].lastMessageAt = message.timestamp.toISOString();
+    if (params.senderType === 'agency') {
+      conversations[index].unreadCountLandlord += 1;
+    } else {
+      conversations[index].unreadCountAgency += 1;
+    }
+    conversations[index].updatedAt = new Date();
+    localStorage.setItem('agency-landlord-conversations', JSON.stringify(conversations));
+  }
+
+  return message;
+};
+
+// =====================================================
 // RENTER INVITE SYSTEM
 // =====================================================
+
 
 /**
  * Generate a unique 8-character invite code (alphanumeric uppercase)

@@ -169,9 +169,9 @@ export function AgencyDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-success-50 pb-24">
+    <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-success-50 pb-24 overflow-x-hidden">
       {/* Header */}
-      <header className="bg-white border-b border-neutral-200 px-4 py-6">
+      <header className="bg-white border-b border-neutral-200 px-3 sm:px-4 py-4 sm:py-6">
         <div className="max-w-7xl mx-auto">
           <h1 className="text-3xl font-bold text-neutral-900">{agencyProfile.companyName}</h1>
           <p className="text-neutral-600 mt-1">
@@ -181,9 +181,9 @@ export function AgencyDashboard() {
       </header>
 
       {/* Tab Navigation */}
-      <div className="bg-white border-b border-neutral-200 sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="flex gap-6">
+      <div className="bg-white border-b border-neutral-200 sticky top-0 z-10 overflow-hidden">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4">
+          <div className="flex gap-2 sm:gap-6 overflow-x-auto scrollbar-hide pb-px">
             {[
               { id: 'overview', label: 'Overview' },
               { id: 'landlords', label: 'Landlords' },
@@ -194,9 +194,9 @@ export function AgencyDashboard() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as typeof activeTab)}
-                className={`py-4 px-2 border-b-2 font-medium transition-colors ${activeTab === tab.id
-                    ? 'border-primary-600 text-primary-600'
-                    : 'border-transparent text-neutral-600 hover:text-neutral-900'
+                className={`py-3 sm:py-4 px-2 shrink-0 whitespace-nowrap text-sm sm:text-base border-b-2 font-medium transition-colors ${activeTab === tab.id
+                  ? 'border-primary-600 text-primary-600'
+                  : 'border-transparent text-neutral-600 hover:text-neutral-900'
                   }`}
               >
                 {tab.label}
@@ -211,7 +211,7 @@ export function AgencyDashboard() {
         </div>
       </div>
 
-      <main className="max-w-7xl mx-auto px-4 py-8">
+      <main className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-8">
         {activeTab === 'overview' && (
           <div className="space-y-6">
             {/* Stats Cards */}
@@ -397,16 +397,16 @@ function AgencyStatsCards({ stats }: AgencyStatsCardsProps) {
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6">
       {cards.map((card, index) => (
-        <div key={index} className="bg-white rounded-2xl shadow-sm p-6">
-          <div className="flex items-center gap-4">
-            <div className={`w-12 h-12 ${card.bgColor} rounded-lg flex items-center justify-center`}>
-              <card.icon className={`w-6 h-6 ${card.textColor}`} />
+        <div key={index} className="bg-white rounded-xl sm:rounded-2xl shadow-sm p-3 sm:p-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4">
+            <div className={`w-10 h-10 sm:w-12 sm:h-12 ${card.bgColor} rounded-lg flex items-center justify-center shrink-0`}>
+              <card.icon className={`w-5 h-5 sm:w-6 sm:h-6 ${card.textColor}`} />
             </div>
             <div>
-              <div className="text-3xl font-bold text-neutral-900">{card.value}</div>
-              <div className="text-sm text-neutral-600">{card.label}</div>
+              <div className="text-2xl sm:text-3xl font-bold text-neutral-900">{card.value}</div>
+              <div className="text-xs sm:text-sm text-neutral-600">{card.label}</div>
             </div>
           </div>
         </div>
@@ -483,22 +483,22 @@ function SLAPerformanceSection({ complianceRate, averageResponseTime, slaConfig,
       </div>
 
       {/* SLA Configuration Display */}
-      <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="text-center p-4 bg-danger-50 rounded-lg">
-          <div className="text-2xl font-bold text-danger-700">{slaConfig.emergencyResponseHours}h</div>
-          <div className="text-xs text-neutral-600 mt-1">Emergency SLA</div>
+      <div className="mt-4 sm:mt-6 grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4">
+        <div className="text-center p-2 sm:p-4 bg-danger-50 rounded-lg">
+          <div className="text-lg sm:text-2xl font-bold text-danger-700">{slaConfig.emergencyResponseHours}h</div>
+          <div className="text-[10px] sm:text-xs text-neutral-600 mt-1">Emergency SLA</div>
         </div>
-        <div className="text-center p-4 bg-warning-50 rounded-lg">
-          <div className="text-2xl font-bold text-warning-700">{slaConfig.urgentResponseHours}h</div>
-          <div className="text-xs text-neutral-600 mt-1">Urgent SLA</div>
+        <div className="text-center p-2 sm:p-4 bg-warning-50 rounded-lg">
+          <div className="text-lg sm:text-2xl font-bold text-warning-700">{slaConfig.urgentResponseHours}h</div>
+          <div className="text-[10px] sm:text-xs text-neutral-600 mt-1">Urgent SLA</div>
         </div>
-        <div className="text-center p-4 bg-success-50 rounded-lg">
-          <div className="text-2xl font-bold text-success-700">{slaConfig.routineResponseHours}h</div>
-          <div className="text-xs text-neutral-600 mt-1">Routine SLA</div>
+        <div className="text-center p-2 sm:p-4 bg-success-50 rounded-lg">
+          <div className="text-lg sm:text-2xl font-bold text-success-700">{slaConfig.routineResponseHours}h</div>
+          <div className="text-[10px] sm:text-xs text-neutral-600 mt-1">Routine SLA</div>
         </div>
-        <div className="text-center p-4 bg-neutral-50 rounded-lg">
-          <div className="text-2xl font-bold text-neutral-700">{slaConfig.maintenanceResponseDays}d</div>
-          <div className="text-xs text-neutral-600 mt-1">Maintenance SLA</div>
+        <div className="text-center p-2 sm:p-4 bg-neutral-50 rounded-lg">
+          <div className="text-lg sm:text-2xl font-bold text-neutral-700">{slaConfig.maintenanceResponseDays}d</div>
+          <div className="text-[10px] sm:text-xs text-neutral-600 mt-1">Maintenance SLA</div>
         </div>
       </div>
 
@@ -540,8 +540,8 @@ function AgencyPropertiesTable({ properties, onViewDetails, onEditProperty }: Ag
   }
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full">
+    <div className="overflow-x-auto -mx-3 sm:mx-0 px-3 sm:px-0">
+      <table className="w-full min-w-[600px]">
         <thead className="bg-neutral-50 border-b-2 border-neutral-200">
           <tr>
             <th className="text-left py-3 px-4 text-sm font-semibold text-neutral-700">Address</th>
@@ -565,8 +565,8 @@ function AgencyPropertiesTable({ properties, onViewDetails, onEditProperty }: Ag
               </td>
               <td className="py-3 px-4">
                 <span className={`px-2 py-1 text-xs font-medium rounded-full ${property.isAvailable
-                    ? 'bg-success-100 text-success-700'
-                    : 'bg-neutral-100 text-neutral-700'
+                  ? 'bg-success-100 text-success-700'
+                  : 'bg-neutral-100 text-neutral-700'
                   }`}>
                   {property.isAvailable ? 'Available' : 'Occupied'}
                 </span>
@@ -627,8 +627,8 @@ function AgencyTenanciesTable({ tenancies, onViewDetails }: AgencyTenanciesTable
   }
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full">
+    <div className="overflow-x-auto -mx-3 sm:mx-0 px-3 sm:px-0">
+      <table className="w-full min-w-[600px]">
         <thead className="bg-neutral-50 border-b-2 border-neutral-200">
           <tr>
             <th className="text-left py-3 px-4 text-sm font-semibold text-neutral-700">Tenant</th>
