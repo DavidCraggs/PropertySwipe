@@ -44,7 +44,8 @@ export const transformLandlordProfile = (d: DbRecord): LandlordProfile => ({
   isRegisteredLandlord: (d.is_registered_landlord as boolean) || false,
 
   estateAgentLink: (d.estate_agent_link as string) || '',
-  propertyId: d.property_id as string | undefined,
+  // Map legacy property_id to propertyIds array for backward compatibility
+  propertyIds: d.property_id ? [d.property_id as string] : undefined,
   createdAt: new Date(d.created_at as string),
   onboardingComplete: (d.onboarding_complete as boolean) || false,
 
@@ -98,7 +99,8 @@ export const transformLandlordProfileToDb = (
   is_registered_landlord: profile.isRegisteredLandlord,
 
   estate_agent_link: profile.estateAgentLink,
-  property_id: profile.propertyId,
+  // Store first propertyId for backward compatibility with database column
+  property_id: profile.propertyIds?.[0] || null,
   onboarding_complete: profile.onboardingComplete,
 
   // Agency relationships

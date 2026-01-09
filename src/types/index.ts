@@ -277,6 +277,80 @@ export interface Property {
 }
 
 // =====================================================
+// PROPERTY MANAGEMENT TYPES
+// =====================================================
+
+/**
+ * Cost categories for property expense tracking
+ */
+export type PropertyCostCategory =
+  | 'mortgage'
+  | 'insurance'
+  | 'maintenance'
+  | 'management_fee'
+  | 'service_charge'
+  | 'ground_rent'
+  | 'utilities'
+  | 'other';
+
+/**
+ * Frequency of recurring costs
+ */
+export type CostFrequency = 'monthly' | 'quarterly' | 'annually' | 'one_time';
+
+/**
+ * Property cost record for financial tracking
+ */
+export interface PropertyCost {
+  id: string;
+  propertyId: string;
+  category: PropertyCostCategory;
+  description: string;
+  amount: number; // Amount in GBP
+  frequency: CostFrequency;
+  isRecurring: boolean;
+  createdAt: Date;
+  updatedAt?: Date;
+}
+
+/**
+ * Occupancy status for a property
+ */
+export type OccupancyStatus = 'occupied' | 'vacant' | 'ending_soon';
+
+/**
+ * Property with enriched details for landlord/agency dashboard
+ */
+export interface PropertyWithDetails extends Property {
+  // Current tenant info (if occupied)
+  currentTenant?: {
+    name: string;
+    renterId: string;
+    moveInDate: Date;
+    monthlyRent: number;
+  };
+
+  // Status and metrics
+  occupancyStatus: OccupancyStatus;
+  activeIssuesCount: number;
+  unreadMessagesCount: number;
+
+  // Financial summary (monthly normalized)
+  monthlyCosts: number;
+  monthlyIncome: number; // Rent if occupied, 0 if vacant
+  monthlyProfit: number; // income - costs
+
+  // Related data
+  costs?: PropertyCost[];
+  matchId?: string; // Current active tenancy match
+}
+
+/**
+ * View mode options for properties page
+ */
+export type PropertyViewMode = 'list' | 'grid' | 'card';
+
+// =====================================================
 // RENTER PROFILE
 // =====================================================
 
@@ -378,7 +452,7 @@ export interface LandlordProfile {
   isRegisteredLandlord: boolean;
 
   estateAgentLink: string;
-  propertyId?: string;
+  propertyIds?: string[]; // Changed from propertyId to support multiple properties
   createdAt: Date;
   onboardingComplete: boolean;
 

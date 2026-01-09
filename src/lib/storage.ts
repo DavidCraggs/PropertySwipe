@@ -36,6 +36,10 @@ import type {
   PropertyConversationGroup,
   LandlordConversationGroup,
   AgencyConversationGroup,
+  // Property management types
+  PropertyCost,
+  PropertyWithDetails,
+  OccupancyStatus,
   // Legacy aliases for backward compatibility
   VendorProfile,
   BuyerProfile,
@@ -63,7 +67,8 @@ export const saveLandlordProfile = async (profile: LandlordProfile): Promise<Lan
       ombudsman_membership_number: profile.ombudsmanMembershipNumber,
       deposit_scheme: profile.depositScheme,
       estate_agent_link: profile.estateAgentLink,
-      property_id: profile.propertyId || null,
+      // Store first propertyId for backward compatibility with database column
+      property_id: profile.propertyIds?.[0] || null,
       is_complete: profile.onboardingComplete,
     };
 
@@ -167,7 +172,8 @@ export const getLandlordProfile = async (id: string): Promise<LandlordProfile | 
       isFullyCompliant: data.is_fully_compliant,
       depositScheme: data.deposit_scheme,
       estateAgentLink: data.estate_agent_link,
-      propertyId: data.property_id,
+      // Map legacy property_id to propertyIds array for backward compatibility
+      propertyIds: data.property_id ? [data.property_id] : undefined,
       createdAt: new Date(data.created_at),
       onboardingComplete: data.is_complete,
       ratingsSummary: data.average_rating ? {
@@ -2228,6 +2234,41 @@ export const getIssuesForMatch = async (matchId: string): Promise<Issue[]> => {
 };
 
 /**
+ * Map database issue row to Issue type
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mapDbIssueToIssue = (row: any): Issue => ({
+  id: row.id,
+  propertyId: row.property_id,
+  renterId: row.renter_id,
+  landlordId: row.landlord_id,
+  agencyId: row.agency_id,
+  assignedToAgentId: row.assigned_to_agent_id,
+  category: row.category,
+  priority: row.priority,
+  subject: row.subject,
+  description: row.description,
+  images: row.images || [],
+  raisedAt: row.raised_at ? new Date(row.raised_at) : new Date(row.created_at),
+  acknowledgedAt: row.acknowledged_at ? new Date(row.acknowledged_at) : undefined,
+  resolvedAt: row.resolved_at ? new Date(row.resolved_at) : undefined,
+  closedAt: row.closed_at ? new Date(row.closed_at) : undefined,
+  slaDeadline: row.sla_deadline ? new Date(row.sla_deadline) : new Date(),
+  isOverdue: row.is_overdue ?? false,
+  responseTimeHours: row.response_time_hours,
+  resolutionTimeDays: row.resolution_time_days,
+  status: row.status,
+  statusHistory: row.status_history || [],
+  messages: row.messages || [],
+  internalNotes: row.internal_notes || [],
+  resolutionSummary: row.resolution_summary,
+  resolutionCost: row.resolution_cost,
+  renterSatisfactionRating: row.renter_satisfaction_rating,
+  createdAt: row.created_at ? new Date(row.created_at) : new Date(),
+  updatedAt: row.updated_at ? new Date(row.updated_at) : new Date(),
+});
+
+/**
  * Get all issues for a property
  */
 export const getIssuesForProperty = async (propertyId: string): Promise<Issue[]> => {
@@ -2239,7 +2280,7 @@ export const getIssuesForProperty = async (propertyId: string): Promise<Issue[]>
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    return data || [];
+    return (data || []).map(mapDbIssueToIssue);
   } else {
     const stored = localStorage.getItem('issues');
     const issues: Issue[] = stored ? JSON.parse(stored) : [];
@@ -2259,7 +2300,7 @@ export const getIssue = async (issueId: string): Promise<Issue | null> => {
       .single();
 
     if (error) return null;
-    return data;
+    return data ? mapDbIssueToIssue(data) : null;
   } else {
     const stored = localStorage.getItem('issues');
     const issues: Issue[] = stored ? JSON.parse(stored) : [];
@@ -2275,27 +2316,48 @@ export const updateIssueStatus = async (
   status: string,
   resolutionNotes?: string
 ): Promise<Issue> => {
-  const updates: Partial<Issue> = {
-    status: status as Issue['status'],
-    updatedAt: new Date(),
-  };
-
-  if (status === 'resolved' || status === 'closed') {
-    updates.resolvedAt = new Date();
-    updates.resolutionSummary = resolutionNotes; // resolutionSummary is the correct property name
-  }
-
   if (isSupabaseConfigured()) {
+    // Use snake_case for Supabase database columns
+    const dbUpdates: Record<string, unknown> = {
+      status: status,
+      updated_at: new Date().toISOString(),
+    };
+
+    if (status === 'resolved' || status === 'closed') {
+      dbUpdates.resolved_at = new Date().toISOString();
+      if (resolutionNotes) {
+        dbUpdates.resolution_summary = resolutionNotes;
+      }
+    }
+
+    if (status === 'acknowledged') {
+      dbUpdates.acknowledged_at = new Date().toISOString();
+    }
+
     const { data, error } = await supabase
       .from('issues')
-      .update(updates)
+      .update(dbUpdates)
       .eq('id', issueId)
       .select()
       .single();
 
     if (error) throw error;
-    return data;
+    return mapDbIssueToIssue(data);
   } else {
+    // Use camelCase for localStorage
+    const updates: Partial<Issue> = {
+      status: status as Issue['status'],
+    };
+
+    if (status === 'resolved' || status === 'closed') {
+      updates.resolvedAt = new Date();
+      updates.resolutionSummary = resolutionNotes;
+    }
+
+    if (status === 'acknowledged') {
+      updates.acknowledgedAt = new Date();
+    }
+
     const stored = localStorage.getItem('issues');
     const issues: Issue[] = stored ? JSON.parse(stored) : [];
     const index = issues.findIndex(i => i.id === issueId);
@@ -3802,5 +3864,303 @@ export const redeemInviteCode = async (
   });
 
   return createdMatch;
+};
+
+// =====================================================
+// PROPERTY COSTS (Financial Tracking)
+// =====================================================
+
+const PROPERTY_COSTS_KEY = 'property-costs';
+
+/**
+ * Save a property cost record
+ */
+export const savePropertyCost = async (cost: PropertyCost | Omit<PropertyCost, 'id'>): Promise<PropertyCost> => {
+  const costId = ('id' in cost && cost.id) ? cost.id : `cost-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  const costWithId: PropertyCost = {
+    ...cost,
+    id: costId,
+    createdAt: cost.createdAt || new Date(),
+    updatedAt: new Date(),
+  } as PropertyCost;
+
+  if (isSupabaseConfigured()) {
+    const costData = {
+      id: costWithId.id,
+      property_id: costWithId.propertyId,
+      category: costWithId.category,
+      description: costWithId.description,
+      amount: costWithId.amount,
+      frequency: costWithId.frequency,
+      is_recurring: costWithId.isRecurring,
+      created_at: costWithId.createdAt,
+      updated_at: costWithId.updatedAt,
+    };
+
+    const { data, error } = await supabase
+      .from('property_costs')
+      .upsert(costData)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('[Storage] Property cost save error:', error);
+      throw error;
+    }
+
+    return {
+      id: data.id,
+      propertyId: data.property_id,
+      category: data.category,
+      description: data.description,
+      amount: data.amount,
+      frequency: data.frequency,
+      isRecurring: data.is_recurring,
+      createdAt: new Date(data.created_at),
+      updatedAt: data.updated_at ? new Date(data.updated_at) : undefined,
+    };
+  } else {
+    // localStorage fallback
+    const stored = localStorage.getItem(PROPERTY_COSTS_KEY);
+    const costs: PropertyCost[] = stored ? JSON.parse(stored) : [];
+    const index = costs.findIndex(c => c.id === costWithId.id);
+    if (index >= 0) {
+      costs[index] = costWithId;
+    } else {
+      costs.push(costWithId);
+    }
+    localStorage.setItem(PROPERTY_COSTS_KEY, JSON.stringify(costs));
+    return costWithId;
+  }
+};
+
+/**
+ * Get all costs for a property
+ */
+export const getPropertyCosts = async (propertyId: string): Promise<PropertyCost[]> => {
+  if (isSupabaseConfigured()) {
+    const { data, error } = await supabase
+      .from('property_costs')
+      .select('*')
+      .eq('property_id', propertyId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('[Storage] Get property costs error:', error);
+      return [];
+    }
+
+    return (data || []).map(d => ({
+      id: d.id,
+      propertyId: d.property_id,
+      category: d.category,
+      description: d.description,
+      amount: d.amount,
+      frequency: d.frequency,
+      isRecurring: d.is_recurring,
+      createdAt: new Date(d.created_at),
+      updatedAt: d.updated_at ? new Date(d.updated_at) : undefined,
+    }));
+  } else {
+    const stored = localStorage.getItem(PROPERTY_COSTS_KEY);
+    const costs: PropertyCost[] = stored ? JSON.parse(stored) : [];
+    return costs.filter(c => c.propertyId === propertyId);
+  }
+};
+
+/**
+ * Delete a property cost record
+ */
+export const deletePropertyCost = async (costId: string): Promise<void> => {
+  if (isSupabaseConfigured()) {
+    const { error } = await supabase
+      .from('property_costs')
+      .delete()
+      .eq('id', costId);
+
+    if (error) {
+      console.error('[Storage] Delete property cost error:', error);
+      throw error;
+    }
+  } else {
+    const stored = localStorage.getItem(PROPERTY_COSTS_KEY);
+    const costs: PropertyCost[] = stored ? JSON.parse(stored) : [];
+    const filtered = costs.filter(c => c.id !== costId);
+    localStorage.setItem(PROPERTY_COSTS_KEY, JSON.stringify(filtered));
+  }
+};
+
+/**
+ * Calculate monthly cost from a PropertyCost record
+ */
+const calculateMonthlyCost = (cost: PropertyCost): number => {
+  switch (cost.frequency) {
+    case 'monthly':
+      return cost.amount;
+    case 'quarterly':
+      return cost.amount / 3;
+    case 'annually':
+      return cost.amount / 12;
+    case 'one_time':
+      return 0; // One-time costs don't contribute to monthly
+    default:
+      return 0;
+  }
+};
+
+// =====================================================
+// LANDLORD PROPERTIES (Multi-Property Support)
+// =====================================================
+
+/**
+ * Get all properties owned by a landlord
+ */
+export const getLandlordProperties = async (landlordId: string): Promise<Property[]> => {
+  if (!landlordId) return [];
+
+  if (isSupabaseConfigured()) {
+    const { data, error } = await supabase
+      .from('properties')
+      .select('*')
+      .eq('landlord_id', landlordId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('[Storage] Get landlord properties error:', error);
+      return [];
+    }
+
+    // Map Supabase data to Property type (reuse existing mapping logic)
+    return (data || []).map(d => ({
+      id: d.id,
+      address: {
+        street: d.street || '',
+        city: d.city || '',
+        postcode: d.postcode || '',
+        council: d.council || '',
+      },
+      rentPcm: d.rent_pcm || 0,
+      deposit: d.deposit || 0,
+      maxRentInAdvance: 1 as const,
+      bedrooms: d.bedrooms || 0,
+      bathrooms: d.bathrooms || 0,
+      propertyType: d.property_type || 'Flat',
+      images: d.images || [],
+      description: d.description || '',
+      epcRating: d.epc_rating || 'C',
+      yearBuilt: d.year_built || 2000,
+      features: d.features || [],
+      furnishing: d.furnishing || 'Unfurnished',
+      availableFrom: d.available_from || new Date().toISOString(),
+      tenancyType: 'Periodic' as const,
+      maxOccupants: d.max_occupants || 4,
+      petsPolicy: d.pets_policy || {
+        willConsiderPets: true,
+        preferredPetTypes: [],
+        requiresPetInsurance: false,
+        maxPetsAllowed: 2,
+      },
+      bills: d.bills || {
+        councilTaxBand: 'C',
+        gasElectricIncluded: false,
+        waterIncluded: false,
+        internetIncluded: false,
+      },
+      meetsDecentHomesStandard: d.meets_decent_homes_standard ?? true,
+      awaabsLawCompliant: d.awaabs_law_compliant ?? true,
+      prsPropertyRegistrationStatus: d.prs_registration_status || 'not_registered',
+      landlordId: d.landlord_id,
+      managingAgencyId: d.managing_agency_id,
+      marketingAgentId: d.marketing_agent_id,
+      isFullyManagedByAgency: d.is_fully_managed_by_agency,
+      isAvailable: d.is_available ?? true,
+      canBeMarketed: d.can_be_marketed ?? true,
+      listingDate: d.listing_date || new Date().toISOString(),
+      acceptsShortTermTenants: d.accepts_short_term_tenants ?? true,
+    }));
+  } else {
+    const stored = localStorage.getItem('properties');
+    const properties: Property[] = stored ? JSON.parse(stored) : [];
+    return properties.filter(p => p.landlordId === landlordId);
+  }
+};
+
+/**
+ * Get properties with enriched details (tenant info, issues, costs)
+ */
+export const getPropertiesWithDetails = async (landlordId: string): Promise<PropertyWithDetails[]> => {
+  // Get base properties
+  const properties = await getLandlordProperties(landlordId);
+  if (properties.length === 0) return [];
+
+  // Get all matches for this landlord
+  const allMatches = await getAllMatches();
+  const landlordMatches = allMatches.filter(m => m.landlordId === landlordId);
+
+  // Get all property costs
+  const allCostsPromises = properties.map(p => getPropertyCosts(p.id));
+  const allCostsArrays = await Promise.all(allCostsPromises);
+
+  // Get issues for properties
+  const allIssuesPromises = properties.map(p => getIssuesForProperty(p.id));
+  const allIssuesArrays = await Promise.all(allIssuesPromises);
+
+  // Build enriched property data
+  return properties.map((property, index) => {
+    const costs = allCostsArrays[index] || [];
+    const issues = allIssuesArrays[index] || [];
+
+    // Find active tenancy for this property
+    const activeMatch = landlordMatches.find(
+      m => m.propertyId === property.id &&
+        (m.tenancyStatus === 'active' || m.applicationStatus === 'tenancy_signed')
+    );
+
+    // Calculate occupancy status
+    let occupancyStatus: OccupancyStatus = 'vacant';
+    if (activeMatch) {
+      if (activeMatch.tenancyStatus === 'notice_given') {
+        occupancyStatus = 'ending_soon';
+      } else {
+        occupancyStatus = 'occupied';
+      }
+    }
+
+    // Calculate monthly costs
+    const monthlyCosts = costs.reduce((sum, cost) => sum + calculateMonthlyCost(cost), 0);
+
+    // Calculate income (rent if occupied)
+    const monthlyIncome = activeMatch ? (activeMatch.monthlyRentAmount || property.rentPcm) : 0;
+
+    // Count active issues
+    const activeIssuesCount = issues.filter(
+      i => !['resolved', 'closed'].includes(i.status)
+    ).length;
+
+    // Build the enriched property
+    const enrichedProperty: PropertyWithDetails = {
+      ...property,
+      occupancyStatus,
+      activeIssuesCount,
+      unreadMessagesCount: 0, // TODO: Calculate from conversations
+      monthlyCosts: Math.round(monthlyCosts * 100) / 100,
+      monthlyIncome,
+      monthlyProfit: Math.round((monthlyIncome - monthlyCosts) * 100) / 100,
+      costs,
+      matchId: activeMatch?.id,
+    };
+
+    // Add tenant info if occupied
+    if (activeMatch && activeMatch.renterProfile) {
+      enrichedProperty.currentTenant = {
+        name: activeMatch.renterName || activeMatch.renterProfile.names || 'Tenant',
+        renterId: activeMatch.renterId,
+        moveInDate: activeMatch.tenancyStartDate || new Date(),
+        monthlyRent: activeMatch.monthlyRentAmount || property.rentPcm,
+      };
+    }
+
+    return enrichedProperty;
+  });
 };
 

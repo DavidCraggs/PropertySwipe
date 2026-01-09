@@ -11,7 +11,7 @@ import { AgencyLinkManager } from '../components/organisms/AgencyLinkManager';
 import { CreateRenterInviteModal } from '../components/organisms/CreateRenterInviteModal';
 import { IssueDetailsModal } from '../components/organisms/IssueDetailsModal';
 import { useToastStore } from '../components/organisms/toastUtils';
-import { getIssuesForMatch, updateIssueStatus, saveProperty } from '../lib/storage';
+import { getIssuesForMatch, updateIssueStatus, saveProperty, getLandlordProperties } from '../lib/storage';
 
 interface VendorDashboardProps {
   onNavigateToMatches?: (matchId?: string) => void;
@@ -43,8 +43,23 @@ export function VendorDashboard({ onNavigateToMatches, onNavigateToAgencyMessage
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [allIssues, setAllIssues] = useState<Issue[]>([]);
   const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null);
+  const [landlordProperties, setLandlordProperties] = useState<Property[]>([]);
 
   const landlordProfile = currentUser as LandlordProfile;
+
+  // Fetch landlord's properties from database (single source of truth: landlord_id on properties)
+  useEffect(() => {
+    const fetchProperties = async () => {
+      if (!landlordProfile?.id) return;
+      try {
+        const props = await getLandlordProperties(landlordProfile.id);
+        setLandlordProperties(props);
+      } catch (error) {
+        console.error('[VendorDashboard] Failed to fetch properties:', error);
+      }
+    };
+    fetchProperties();
+  }, [landlordProfile?.id]);
 
   // Handler to navigate to matches page with a specific match selected
   const handleViewMatch = useCallback((match: Match) => {
@@ -54,16 +69,16 @@ export function VendorDashboard({ onNavigateToMatches, onNavigateToAgencyMessage
     }
   }, [onNavigateToMatches]);
 
-  // Find landlord's property if linked
-  const landlordProperty = landlordProfile?.propertyId
-    ? allProperties.find((p) => p.id === landlordProfile.propertyId)
-    : null;
+  // Use first property from fetched landlord properties (queries by landlord_id)
+  const landlordProperty = landlordProperties[0] || null;
 
   const handleUnlinkProperty = useCallback(async () => {
     if (!landlordProfile?.id || !landlordProperty) return;
     try {
       unlinkProperty(landlordProperty.id, landlordProfile.id);
-      await updateProfile({ propertyId: undefined });
+      // Remove the property from propertyIds array
+      const remainingIds = (landlordProfile.propertyIds || []).filter(id => id !== landlordProperty.id);
+      await updateProfile({ propertyIds: remainingIds.length > 0 ? remainingIds : undefined });
       addToast({
         type: 'success',
         title: 'Property Unlinked',
@@ -595,15 +610,16 @@ export function VendorDashboard({ onNavigateToMatches, onNavigateToAgencyMessage
           isOpen={true}
           onClose={() => setShowPropertyLinker(false)}
           availableProperties={allProperties}
-          currentPropertyId={landlordProfile?.propertyId}
+          currentPropertyId={landlordProfile?.propertyIds?.[0]}
           onLinkProperty={async (propertyId) => {
             try {
               // Update property's landlordId to match current landlord
               if (landlordProfile?.id) {
                 linkPropertyToLandlord(propertyId, landlordProfile.id);
               }
-              // Update vendor profile with propertyId
-              await updateProfile({ propertyId });
+              // Add property to propertyIds array
+              const newPropertyIds = [...(landlordProfile?.propertyIds || []), propertyId];
+              await updateProfile({ propertyIds: newPropertyIds });
               addToast({
                 type: 'success',
                 title: 'Property Linked!',
@@ -639,8 +655,9 @@ export function VendorDashboard({ onNavigateToMatches, onNavigateToAgencyMessage
                     // Create property and get the new property ID
                     const newPropertyId = await createProperty(propertyData, landlordProfile.id);
 
-                    // Link property to vendor profile
-                    await updateProfile({ propertyId: newPropertyId });
+                    // Add new property to propertyIds array
+                    const newPropertyIds = [...(landlordProfile?.propertyIds || []), newPropertyId];
+                    await updateProfile({ propertyIds: newPropertyIds });
 
                     addToast({
                       type: 'success',
@@ -738,7 +755,9 @@ export function VendorDashboard({ onNavigateToMatches, onNavigateToAgencyMessage
                     if (!landlordProperty?.id) return;
 
                     await deleteProperty(landlordProperty.id);
-                    await updateProfile({ propertyId: undefined });
+                    // Remove the property from propertyIds array
+                    const remainingIds = (landlordProfile?.propertyIds || []).filter(id => id !== landlordProperty.id);
+                    await updateProfile({ propertyIds: remainingIds.length > 0 ? remainingIds : undefined });
 
                     addToast({
                       type: 'success',

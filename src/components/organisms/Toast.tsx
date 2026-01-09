@@ -1,11 +1,11 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, CheckCircle, AlertCircle, Info, Heart } from 'lucide-react';
+import { X, CheckCircle, AlertCircle, Info, Heart, AlertTriangle } from 'lucide-react';
 import { useToastStore, type Toast } from './toastUtils';
 
 // NOTE: Import useToastStore and useToast directly from './toastUtils' in your components
 // This file only exports the ToastContainer component for Fast Refresh compatibility
 
-type ToastType = 'success' | 'error' | 'danger' | 'info' | 'match';
+type ToastType = 'success' | 'error' | 'danger' | 'info' | 'match' | 'warning';
 
 /**
  * Toast component
@@ -44,6 +44,7 @@ const ToastItem: React.FC<ToastItemProps> = ({ toast, onClose }) => {
     danger: 'bg-danger-50 border-danger-200 text-danger-800',
     info: 'bg-primary-50 border-primary-200 text-primary-800',
     match: 'bg-gradient-to-r from-success-500 to-primary-500 border-success-400 text-white',
+    warning: 'bg-warning-50 border-warning-200 text-warning-800',
   };
 
   const icons = {
@@ -52,6 +53,7 @@ const ToastItem: React.FC<ToastItemProps> = ({ toast, onClose }) => {
     danger: AlertCircle,
     info: Info,
     match: Heart,
+    warning: AlertTriangle,
   };
 
   const Icon = icons[type];

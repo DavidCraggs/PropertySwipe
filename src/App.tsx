@@ -16,6 +16,8 @@ import { LandlordMessagesPage } from './pages/LandlordMessagesPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { CurrentRenterDashboard } from './pages/CurrentRenterDashboard';
 import { LandlordDiscoverPage } from './pages/LandlordDiscoverPage';
+import { LandlordPropertiesPage } from './pages/LandlordPropertiesPage';
+import { AgencyPropertiesPage } from './pages/AgencyPropertiesPage';
 import { AdminLoginPage } from './pages/AdminLoginPage';
 import { AdminDashboard } from './pages/AdminDashboard';
 import { AdminModeIndicator } from './components/AdminModeIndicator';
@@ -28,7 +30,7 @@ import { useAppStore } from './hooks/useAppStore';
 import type { UserType, RenterProfile } from './types';
 
 type AppRoute = 'welcome' | 'role-select' | 'login' | 'renter-onboarding' | 'landlord-onboarding' | 'agency-onboarding' | 'admin-login' | 'admin-dashboard' | 'app';
-type AppPage = 'swipe' | 'matches' | 'profile' | 'tenancy' | 'agency-messages';
+type AppPage = 'swipe' | 'matches' | 'profile' | 'tenancy' | 'agency-messages' | 'properties';
 
 /**
  * Main App component with authentication and routing
@@ -289,10 +291,23 @@ function App() {
                     <ProfilePage />
                   </motion.div>
                 )}
+                {currentPage === 'properties' && (userType === 'landlord' || userType === 'estate_agent' || userType === 'management_agency') && (
+                  <motion.div
+                    key="properties"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                  >
+                    {(userType === 'estate_agent' || userType === 'management_agency')
+                      ? <AgencyPropertiesPage />
+                      : <LandlordPropertiesPage />
+                    }
+                  </motion.div>
+                )}
               </AnimatePresence>
-              <BottomNav 
-                currentPage={(['swipe', 'matches', 'profile', 'tenancy'].includes(currentPage) ? currentPage : 'swipe') as 'swipe' | 'matches' | 'profile' | 'tenancy'} 
-                onNavigate={setCurrentPage} 
+              <BottomNav
+                currentPage={(['swipe', 'matches', 'profile', 'tenancy', 'properties'].includes(currentPage) ? currentPage : 'swipe') as 'swipe' | 'matches' | 'profile' | 'tenancy' | 'properties'}
+                onNavigate={setCurrentPage}
               />
             </div>
           </>

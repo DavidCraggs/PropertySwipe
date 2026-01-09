@@ -221,7 +221,7 @@ export function VendorOnboarding({ onComplete, onLogin }: VendorOnboardingProps)
       isFullyCompliant: false,
       depositScheme: 'DPS',
       estateAgentLink: formattedLink,
-      propertyId: linkedPropertyId, // Set if auto-linked
+      propertyIds: linkedPropertyId ? [linkedPropertyId] : undefined, // Set if auto-linked
       createdAt: new Date(),
       onboardingComplete: true,
     };

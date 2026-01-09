@@ -4,8 +4,8 @@ import { useAuthStore } from '../../hooks/useAuthStore';
 import type { RenterProfile } from '../../types';
 
 interface BottomNavProps {
-  currentPage: 'swipe' | 'matches' | 'profile' | 'tenancy';
-  onNavigate: (page: 'swipe' | 'matches' | 'profile' | 'tenancy') => void;
+  currentPage: 'swipe' | 'matches' | 'profile' | 'tenancy' | 'properties';
+  onNavigate: (page: 'swipe' | 'matches' | 'profile' | 'tenancy' | 'properties') => void;
 }
 
 /**
@@ -30,6 +30,12 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentPage, onNavigate })
       id: 'swipe' as const,
       label: 'Dashboard',
       icon: Building2,
+      badge: null,
+    },
+    {
+      id: 'properties' as const,
+      label: 'Portfolio',
+      icon: Home,
       badge: null,
     },
     {
@@ -74,17 +80,45 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentPage, onNavigate })
     },
   ];
 
-  // Default navigation (renters looking, landlords)
-  const defaultNavItems = [
+  // Landlord-specific navigation (with properties tab)
+  const landlordNavItems = [
     {
       id: 'swipe' as const,
-      label: isLandlord ? 'Dashboard' : 'Swipe',
-      icon: isLandlord ? LayoutDashboard : Home,
+      label: 'Dashboard',
+      icon: LayoutDashboard,
+      badge: null,
+    },
+    {
+      id: 'properties' as const,
+      label: 'Properties',
+      icon: Home,
       badge: null,
     },
     {
       id: 'matches' as const,
-      label: isLandlord ? 'Renters' : 'Matches',
+      label: 'Renters',
+      icon: Heart,
+      badge: unreadCount > 0 ? unreadCount : null,
+    },
+    {
+      id: 'profile' as const,
+      label: 'Profile',
+      icon: User,
+      badge: null,
+    },
+  ];
+
+  // Default navigation (renters looking)
+  const defaultNavItems = [
+    {
+      id: 'swipe' as const,
+      label: 'Swipe',
+      icon: Home,
+      badge: null,
+    },
+    {
+      id: 'matches' as const,
+      label: 'Matches',
       icon: Heart,
       badge: unreadCount > 0 ? unreadCount : null,
     },
@@ -99,9 +133,11 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentPage, onNavigate })
   // Select appropriate nav items based on user type
   const navItems = isAgency
     ? agencyNavItems
-    : isCurrentRenter
-      ? currentRenterNavItems
-      : defaultNavItems;
+    : isLandlord
+      ? landlordNavItems
+      : isCurrentRenter
+        ? currentRenterNavItems
+        : defaultNavItems;
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-neutral-200 safe-area-inset-bottom z-30">

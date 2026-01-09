@@ -275,7 +275,7 @@ export function LandlordOnboarding({ onComplete, onLogin }: LandlordOnboardingPr
           maxPetsAllowed: formData.acceptsPets === 'yes' ? 2 : 0,
         },
         estateAgentLink: formattedLink,
-        propertyId: linkedPropertyId,
+        propertyIds: linkedPropertyId ? [linkedPropertyId] : undefined,
         // RRA 2025 Compliance
         prsRegistrationNumber: formData.prsRegistrationNumber.trim(),
         prsRegistrationStatus: 'active',
