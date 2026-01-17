@@ -1357,3 +1357,423 @@ export interface RenterCard {
   propertyId: string;
   propertyAddress: string;
 }
+
+// =====================================================
+// TENANCY AGREEMENTS & DOCUMENT SIGNING
+// =====================================================
+
+/**
+ * Agreement status lifecycle
+ */
+export type AgreementStatus =
+  | 'draft'
+  | 'pending_signatures'
+  | 'partially_signed'
+  | 'fully_signed'
+  | 'expired'
+  | 'cancelled';
+
+/**
+ * How the signature was created
+ */
+export type SignatureType = 'draw' | 'type' | 'upload';
+
+/**
+ * Audit log actions for agreements
+ */
+export type AgreementAuditAction =
+  | 'created'
+  | 'viewed'
+  | 'downloaded'
+  | 'signed'
+  | 'reminder_sent'
+  | 'expired'
+  | 'cancelled';
+
+/**
+ * Tenancy Agreement - uploaded document with signature tracking
+ */
+export interface TenancyAgreement {
+  id: string;
+  matchId: string;
+  propertyId: string;
+  landlordId: string;
+  agencyId?: string;
+  renterId: string;
+
+  // Document storage
+  originalDocumentPath: string;
+  originalFilename: string;
+  mimeType: string;
+  fileSizeBytes: number;
+
+  // Signed version
+  signedDocumentPath?: string;
+  signedAt?: Date;
+
+  // Metadata
+  title: string;
+  description?: string;
+  tenancyStartDate?: Date;
+  tenancyEndDate?: Date;
+  rentAmount?: number;
+  depositAmount?: number;
+
+  // Status
+  status: AgreementStatus;
+  expiresAt: Date;
+
+  // Audit
+  createdAt: Date;
+  updatedAt: Date;
+  createdBy: string;
+
+  // Joined data
+  signatories?: AgreementSignatory[];
+  property?: Property;
+  match?: Match;
+}
+
+/**
+ * Signatory - a person required to sign an agreement
+ */
+export interface AgreementSignatory {
+  id: string;
+  agreementId: string;
+  userId: string;
+  userType: 'landlord' | 'agency' | 'renter';
+  userEmail: string;
+  userName: string;
+  signingOrder: number;
+  isRequired: boolean;
+
+  // Signature
+  hasSigned: boolean;
+  signedAt?: Date;
+  signatureData?: string;
+  signatureType?: SignatureType;
+  ipAddress?: string;
+  userAgent?: string;
+
+  // Notifications
+  invitationSentAt?: Date;
+  lastReminderAt?: Date;
+  reminderCount: number;
+
+  createdAt: Date;
+}
+
+/**
+ * Audit log entry for agreement actions
+ */
+export interface AgreementAuditEntry {
+  id: string;
+  agreementId: string;
+  action: AgreementAuditAction;
+  performedBy?: string;
+  performedByType?: string;
+  metadata?: Record<string, unknown>;
+  ipAddress?: string;
+  userAgent?: string;
+  createdAt: Date;
+}
+
+/**
+ * Input for creating a new agreement
+ */
+export interface CreateAgreementInput {
+  matchId: string;
+  title: string;
+  description?: string;
+  tenancyStartDate?: Date;
+  tenancyEndDate?: Date;
+  rentAmount?: number;
+  depositAmount?: number;
+  file: File;
+}
+
+/**
+ * Input for signing an agreement
+ */
+export interface SignAgreementInput {
+  agreementId: string;
+  signatureData: string;
+  signatureType: SignatureType;
+}
+
+// =====================================================
+// RRA 2025 AGREEMENT CREATOR TYPES
+// =====================================================
+
+/**
+ * Clause categories for agreement structure
+ */
+export type ClauseCategory =
+  | 'parties'
+  | 'property'
+  | 'term'
+  | 'rent'
+  | 'deposit'
+  | 'repairs'
+  | 'pets'
+  | 'termination'
+  | 'property_use'
+  | 'utilities'
+  | 'insurance'
+  | 'compliance'
+  | 'signatures'
+  | 'special';
+
+/**
+ * Variable types for clause placeholders
+ */
+export type ClauseVariableType = 'text' | 'number' | 'date' | 'boolean' | 'select';
+
+/**
+ * Variable definition in a clause template
+ */
+export interface ClauseVariable {
+  name: string;
+  type: ClauseVariableType;
+  label: string;
+  required: boolean;
+  defaultValue?: string | number | boolean;
+  options?: string[]; // For select type
+  validation?: {
+    min?: number;
+    max?: number;
+    pattern?: string;
+  };
+}
+
+/**
+ * Individual clause within a template section
+ */
+export interface AgreementClause {
+  id: string;
+  category: ClauseCategory;
+  title: string;
+  content: string; // Text with {{variable}} placeholders
+  variables?: ClauseVariable[];
+  isMandatory: boolean; // Required by RRA 2025
+  isProhibited: boolean; // Forbidden by RRA 2025
+  rraReference?: string; // e.g., "Section 12(1)"
+  isSelected?: boolean; // For customization UI
+}
+
+/**
+ * Section containing related clauses
+ */
+export interface AgreementSection {
+  id: string;
+  title: string;
+  order: number;
+  clauses: AgreementClause[];
+  isRequired: boolean;
+}
+
+/**
+ * Agreement template (system-provided or custom)
+ */
+export interface AgreementTemplate {
+  id: string;
+  name: string;
+  description?: string;
+  version: string; // e.g., "RRA2025-v1.0"
+  sections: AgreementSection[];
+  isSystemTemplate: boolean;
+  createdBy?: string;
+  isActive: boolean;
+  rraCompliant: boolean;
+  lastComplianceCheck?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+/**
+ * Deposit protection schemes in UK
+ */
+export type DepositScheme = 'DPS' | 'TDS' | 'MyDeposits';
+
+/**
+ * Payment methods for rent
+ */
+export type RentPaymentMethod = 'bank_transfer' | 'standing_order' | 'direct_debit';
+
+/**
+ * Ombudsman schemes available
+ */
+export type OmbudsmanSchemeOption =
+  | 'Housing Ombudsman Service'
+  | 'Property Ombudsman'
+  | 'Property Redress Scheme';
+
+/**
+ * Additional occupant details
+ */
+export interface AdditionalOccupant {
+  name: string;
+  relationship: string;
+  dateOfBirth?: string;
+}
+
+/**
+ * Form data structure for generating agreements
+ */
+export interface AgreementFormData {
+  // Tenancy details
+  tenancyStartDate: string;
+
+  // Parties
+  landlordName: string;
+  landlordAddress: string;
+  tenantName: string;
+  agentName?: string;
+  agentAddress?: string;
+
+  // Rent
+  rentAmount: number;
+  rentPaymentDay: number; // 1-28
+  rentPaymentMethod: RentPaymentMethod;
+
+  // Deposit
+  depositAmount: number;
+  depositWeeks: number;
+  depositScheme: DepositScheme;
+  depositSchemeRef?: string;
+  depositProtectedDate?: string;
+
+  // Occupants
+  additionalOccupants: AdditionalOccupant[];
+  maxOccupants: number;
+
+  // Pets
+  petsAllowed: boolean;
+  petDetails?: string;
+
+  // Utilities
+  utilitiesIncluded: boolean;
+  includedUtilities?: string;
+  councilTaxResponsibility: 'Tenant' | 'Landlord';
+  councilTaxBand?: string;
+
+  // Property specifics
+  furnishingLevel: 'unfurnished' | 'part furnished' | 'fully furnished';
+  inventoryIncluded: boolean;
+  parkingIncluded: boolean;
+  parkingDetails?: string;
+  hasGarden: boolean;
+  gardenMaintenance?: 'Tenant' | 'Landlord' | 'shared';
+
+  // Property address (auto-filled)
+  propertyAddress: string;
+
+  // Compliance (auto-filled from property/landlord data)
+  epcRating: EPCRating;
+  epcExpiryDate: string;
+  hasGas: boolean;
+  gasSafetyDate?: string;
+  eicrDate: string;
+  prsRegistrationNumber: string;
+  ombudsmanScheme: OmbudsmanSchemeOption;
+  ombudsmanMembershipNumber: string;
+
+  // Special conditions
+  additionalConditions?: string;
+
+  // Agreement date
+  agreementDate: string;
+}
+
+/**
+ * Generated agreement status
+ */
+export type GeneratedAgreementStatus =
+  | 'draft'
+  | 'generated'
+  | 'sent_for_signing'
+  | 'signed'
+  | 'cancelled';
+
+/**
+ * Generated agreement instance from a template
+ */
+export interface GeneratedAgreement {
+  id: string;
+  templateId: string;
+  matchId: string;
+  landlordId: string;
+  agencyId?: string;
+  renterId: string;
+  propertyId: string;
+
+  agreementData: AgreementFormData;
+  generatedPdfPath?: string;
+  generatedAt?: Date;
+
+  // Link to tenancy_agreements for signing workflow
+  tenancyAgreementId?: string;
+
+  status: GeneratedAgreementStatus;
+
+  createdAt: Date;
+  updatedAt: Date;
+  createdBy: string;
+
+  // Joined data
+  template?: AgreementTemplate;
+  property?: Property;
+  landlord?: LandlordProfile;
+  renter?: RenterProfile;
+}
+
+/**
+ * Compliance error from RRA 2025 validation
+ */
+export interface ComplianceError {
+  field: string;
+  message: string;
+  rraReference: string;
+}
+
+/**
+ * Compliance warning (best practice, not mandatory)
+ */
+export interface ComplianceWarning {
+  field: string;
+  message: string;
+  suggestion: string;
+}
+
+/**
+ * Result of RRA 2025 compliance check
+ */
+export interface ComplianceCheckResult {
+  isCompliant: boolean;
+  errors: ComplianceError[];
+  warnings: ComplianceWarning[];
+}
+
+/**
+ * Wizard step configuration
+ */
+export interface WizardStep {
+  id: string;
+  title: string;
+  description: string;
+  isOptional: boolean;
+  isComplete: boolean;
+}
+
+/**
+ * Agreement creator wizard state
+ */
+export interface AgreementWizardState {
+  currentStep: number;
+  steps: WizardStep[];
+  template: AgreementTemplate | null;
+  formData: Partial<AgreementFormData>;
+  complianceResult: ComplianceCheckResult | null;
+  isDirty: boolean;
+  lastSavedAt?: Date;
+}

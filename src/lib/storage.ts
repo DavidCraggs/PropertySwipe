@@ -149,9 +149,17 @@ export const getLandlordProfile = async (id: string): Promise<LandlordProfile | 
       .from('landlord_profiles')
       .select('*')
       .eq('id', id)
-      .single();
+      .maybeSingle(); // Use maybeSingle() instead of single() to avoid 406 when no rows found
 
-    if (error) return null;
+    if (error) {
+      console.error('[Storage] getLandlordProfile error:', error);
+      return null;
+    }
+
+    if (!data) {
+      console.warn(`[Storage] Landlord profile not found for ID: ${id}`);
+      return null;
+    }
 
     return {
       id: data.id,

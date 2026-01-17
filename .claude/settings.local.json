@@ -62,7 +62,8 @@
       "Bash(then echo \"=== .env file exists ===\")",
       "Bash(else echo \"No .env file found\")",
       "Bash(test:*)",
-      "Bash(npx playwright:*)"
+      "Bash(npx playwright:*)",
+      "Bash(timeout 120 npx tsc:*)"
     ],
     "deny": [],
     "ask": []

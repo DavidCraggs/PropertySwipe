@@ -428,8 +428,13 @@ interface LandlordContactCardProps {
 const LandlordContactCard: React.FC<LandlordContactCardProps> = ({ landlordId, currentMatchId, onNavigateToMatches }) => {
   const [landlordName, setLandlordName] = useState<string>('Loading...');
 
+  console.log('[LandlordContactCard] Received landlordId:', landlordId);
+
   useEffect(() => {
-    if (!landlordId) return;
+    if (!landlordId) {
+      console.log('[LandlordContactCard] No landlordId provided, skipping fetch');
+      return;
+    }
 
     const fetchLandlord = async () => {
       try {

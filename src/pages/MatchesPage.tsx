@@ -8,15 +8,22 @@ import { Badge } from '../components/atoms/Badge';
 import { ViewingsList } from '../components/organisms/ViewingsList';
 import { RatingModal } from '../components/organisms/RatingModal';
 import { ConversationSelector } from '../components/molecules/ConversationSelector';
+import { TenancyOfferModal } from '../components/organisms/TenancyOfferModal';
+import { ActivateTenancyModal } from '../components/organisms/ActivateTenancyModal';
+import { AcceptOfferModal } from '../components/organisms/AcceptOfferModal';
+import { UploadAgreementModal } from '../components/organisms/UploadAgreementModal';
+import { SignAgreementModal } from '../components/organisms/SignAgreementModal';
+import { AgreementsList } from '../components/organisms/AgreementsList';
+import { AgreementCreatorWizard } from '../components/organisms/agreement-creator';
 import { getConversations, sendMessageToConversation, getUnreadCounts } from '../lib/storage';
-import type { Match, Conversation, ConversationType, UserType } from '../types';
+import type { Match, Conversation, ConversationType, UserType, TenancyAgreement } from '../types';
 
 type TabType = 'matches' | 'viewings';
 
 
 export const MatchesPage: React.FC = () => {
   const navigate = useNavigate();
-  const { matches: storeMatches, submitRating, getPendingInterestsCount } = useAppStore();
+  const { submitRating, getPendingInterestsCount, setViewingPreference } = useAppStore();
   const { userType, currentUser } = useAuthStore();
   const { addToast } = useToastStore();
   const [selectedMatch, setSelectedMatch] = useState<string | null>(null);
@@ -24,6 +31,25 @@ export const MatchesPage: React.FC = () => {
   const [ratingModalMatch, setRatingModalMatch] = useState<Match | null>(null);
   const [ratingType, setRatingType] = useState<'landlord' | 'renter'>('landlord');
   const [loadedMatches, setLoadedMatches] = useState<Match[]>([]);
+  const [showViewingModal, setShowViewingModal] = useState(false);
+  const [showConfirmViewingModal, setShowConfirmViewingModal] = useState(false);
+  const [confirmViewingMatchId, setConfirmViewingMatchId] = useState<string | null>(null);
+  const [viewingDate, setViewingDate] = useState('');
+  const [viewingTime, setViewingTime] = useState('14:00');
+
+  // Tenancy modals
+  const [showOfferModal, setShowOfferModal] = useState(false);
+  const [showActivateModal, setShowActivateModal] = useState(false);
+  const [showAcceptOfferModal, setShowAcceptOfferModal] = useState(false);
+  const [tenancyModalMatch, setTenancyModalMatch] = useState<Match | null>(null);
+
+  // Agreement modals
+  const [showUploadAgreementModal, setShowUploadAgreementModal] = useState(false);
+  const [showSignAgreementModal, setShowSignAgreementModal] = useState(false);
+  const [showAgreementCreatorWizard, setShowAgreementCreatorWizard] = useState(false);
+  const [agreementModalMatch, setAgreementModalMatch] = useState<Match | null>(null);
+  const [agreementToSign, setAgreementToSign] = useState<TenancyAgreement | null>(null);
+  const [agreementsRefreshKey, setAgreementsRefreshKey] = useState(0);
 
   // Dual-conversation state
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -32,6 +58,14 @@ export const MatchesPage: React.FC = () => {
   const [isLoadingConversations, setIsLoadingConversations] = useState(false);
   const messageInputRef = useRef<HTMLInputElement>(null); // Moved to top level to follow Rules of Hooks
 
+
+  // State to trigger refetch
+  const [refetchTrigger, setRefetchTrigger] = useState(0);
+
+  // Function to refetch matches
+  const refetchMatches = useCallback(() => {
+    setRefetchTrigger(prev => prev + 1);
+  }, []);
 
   // Load matches for current user
   useEffect(() => {
@@ -48,121 +82,141 @@ export const MatchesPage: React.FC = () => {
       }
 
       try {
-        // For renters, query Supabase directly with JOIN to avoid N+1 query
+        const { supabase } = await import('../lib/supabase');
+
+        // Build query based on user type
+        let query = supabase
+          .from('matches')
+          .select(`
+            *,
+            property:properties(*)
+          `);
+
         if (userType === 'renter') {
-          const { supabase } = await import('../lib/supabase');
+          console.log('[MatchesPage] Querying matches for renter:', currentUser.id);
+          query = query.eq('renter_id', currentUser.id);
+        } else if (userType === 'landlord') {
+          console.log('[MatchesPage] Querying matches for landlord:', currentUser.id);
+          query = query.eq('landlord_id', currentUser.id);
+        } else if (userType === 'agency') {
+          // For agencies, get matches for properties they manage
+          console.log('[MatchesPage] Querying matches for agency:', currentUser.id);
+          // First get properties managed by this agency
+          const { data: managedProperties } = await supabase
+            .from('properties')
+            .select('id')
+            .eq('managing_agency_id', currentUser.id);
 
-          console.log('[MatchesPage] Querying matches with property JOIN for renter:', currentUser.id);
-
-          // Single query with JOIN - fetches matches AND their properties in one round trip
-          const { data: matchData, error } = await supabase
-            .from('matches')
-            .select(`
-              *,
-              property:properties(*)
-            `)
-            .eq('renter_id', currentUser.id);
-
-          console.log('[MatchesPage] Query result:', { matchData, error, count: matchData?.length });
-
-          if (error) {
-            console.error('[MatchesPage] Error fetching matches:', error);
+          if (managedProperties && managedProperties.length > 0) {
+            const propertyIds = managedProperties.map(p => p.id);
+            query = query.in('property_id', propertyIds);
+          } else {
             setLoadedMatches([]);
             return;
           }
+        }
 
-          if (matchData && matchData.length > 0) {
-            // Transform joined data - property is already embedded in each match
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const matches: Match[] = matchData
-              .filter((m: any) => m.property) // Only include matches where property exists
-              .map((m: any) => {
-                const p = m.property;
-                return {
-                  id: m.id,
-                  renterId: m.renter_id,
-                  landlordId: m.landlord_id,
-                  landlordName: 'Landlord', // TODO: Add landlord JOIN if needed
-                  propertyId: m.property_id,
-                  renterName: m.renter_name,
-                  timestamp: m.created_at,
-                  messages: m.messages || [],
-                  unreadCount: m.unread_count || 0,
-                  hasViewingScheduled: m.has_viewing_scheduled || false,
-                  applicationStatus: m.application_status || 'pending',
-                  applicationSubmittedAt: m.application_submitted_at ? new Date(m.application_submitted_at) : undefined,
-                  tenancyStatus: (m.tenancy_status || 'prospective') as Match['tenancyStatus'],
-                  canRate: m.can_rate || false,
-                  hasRenterRated: m.has_renter_rated || false,
-                  hasLandlordRated: m.has_landlord_rated || false,
-                  isUnderEvictionProceedings: m.is_under_eviction_proceedings || false,
-                  rentArrears: {
-                    totalOwed: m.rent_arrears_total_owed || 0,
-                    monthsMissed: m.rent_arrears_months_missed || 0,
-                    consecutiveMonthsMissed: m.rent_arrears_consecutive_months || 0,
-                    lastPaymentDate: m.rent_arrears_last_payment ? new Date(m.rent_arrears_last_payment) : undefined,
-                  },
-                  activeIssueIds: m.active_issue_ids || [],
-                  totalIssuesRaised: m.total_issues_raised || 0,
-                  totalIssuesResolved: m.total_issues_resolved || 0,
-                  // Transform property from snake_case to camelCase
-                  property: {
-                    id: p.id,
-                    landlordId: p.landlord_id,
-                    managingAgencyId: p.managing_agency_id,
-                    marketingAgentId: p.marketing_agent_id,
-                    address: {
-                      street: p.street || '',
-                      city: p.city || '',
-                      postcode: p.postcode || '',
-                      council: p.council || '',
-                    },
-                    rentPcm: p.rent_pcm || 0,
-                    deposit: p.deposit || 0,
-                    maxRentInAdvance: 1 as const, // RRA 2025: Max 1 month
-                    bedrooms: p.bedrooms || 1,
-                    bathrooms: p.bathrooms || 1,
-                    propertyType: p.property_type || 'house',
-                    availableFrom: p.available_from || new Date().toISOString(),
-                    images: p.images || [],
-                    features: p.features || [],
-                    description: p.description || '',
-                    epcRating: p.epc_rating || 'C',
-                    yearBuilt: p.year_built || 2000,
-                    furnishing: p.furnishing || 'unfurnished',
-                    tenancyType: p.tenancy_type || 'Periodic',
-                    maxOccupants: p.max_occupants || 4,
-                    petsPolicy: {
-                      willConsiderPets: true,
-                      preferredPetTypes: p.preferred_pet_types || [],
-                      requiresPetInsurance: p.requires_pet_insurance || false,
-                      maxPetsAllowed: p.max_pets_allowed || 2,
-                    },
-                    bills: {
-                      councilTaxBand: p.council_tax_band || 'C',
-                      gasElectricIncluded: p.gas_electric_included || false,
-                      waterIncluded: p.water_included || false,
-                      internetIncluded: p.internet_included || false,
-                    },
-                    meetsDecentHomesStandard: p.meets_decent_homes_standard || false,
-                    awaabsLawCompliant: p.awaabs_law_compliant || false,
-                    prsPropertyRegistrationStatus: p.prs_property_registration_status || 'not_registered',
-                    isAvailable: p.is_available ?? true,
-                    canBeMarketed: p.can_be_marketed || false,
-                    listingDate: p.listing_date || new Date().toISOString(),
-                  },
-                } as Match;
-              });
+        const { data: matchData, error } = await query;
 
-            console.log('[MatchesPage] Mapped matches with joined properties:', matches.length);
-            setLoadedMatches(matches);
-          } else {
-            console.log('[MatchesPage] No match data returned from query');
-            setLoadedMatches([]);
-          }
+        console.log('[MatchesPage] Query result:', { matchData, error, count: matchData?.length });
+
+        if (error) {
+          console.error('[MatchesPage] Error fetching matches:', error);
+          setLoadedMatches([]);
+          return;
+        }
+
+        if (matchData && matchData.length > 0) {
+          // Transform joined data - property is already embedded in each match
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const matches: Match[] = matchData
+            .filter((m: any) => m.property) // Only include matches where property exists
+            .map((m: any) => {
+              const p = m.property;
+              return {
+                id: m.id,
+                renterId: m.renter_id,
+                landlordId: m.landlord_id,
+                landlordName: 'Landlord', // TODO: Add landlord JOIN if needed
+                propertyId: m.property_id,
+                renterName: m.renter_name,
+                timestamp: m.created_at,
+                messages: m.messages || [],
+                unreadCount: m.unread_count || 0,
+                hasViewingScheduled: m.has_viewing_scheduled || false,
+                confirmedViewingDate: m.confirmed_viewing_date ? new Date(m.confirmed_viewing_date) : undefined,
+                viewingPreference: m.viewing_preference || undefined,
+                applicationStatus: m.application_status || 'pending',
+                applicationSubmittedAt: m.application_submitted_at ? new Date(m.application_submitted_at) : undefined,
+                tenancyStatus: (m.tenancy_status || 'prospective') as Match['tenancyStatus'],
+                canRate: m.can_rate || false,
+                hasRenterRated: m.has_renter_rated || false,
+                hasLandlordRated: m.has_landlord_rated || false,
+                isUnderEvictionProceedings: m.is_under_eviction_proceedings || false,
+                petRequestStatus: m.pet_request_status || 'none',
+                rentArrears: {
+                  totalOwed: m.rent_arrears_total_owed || 0,
+                  monthsMissed: m.rent_arrears_months_missed || 0,
+                  consecutiveMonthsMissed: m.rent_arrears_consecutive_months || 0,
+                  lastPaymentDate: m.rent_arrears_last_payment ? new Date(m.rent_arrears_last_payment) : undefined,
+                },
+                activeIssueIds: m.active_issue_ids || [],
+                totalIssuesRaised: m.total_issues_raised || 0,
+                totalIssuesResolved: m.total_issues_resolved || 0,
+                // Transform property from snake_case to camelCase
+                property: {
+                  id: p.id,
+                  landlordId: p.landlord_id,
+                  managingAgencyId: p.managing_agency_id,
+                  marketingAgentId: p.marketing_agent_id,
+                  address: {
+                    street: p.street || '',
+                    city: p.city || '',
+                    postcode: p.postcode || '',
+                    council: p.council || '',
+                  },
+                  rentPcm: p.rent_pcm || 0,
+                  deposit: p.deposit || 0,
+                  maxRentInAdvance: 1 as const, // RRA 2025: Max 1 month
+                  bedrooms: p.bedrooms || 1,
+                  bathrooms: p.bathrooms || 1,
+                  propertyType: p.property_type || 'house',
+                  availableFrom: p.available_from || new Date().toISOString(),
+                  images: p.images || [],
+                  features: p.features || [],
+                  description: p.description || '',
+                  epcRating: p.epc_rating || 'C',
+                  yearBuilt: p.year_built || 2000,
+                  furnishing: p.furnishing || 'unfurnished',
+                  tenancyType: p.tenancy_type || 'Periodic',
+                  maxOccupants: p.max_occupants || 4,
+                  petsPolicy: {
+                    willConsiderPets: true,
+                    preferredPetTypes: p.preferred_pet_types || [],
+                    requiresPetInsurance: p.requires_pet_insurance || false,
+                    maxPetsAllowed: p.max_pets_allowed || 2,
+                  },
+                  bills: {
+                    councilTaxBand: p.council_tax_band || 'C',
+                    gasElectricIncluded: p.gas_electric_included || false,
+                    waterIncluded: p.water_included || false,
+                    internetIncluded: p.internet_included || false,
+                  },
+                  meetsDecentHomesStandard: p.meets_decent_homes_standard || false,
+                  awaabsLawCompliant: p.awaabs_law_compliant || false,
+                  prsPropertyRegistrationStatus: p.prs_property_registration_status || 'not_registered',
+                  isAvailable: p.is_available ?? true,
+                  canBeMarketed: p.can_be_marketed || false,
+                  listingDate: p.listing_date || new Date().toISOString(),
+                },
+              } as Match;
+            });
+
+          console.log('[MatchesPage] Mapped matches with joined properties:', matches.length);
+          setLoadedMatches(matches);
         } else {
-          // For landlords/agencies, use store matches
-          setLoadedMatches(storeMatches);
+          console.log('[MatchesPage] No match data returned from query');
+          setLoadedMatches([]);
         }
       } catch (error) {
         console.error('[MatchesPage] Failed to fetch matches:', error);
@@ -176,7 +230,148 @@ export const MatchesPage: React.FC = () => {
     };
 
     fetchMatches();
-  }, [currentUser, userType, storeMatches, addToast]);
+  }, [currentUser, userType, addToast, refetchTrigger]);
+
+  // Subscribe to realtime match updates (for offer notifications, etc.)
+  useEffect(() => {
+    if (!currentUser) return;
+
+    let channel: ReturnType<typeof import('../lib/supabase').supabase.channel> | null = null;
+
+    const setupRealtimeSubscription = async () => {
+      const { supabase } = await import('../lib/supabase');
+
+      // Determine filter based on user type
+      const filterColumn = userType === 'renter' ? 'renter_id' : 'landlord_id';
+
+      channel = supabase
+        .channel(`matches-${currentUser.id}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'matches',
+            filter: `${filterColumn}=eq.${currentUser.id}`,
+          },
+          (payload) => {
+            console.log('[MatchesPage] Realtime update received:', payload);
+            const newStatus = payload.new.application_status;
+            const oldStatus = payload.old?.application_status;
+
+            // Show notification for important status changes
+            if (newStatus !== oldStatus) {
+              if (userType === 'renter' && newStatus === 'offer_made') {
+                addToast({
+                  type: 'success',
+                  title: '🎉 You have a new offer!',
+                  message: 'A landlord has offered you a tenancy. Check your matches!',
+                });
+              } else if (userType === 'landlord' && newStatus === 'offer_accepted') {
+                addToast({
+                  type: 'success',
+                  title: '✅ Offer Accepted!',
+                  message: 'The tenant has accepted your offer. You can now activate the tenancy.',
+                });
+              }
+            }
+
+            // Refetch to get updated data
+            refetchMatches();
+          }
+        )
+        .subscribe((status) => {
+          console.log('[MatchesPage] Realtime subscription status:', status);
+        });
+    };
+
+    setupRealtimeSubscription();
+
+    return () => {
+      if (channel) {
+        channel.unsubscribe();
+      }
+    };
+  }, [currentUser, userType, addToast, refetchMatches]);
+
+  // Subscribe to realtime agreement updates (for signing notifications)
+  useEffect(() => {
+    if (!currentUser) return;
+
+    let channel: ReturnType<typeof import('../lib/supabase').supabase.channel> | null = null;
+
+    const setupAgreementSubscription = async () => {
+      const { supabase } = await import('../lib/supabase');
+
+      // Determine filter based on user type
+      const filterColumn = userType === 'renter' ? 'renter_id' : 'landlord_id';
+
+      channel = supabase
+        .channel(`agreements-${currentUser.id}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'tenancy_agreements',
+            filter: `${filterColumn}=eq.${currentUser.id}`,
+          },
+          (payload) => {
+            console.log('[MatchesPage] New agreement received:', payload);
+            if (userType === 'renter') {
+              addToast({
+                type: 'info',
+                title: '📄 New Agreement',
+                message: 'You have a new tenancy agreement to review and sign.',
+              });
+            }
+            setAgreementsRefreshKey((k) => k + 1);
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'tenancy_agreements',
+            filter: `${filterColumn}=eq.${currentUser.id}`,
+          },
+          (payload) => {
+            console.log('[MatchesPage] Agreement updated:', payload);
+            const newStatus = payload.new.status;
+            const oldStatus = payload.old?.status;
+
+            if (newStatus !== oldStatus) {
+              if (newStatus === 'fully_signed') {
+                addToast({
+                  type: 'success',
+                  title: '✅ Agreement Fully Signed!',
+                  message: 'All parties have signed. You can now download the agreement.',
+                });
+              } else if (newStatus === 'partially_signed' && userType === 'landlord') {
+                addToast({
+                  type: 'info',
+                  title: '✍️ Agreement Signed',
+                  message: 'The tenant has signed the agreement.',
+                });
+              }
+            }
+            setAgreementsRefreshKey((k) => k + 1);
+          }
+        )
+        .subscribe((status) => {
+          console.log('[MatchesPage] Agreement subscription status:', status);
+        });
+    };
+
+    setupAgreementSubscription();
+
+    return () => {
+      if (channel) {
+        channel.unsubscribe();
+      }
+    };
+  }, [currentUser, userType, addToast]);
 
   // Use loaded matches instead of store matches
   const matches = loadedMatches;
@@ -552,7 +747,7 @@ export const MatchesPage: React.FC = () => {
         )}
 
         {/* Viewings Tab */}
-        {activeTab === 'viewings' && <ViewingsList />}
+        {activeTab === 'viewings' && <ViewingsList refetchTrigger={refetchTrigger} onViewingConfirmed={refetchMatches} />}
 
         {/* Info Box - only show on matches tab */}
         {activeTab === 'matches' && (
@@ -699,6 +894,41 @@ export const MatchesPage: React.FC = () => {
                 return null;
               })()}
 
+              {/* Agreements Section - Compact view in conversation */}
+              {(match.applicationStatus === 'offer_made' ||
+                match.applicationStatus === 'offer_accepted' ||
+                match.applicationStatus === 'tenancy_signed' ||
+                match.tenancyStatus === 'active') && currentUser && (
+                <div className="border-t border-neutral-200 p-4 bg-neutral-50">
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="text-sm font-medium text-neutral-700">Agreements</h4>
+                    {(userType === 'landlord' || userType === 'agency') && (
+                      <button
+                        onClick={() => {
+                          setAgreementModalMatch(match);
+                          setShowUploadAgreementModal(true);
+                        }}
+                        className="text-xs text-primary-600 hover:text-primary-700 font-medium"
+                      >
+                        + Upload New
+                      </button>
+                    )}
+                  </div>
+                  <AgreementsList
+                    key={agreementsRefreshKey}
+                    matchId={match.id}
+                    userId={currentUser.id}
+                    userType={userType as 'landlord' | 'agency' | 'renter'}
+                    showUploadButton={false}
+                    compact={true}
+                    onSignAgreement={(agreement) => {
+                      setAgreementToSign(agreement);
+                      setShowSignAgreementModal(true);
+                    }}
+                  />
+                </div>
+              )}
+
               {/* Action Bar */}
               <div className="p-4 bg-white border-t border-neutral-200">
                 <div className="flex gap-2 mb-3 overflow-x-auto pb-2">
@@ -717,9 +947,122 @@ export const MatchesPage: React.FC = () => {
                     </button>
                   )}
 
-                  <button className="flex items-center gap-1 px-3 py-1.5 bg-neutral-100 text-neutral-700 rounded-full text-xs font-medium hover:bg-neutral-200 transition-colors whitespace-nowrap">
-                    📅 Request Viewing
-                  </button>
+                  {userType === 'renter' && !match.viewingPreference && !match.hasViewingScheduled && (
+                    <button
+                      onClick={() => setShowViewingModal(true)}
+                      className="flex items-center gap-1 px-3 py-1.5 bg-primary-100 text-primary-700 rounded-full text-xs font-medium hover:bg-primary-200 transition-colors whitespace-nowrap"
+                    >
+                      📅 Request Viewing
+                    </button>
+                  )}
+                  {match.viewingPreference && !match.hasViewingScheduled && (
+                    <span className="flex items-center gap-1 px-3 py-1.5 bg-secondary-100 text-secondary-700 rounded-full text-xs font-medium whitespace-nowrap">
+                      ⏳ Viewing Requested
+                    </span>
+                  )}
+                  {match.hasViewingScheduled && match.applicationStatus !== 'offer_made' && match.applicationStatus !== 'tenancy_signed' && (
+                    <span className="flex items-center gap-1 px-3 py-1.5 bg-success-100 text-success-700 rounded-full text-xs font-medium whitespace-nowrap">
+                      ✅ Viewing Confirmed
+                    </span>
+                  )}
+
+                  {/* Renter: Offer received - Accept button */}
+                  {userType === 'renter' && match.applicationStatus === 'offer_made' && (
+                    <button
+                      onClick={async () => {
+                        setTenancyModalMatch(match);
+                        setShowAcceptOfferModal(true);
+                      }}
+                      className="flex items-center gap-1 px-3 py-1.5 bg-success-500 text-white rounded-full text-xs font-medium hover:bg-success-600 transition-colors whitespace-nowrap animate-pulse"
+                    >
+                      🎉 Accept Offer
+                    </button>
+                  )}
+
+                  {/* Landlord Actions - Application Progress */}
+                  {userType === 'landlord' && match.tenancyStatus === 'prospective' && (
+                    <>
+                      {/* Confirm Viewing if requested */}
+                      {match.viewingPreference && !match.hasViewingScheduled && (
+                        <button
+                          onClick={() => {
+                            setConfirmViewingMatchId(match.id);
+                            // Set default date to tomorrow
+                            const tomorrow = new Date();
+                            tomorrow.setDate(tomorrow.getDate() + 1);
+                            setViewingDate(tomorrow.toISOString().split('T')[0]);
+                            setViewingTime('14:00');
+                            setShowConfirmViewingModal(true);
+                          }}
+                          className="flex items-center gap-1 px-3 py-1.5 bg-success-100 text-success-700 rounded-full text-xs font-medium hover:bg-success-200 transition-colors whitespace-nowrap"
+                        >
+                          ✓ Confirm Viewing
+                        </button>
+                      )}
+
+                      {/* Offer Tenancy button */}
+                      {match.hasViewingScheduled && match.applicationStatus !== 'tenancy_signed' && match.applicationStatus !== 'offer_made' && (
+                        <button
+                          onClick={() => {
+                            setTenancyModalMatch(match);
+                            setShowOfferModal(true);
+                          }}
+                          className="flex items-center gap-1 px-3 py-1.5 bg-primary-100 text-primary-700 rounded-full text-xs font-medium hover:bg-primary-200 transition-colors whitespace-nowrap"
+                        >
+                          📝 Offer Tenancy
+                        </button>
+                      )}
+
+                      {/* Activate Tenancy button */}
+                      {match.applicationStatus === 'offer_made' && (
+                        <button
+                          onClick={() => {
+                            setTenancyModalMatch(match);
+                            setShowActivateModal(true);
+                          }}
+                          className="flex items-center gap-1 px-3 py-1.5 bg-success-500 text-white rounded-full text-xs font-medium hover:bg-success-600 transition-colors whitespace-nowrap"
+                        >
+                          🏠 Activate Tenancy
+                        </button>
+                      )}
+
+                      {/* Create/Upload Agreement buttons - available after offer accepted */}
+                      {(match.applicationStatus === 'offer_accepted' || match.applicationStatus === 'offer_made' || match.tenancyStatus === 'active') && (
+                        <>
+                          <button
+                            onClick={() => {
+                              setAgreementModalMatch(match);
+                              setShowAgreementCreatorWizard(true);
+                            }}
+                            className="flex items-center gap-1 px-3 py-1.5 bg-primary-100 text-primary-700 rounded-full text-xs font-medium hover:bg-primary-200 transition-colors whitespace-nowrap"
+                          >
+                            ✨ Create Agreement
+                          </button>
+                          <button
+                            onClick={() => {
+                              setAgreementModalMatch(match);
+                              setShowUploadAgreementModal(true);
+                            }}
+                            className="flex items-center gap-1 px-3 py-1.5 bg-secondary-100 text-secondary-700 rounded-full text-xs font-medium hover:bg-secondary-200 transition-colors whitespace-nowrap"
+                          >
+                            📄 Upload Agreement
+                          </button>
+                        </>
+                      )}
+                    </>
+                  )}
+
+                  {/* Show tenancy status badge */}
+                  {match.tenancyStatus === 'active' && (
+                    <span className="flex items-center gap-1 px-3 py-1.5 bg-success-500 text-white rounded-full text-xs font-medium whitespace-nowrap">
+                      🏠 Active Tenant
+                    </span>
+                  )}
+                  {match.tenancyStatus === 'notice_given' && (
+                    <span className="flex items-center gap-1 px-3 py-1.5 bg-warning-100 text-warning-700 rounded-full text-xs font-medium whitespace-nowrap">
+                      ⚠️ Notice Given
+                    </span>
+                  )}
                 </div>
 
                 {/* Message Input */}
@@ -752,6 +1095,370 @@ export const MatchesPage: React.FC = () => {
           match={ratingModalMatch}
           ratingType={ratingType}
           onSubmit={submitRating}
+        />
+      )}
+
+      {/* Viewing Request Modal */}
+      {showViewingModal && selectedMatch && (() => {
+        const match = matches.find(m => m.id === selectedMatch);
+        if (!match) return null;
+
+        return (
+          <div
+            className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4"
+            onClick={() => setShowViewingModal(false)}
+          >
+            <div
+              className="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3 className="text-xl font-bold text-neutral-900 mb-4">Request a Viewing</h3>
+              <p className="text-sm text-neutral-600 mb-4">
+                {match.property.address.street}
+              </p>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-2">
+                    When are you available?
+                  </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    <button
+                      onClick={() => {
+                        setViewingPreference(match.id, {
+                          flexibility: 'ASAP',
+                          preferredTimes: [{ dayType: 'Any Day', timeOfDay: 'Flexible' }],
+                        });
+                        setShowViewingModal(false);
+                        addToast({
+                          type: 'success',
+                          title: 'Viewing Requested',
+                          message: 'The landlord will be notified of your request.',
+                        });
+                      }}
+                      className="py-3 px-4 bg-primary-100 text-primary-700 rounded-lg text-sm font-medium hover:bg-primary-200 transition-colors"
+                    >
+                      ASAP
+                    </button>
+                    <button
+                      onClick={() => {
+                        setViewingPreference(match.id, {
+                          flexibility: 'Flexible',
+                          preferredTimes: [
+                            { dayType: 'Weekday', timeOfDay: 'Evening' },
+                            { dayType: 'Weekend', timeOfDay: 'Flexible' },
+                          ],
+                        });
+                        setShowViewingModal(false);
+                        addToast({
+                          type: 'success',
+                          title: 'Viewing Requested',
+                          message: 'The landlord will be notified of your request.',
+                        });
+                      }}
+                      className="py-3 px-4 bg-neutral-100 text-neutral-700 rounded-lg text-sm font-medium hover:bg-neutral-200 transition-colors"
+                    >
+                      Flexible
+                    </button>
+                    <button
+                      onClick={() => {
+                        setViewingPreference(match.id, {
+                          flexibility: 'Flexible',
+                          preferredTimes: [{ dayType: 'Weekend', timeOfDay: 'Flexible' }],
+                        });
+                        setShowViewingModal(false);
+                        addToast({
+                          type: 'success',
+                          title: 'Viewing Requested',
+                          message: 'The landlord will be notified of your request.',
+                        });
+                      }}
+                      className="py-3 px-4 bg-neutral-100 text-neutral-700 rounded-lg text-sm font-medium hover:bg-neutral-200 transition-colors"
+                    >
+                      Weekends
+                    </button>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setShowViewingModal(false)}
+                  className="w-full py-2 text-neutral-600 hover:text-neutral-800 transition-colors text-sm"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Confirm Viewing Modal (Landlord) */}
+      {showConfirmViewingModal && confirmViewingMatchId && (() => {
+        const match = matches.find(m => m.id === confirmViewingMatchId);
+        if (!match) return null;
+
+        const handleConfirmViewing = async () => {
+          if (!viewingDate || !viewingTime) {
+            addToast({
+              type: 'warning',
+              title: 'Missing Information',
+              message: 'Please select both a date and time for the viewing.',
+            });
+            return;
+          }
+
+          const dateTime = new Date(`${viewingDate}T${viewingTime}`);
+          if (isNaN(dateTime.getTime())) {
+            addToast({
+              type: 'danger',
+              title: 'Invalid Date',
+              message: 'Please enter a valid date and time.',
+            });
+            return;
+          }
+
+          await useAppStore.getState().confirmViewing(confirmViewingMatchId, dateTime);
+          addToast({
+            type: 'success',
+            title: 'Viewing Confirmed',
+            message: `Viewing scheduled for ${dateTime.toLocaleDateString('en-GB')} at ${dateTime.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`,
+          });
+          setShowConfirmViewingModal(false);
+          setConfirmViewingMatchId(null);
+          // Refetch matches to update the UI with the confirmed viewing
+          refetchMatches();
+        };
+
+        return (
+          <div
+            className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4"
+            onClick={() => setShowConfirmViewingModal(false)}
+          >
+            <div
+              className="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3 className="text-xl font-bold text-neutral-900 mb-2">Confirm Viewing</h3>
+              <p className="text-sm text-neutral-600 mb-6">
+                {match.property.address.street}
+              </p>
+
+              <div className="space-y-4">
+                {/* Date Picker */}
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-2">
+                    Date
+                  </label>
+                  <input
+                    type="date"
+                    value={viewingDate}
+                    onChange={(e) => setViewingDate(e.target.value)}
+                    min={new Date().toISOString().split('T')[0]}
+                    className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent text-neutral-900"
+                  />
+                </div>
+
+                {/* Time Picker */}
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-2">
+                    Time
+                  </label>
+                  <input
+                    type="time"
+                    value={viewingTime}
+                    onChange={(e) => setViewingTime(e.target.value)}
+                    className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent text-neutral-900"
+                  />
+                </div>
+
+                {/* Quick Time Buttons */}
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-2">
+                    Quick Select
+                  </label>
+                  <div className="grid grid-cols-4 gap-2">
+                    {['10:00', '12:00', '14:00', '16:00', '17:00', '18:00', '19:00', '20:00'].map((time) => (
+                      <button
+                        key={time}
+                        type="button"
+                        onClick={() => setViewingTime(time)}
+                        className={`py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
+                          viewingTime === time
+                            ? 'bg-primary-500 text-white'
+                            : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
+                        }`}
+                      >
+                        {time}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Renter's Preference Info */}
+                {match.viewingPreference && (
+                  <div className="bg-secondary-50 border border-secondary-200 rounded-lg p-3">
+                    <p className="text-xs font-medium text-secondary-700 mb-1">Renter's preference:</p>
+                    <p className="text-sm text-secondary-900">
+                      {match.viewingPreference.flexibility === 'ASAP' && 'Available as soon as possible'}
+                      {match.viewingPreference.flexibility === 'Flexible' && 'Flexible timing'}
+                      {match.viewingPreference.flexibility === 'Specific' && 'Specific time requested'}
+                      {match.viewingPreference.preferredTimes && match.viewingPreference.preferredTimes.length > 0 && (
+                        <span className="block text-xs text-secondary-600 mt-1">
+                          Prefers: {match.viewingPreference.preferredTimes.map(t => `${t.dayType} ${t.timeOfDay}`).join(', ')}
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                )}
+
+                {/* Action Buttons */}
+                <div className="flex gap-3 pt-2">
+                  <button
+                    onClick={() => {
+                      setShowConfirmViewingModal(false);
+                      setConfirmViewingMatchId(null);
+                    }}
+                    className="flex-1 py-3 text-neutral-600 hover:text-neutral-800 hover:bg-neutral-100 rounded-lg transition-colors text-sm font-medium"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleConfirmViewing}
+                    className="flex-1 py-3 bg-success-500 text-white rounded-lg hover:bg-success-600 transition-colors text-sm font-medium"
+                  >
+                    Confirm Viewing
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Tenancy Offer Modal */}
+      <TenancyOfferModal
+        isOpen={showOfferModal}
+        onClose={() => {
+          setShowOfferModal(false);
+          setTenancyModalMatch(null);
+        }}
+        onConfirm={async () => {
+          if (tenancyModalMatch) {
+            await useAppStore.getState().updateApplicationStatus(tenancyModalMatch.id, 'offer_made');
+            addToast({
+              type: 'success',
+              title: 'Offer Sent',
+              message: 'The tenant has been notified of your offer.',
+            });
+            refetchMatches();
+          }
+        }}
+        match={tenancyModalMatch}
+      />
+
+      {/* Activate Tenancy Modal */}
+      <ActivateTenancyModal
+        isOpen={showActivateModal}
+        onClose={() => {
+          setShowActivateModal(false);
+          setTenancyModalMatch(null);
+        }}
+        onConfirm={async (startDate) => {
+          if (tenancyModalMatch) {
+            await useAppStore.getState().activateTenancy(tenancyModalMatch.id, startDate);
+            addToast({
+              type: 'success',
+              title: 'Tenancy Activated',
+              message: 'The tenant is now an active tenant!',
+            });
+            refetchMatches();
+          }
+        }}
+        match={tenancyModalMatch}
+      />
+
+      {/* Accept Offer Modal (Renter) */}
+      <AcceptOfferModal
+        isOpen={showAcceptOfferModal}
+        onClose={() => {
+          setShowAcceptOfferModal(false);
+          setTenancyModalMatch(null);
+        }}
+        onAccept={async () => {
+          if (tenancyModalMatch) {
+            await useAppStore.getState().updateApplicationStatus(tenancyModalMatch.id, 'offer_accepted');
+            addToast({
+              type: 'success',
+              title: 'Offer Accepted!',
+              message: 'Congratulations! The landlord will be in touch shortly.',
+            });
+            refetchMatches();
+          }
+        }}
+        match={tenancyModalMatch}
+      />
+
+      {/* Upload Agreement Modal (Landlord/Agency) */}
+      {agreementModalMatch && currentUser && (
+        <UploadAgreementModal
+          isOpen={showUploadAgreementModal}
+          onClose={() => {
+            setShowUploadAgreementModal(false);
+            setAgreementModalMatch(null);
+          }}
+          match={agreementModalMatch}
+          currentUserId={currentUser.id}
+          currentUserType={userType as 'landlord' | 'agency'}
+          currentUserName={currentUser.names || currentUser.email || 'User'}
+          currentUserEmail={currentUser.email || ''}
+          onSuccess={() => {
+            setAgreementsRefreshKey((k) => k + 1);
+            addToast({
+              type: 'success',
+              title: 'Agreement Uploaded',
+              message: 'The tenant has been notified to sign.',
+            });
+          }}
+        />
+      )}
+
+      {/* Sign Agreement Modal (Renter) */}
+      {currentUser && (
+        <SignAgreementModal
+          isOpen={showSignAgreementModal}
+          onClose={() => {
+            setShowSignAgreementModal(false);
+            setAgreementToSign(null);
+          }}
+          agreement={agreementToSign}
+          currentUserId={currentUser.id}
+          currentUserName={currentUser.names || currentUser.email || 'User'}
+          onSuccess={() => {
+            setAgreementsRefreshKey((k) => k + 1);
+            refetchMatches();
+          }}
+        />
+      )}
+
+      {/* Agreement Creator Wizard (Landlord/Agency) */}
+      {agreementModalMatch && currentUser && (
+        <AgreementCreatorWizard
+          isOpen={showAgreementCreatorWizard}
+          onClose={() => {
+            setShowAgreementCreatorWizard(false);
+            setAgreementModalMatch(null);
+          }}
+          match={agreementModalMatch}
+          currentUserId={currentUser.id}
+          currentUserType={userType as 'landlord' | 'agency'}
+          onComplete={() => {
+            setAgreementsRefreshKey((k) => k + 1);
+            addToast({
+              type: 'success',
+              title: 'Agreement Created',
+              message: 'Your RRA 2025 compliant agreement has been created and sent for signing.',
+            });
+          }}
         />
       )}
     </div>

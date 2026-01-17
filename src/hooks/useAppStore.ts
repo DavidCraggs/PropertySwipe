@@ -99,9 +99,9 @@ interface AppState {
   setViewingPreference: (matchId: string, preference: {
     flexibility: 'Flexible' | 'Specific' | 'ASAP';
     preferredTimes: ViewingTimeSlot[];
-    additionalNotes: string;
-  }) => void;
-  confirmViewing: (matchId: string, dateTime: Date) => void;
+    additionalNotes?: string;
+  }) => Promise<void>;
+  confirmViewing: (matchId: string, dateTime: Date) => Promise<void>;
   getUpcomingViewings: () => Match[];
 
   // Property deck management
@@ -162,6 +162,12 @@ interface AppState {
   confirmMatch: (interestId: string) => Promise<Match | null>;
   declineInterest: (interestId: string) => Promise<void>;
   getPendingInterestsCount: (landlordId: string) => number;
+
+  // Tenancy Lifecycle Management
+  updateApplicationStatus: (matchId: string, status: Match['applicationStatus']) => Promise<void>;
+  activateTenancy: (matchId: string, startDate?: Date) => Promise<void>;
+  giveNotice: (matchId: string, givenBy: 'tenant' | 'landlord') => Promise<void>;
+  endTenancy: (matchId: string) => Promise<void>;
 
   // Reset
   resetApp: () => void;
@@ -532,7 +538,7 @@ export const useAppStore = create<AppState>()(
       },
 
       // Set viewing preference for a match
-      setViewingPreference: (matchId, preference) => {
+      setViewingPreference: async (matchId, preference) => {
         const { matches, viewingPreferences } = get();
         const matchIndex = matches.findIndex((m) => m.id === matchId);
         if (matchIndex === -1) return;
@@ -565,6 +571,23 @@ export const useAppStore = create<AppState>()(
           viewingPreferences: [...viewingPreferences, newPreference],
         });
 
+        // Persist to Supabase
+        try {
+          const { supabase } = await import('../lib/supabase');
+          if (supabase) {
+            await supabase
+              .from('matches')
+              .update({
+                viewing_preference: newPreference,
+                application_status: 'viewing_requested',
+              })
+              .eq('id', matchId);
+            console.log('[ViewingPreference] Persisted to Supabase');
+          }
+        } catch (error) {
+          console.error('[ViewingPreference] Failed to persist:', error);
+        }
+
         // Send automated message to vendor
         get().sendMessage(
           matchId,
@@ -578,19 +601,45 @@ export const useAppStore = create<AppState>()(
       },
 
       // Confirm a viewing with specific date/time
-      confirmViewing: (matchId, dateTime) => {
+      confirmViewing: async (matchId, dateTime) => {
+        console.log('[ConfirmViewing] Starting for matchId:', matchId, 'dateTime:', dateTime);
+
+        // Update local store if match exists there
         const { matches } = get();
         const matchIndex = matches.findIndex((m) => m.id === matchId);
-        if (matchIndex === -1) return;
+        if (matchIndex !== -1) {
+          const updatedMatches = [...matches];
+          updatedMatches[matchIndex] = {
+            ...updatedMatches[matchIndex],
+            hasViewingScheduled: true,
+            confirmedViewingDate: dateTime,
+          };
+          set({ matches: updatedMatches });
+        }
 
-        const updatedMatches = [...matches];
-        updatedMatches[matchIndex] = {
-          ...updatedMatches[matchIndex],
-          hasViewingScheduled: true,
-          confirmedViewingDate: dateTime,
-        };
+        // Always persist to Supabase (even if not in local store)
+        try {
+          const { supabase } = await import('../lib/supabase');
+          if (supabase) {
+            const { data, error } = await supabase
+              .from('matches')
+              .update({
+                has_viewing_scheduled: true,
+                confirmed_viewing_date: dateTime.toISOString(),
+              })
+              .eq('id', matchId)
+              .select();
 
-        set({ matches: updatedMatches });
+            if (error) {
+              console.error('[ConfirmViewing] Supabase error:', error);
+              throw error;
+            }
+            console.log('[ConfirmViewing] Persisted to Supabase:', data);
+          }
+        } catch (error) {
+          console.error('[ConfirmViewing] Failed to persist:', error);
+          throw error;
+        }
       },
 
       // Get upcoming confirmed viewings
@@ -1183,6 +1232,227 @@ export const useAppStore = create<AppState>()(
         };
 
         set({ matches: updatedMatches });
+      },
+
+      // ========================================
+      // TENANCY LIFECYCLE MANAGEMENT
+      // ========================================
+
+      /**
+       * Update the application status of a match
+       * Flow: pending → viewing_requested → viewing_completed → application_submitted
+       *       → referencing → offer_made → offer_accepted → tenancy_signed
+       */
+      updateApplicationStatus: async (matchId, status) => {
+        // Persist to Supabase first (source of truth)
+        try {
+          const { supabase } = await import('../lib/supabase');
+          if (supabase) {
+            const { error } = await supabase
+              .from('matches')
+              .update({
+                application_status: status,
+                ...(status === 'application_submitted' && { application_submitted_at: new Date().toISOString() }),
+              })
+              .eq('id', matchId);
+
+            if (error) {
+              console.error('[TenancyLifecycle] Failed to update application status:', error);
+              return;
+            }
+            console.log('[TenancyLifecycle] Updated application status in Supabase:', matchId, status);
+          }
+        } catch (error) {
+          console.error('[TenancyLifecycle] Failed to persist application status:', error);
+          return;
+        }
+
+        // Also update local store if match exists there
+        const { matches } = get();
+        const matchIndex = matches.findIndex((m) => m.id === matchId);
+        if (matchIndex !== -1) {
+          const updatedMatches = [...matches];
+          updatedMatches[matchIndex] = {
+            ...updatedMatches[matchIndex],
+            applicationStatus: status,
+            ...(status === 'application_submitted' && { applicationSubmittedAt: new Date() }),
+          };
+          set({ matches: updatedMatches });
+        }
+      },
+
+      /**
+       * Activate a tenancy - transitions from prospective to active
+       * This is called when tenant signs the tenancy agreement
+       */
+      activateTenancy: async (matchId, startDate = new Date()) => {
+        // Persist to Supabase first (source of truth)
+        try {
+          const { supabase } = await import('../lib/supabase');
+          if (supabase) {
+            // First fetch the match data from Supabase to get renter/property info
+            const { data: matchData, error: fetchError } = await supabase
+              .from('matches')
+              .select('*, property:properties(*)')
+              .eq('id', matchId)
+              .single();
+
+            if (fetchError || !matchData) {
+              console.error('[TenancyLifecycle] Failed to fetch match:', fetchError);
+              return;
+            }
+
+            // Update the match status
+            const { error: updateError } = await supabase
+              .from('matches')
+              .update({
+                application_status: 'tenancy_signed',
+                tenancy_status: 'active',
+                tenancy_start_date: startDate.toISOString(),
+              })
+              .eq('id', matchId);
+
+            if (updateError) {
+              console.error('[TenancyLifecycle] Failed to update match:', updateError);
+              return;
+            }
+
+            // Also update renter profile to reflect current tenancy
+            await supabase
+              .from('renter_profiles')
+              .update({
+                renter_status: 'current',
+                current_property_id: matchData.property_id,
+                current_landlord_id: matchData.landlord_id,
+                tenancy_start_date: startDate.toISOString(),
+                current_rent: matchData.property?.rent_pcm,
+              })
+              .eq('id', matchData.renter_id);
+
+            console.log('[TenancyLifecycle] Tenancy activated in Supabase:', matchId);
+          }
+        } catch (error) {
+          console.error('[TenancyLifecycle] Failed to persist tenancy activation:', error);
+          return;
+        }
+
+        // Update local store if match exists there
+        const { matches } = get();
+        const matchIndex = matches.findIndex((m) => m.id === matchId);
+        if (matchIndex !== -1) {
+          const match = matches[matchIndex];
+          const updatedMatches = [...matches];
+          updatedMatches[matchIndex] = {
+            ...match,
+            applicationStatus: 'tenancy_signed',
+            tenancyStatus: 'active',
+            tenancyStartDate: startDate,
+          };
+          set({ matches: updatedMatches });
+
+          // Send welcome message
+          get().sendMessage(matchId, `Welcome to your new home! Your tenancy officially starts on ${startDate.toLocaleDateString('en-GB')}.`);
+        }
+      },
+
+      /**
+       * Give notice - RRA 2025 requires 2 months notice from either party
+       */
+      giveNotice: async (matchId, givenBy) => {
+        const { matches } = get();
+        const matchIndex = matches.findIndex((m) => m.id === matchId);
+        if (matchIndex === -1) {
+          console.error('[TenancyLifecycle] Match not found:', matchId);
+          return;
+        }
+
+        const noticedDate = new Date();
+        const expectedMoveOutDate = new Date(noticedDate);
+        expectedMoveOutDate.setDate(expectedMoveOutDate.getDate() + 56); // 8 weeks / 2 months
+
+        const updatedMatches = [...matches];
+        updatedMatches[matchIndex] = {
+          ...updatedMatches[matchIndex],
+          tenancyStatus: 'notice_given',
+          tenancyNoticedDate: noticedDate,
+          expectedMoveOutDate: expectedMoveOutDate,
+          tenancyEndReason: givenBy === 'tenant' ? 'tenant_notice' : undefined,
+        };
+
+        set({ matches: updatedMatches });
+
+        const message = givenBy === 'tenant'
+          ? `Notice has been given by tenant. Expected move-out date: ${expectedMoveOutDate.toLocaleDateString('en-GB')}`
+          : `Notice has been given by landlord. Expected move-out date: ${expectedMoveOutDate.toLocaleDateString('en-GB')}`;
+        get().sendMessage(matchId, message);
+
+        // Persist to Supabase if configured
+        try {
+          const { supabase } = await import('../lib/supabase');
+          if (supabase) {
+            await supabase
+              .from('matches')
+              .update({
+                tenancy_status: 'notice_given',
+                tenancy_noticed_date: noticedDate.toISOString(),
+                expected_move_out_date: expectedMoveOutDate.toISOString(),
+                tenancy_end_reason: givenBy === 'tenant' ? 'tenant_notice' : null,
+              })
+              .eq('id', matchId);
+          }
+        } catch (error) {
+          console.error('[TenancyLifecycle] Failed to persist notice:', error);
+        }
+      },
+
+      /**
+       * End a tenancy - marks it as complete
+       */
+      endTenancy: async (matchId) => {
+        const { matches } = get();
+        const matchIndex = matches.findIndex((m) => m.id === matchId);
+        if (matchIndex === -1) {
+          console.error('[TenancyLifecycle] Match not found:', matchId);
+          return;
+        }
+
+        const match = matches[matchIndex];
+        const updatedMatches = [...matches];
+        updatedMatches[matchIndex] = {
+          ...match,
+          tenancyStatus: 'ended',
+          tenancyCompletedAt: new Date(),
+          canRate: true, // Enable ratings after tenancy ends
+        };
+
+        set({ matches: updatedMatches });
+
+        // Persist to Supabase if configured
+        try {
+          const { supabase } = await import('../lib/supabase');
+          if (supabase) {
+            await supabase
+              .from('matches')
+              .update({
+                tenancy_status: 'ended',
+                tenancy_completed_at: new Date().toISOString(),
+                can_rate: true,
+              })
+              .eq('id', matchId);
+
+            // Update renter status back to prospective
+            await supabase
+              .from('renter_profiles')
+              .update({
+                renter_status: 'former',
+                current_property_id: null,
+                current_landlord_id: null,
+              })
+              .eq('id', match.renterId);
+          }
+        } catch (error) {
+          console.error('[TenancyLifecycle] Failed to persist tenancy end:', error);
+        }
       },
 
       // ========================================
