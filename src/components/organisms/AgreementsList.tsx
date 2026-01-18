@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FileText, Plus, RefreshCw, Filter, Search } from 'lucide-react';
+import { FileText, Plus, RefreshCw, Search } from 'lucide-react';
 import { AgreementCard } from './AgreementCard';
 import { getAgreementsForMatch, getUserAgreements } from '../../lib/agreementService';
 import type { TenancyAgreement, AgreementStatus } from '../../types';

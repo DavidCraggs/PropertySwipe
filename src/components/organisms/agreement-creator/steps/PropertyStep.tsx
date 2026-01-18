@@ -3,20 +3,14 @@
  */
 
 import { Home, Sofa, Calendar, FileText } from 'lucide-react';
-import type { AgreementFormData, Match } from '../../../../types';
+import type { AgreementFormData } from '../../../../types';
 
 interface PropertyStepProps {
   formData: Partial<AgreementFormData>;
   onChange: (updates: Partial<AgreementFormData>) => void;
-  match: Match;
 }
 
-export function PropertyStep({ formData, onChange, match }: PropertyStepProps) {
-  const formatDate = (date: string) => {
-    if (!date) return '';
-    return new Date(date).toISOString().split('T')[0];
-  };
-
+export function PropertyStep({ formData, onChange }: PropertyStepProps) {
   return (
     <div className="space-y-6">
       <div>

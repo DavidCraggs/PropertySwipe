@@ -3,7 +3,7 @@
  * Multi-step wizard for creating RRA 2025 compliant tenancy agreements
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X,
@@ -38,7 +38,6 @@ import {
   getDefaultTemplate,
   createDraftAgreement,
   updateAgreementData,
-  getGeneratedAgreement,
   checkCompliance,
 } from '../../../lib/agreementCreatorService';
 import type {
@@ -93,12 +92,28 @@ export function AgreementCreatorWizard({
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Ref for step navigation scroll container
+  const stepNavRef = useRef<HTMLDivElement>(null);
+  const stepButtonRefs = useRef<(HTMLButtonElement | null)[]>([]);
+
   // Initialize wizard when opened
   useEffect(() => {
     if (isOpen && !template) {
       initializeWizard();
     }
   }, [isOpen]);
+
+  // Auto-scroll to active step in navigation
+  useEffect(() => {
+    const activeButton = stepButtonRefs.current[currentStep];
+    const container = stepNavRef.current;
+    if (activeButton && container) {
+      const containerRect = container.getBoundingClientRect();
+      const buttonRect = activeButton.getBoundingClientRect();
+      const scrollLeft = buttonRect.left - containerRect.left - (containerRect.width / 2) + (buttonRect.width / 2) + container.scrollLeft;
+      container.scrollTo({ left: scrollLeft, behavior: 'smooth' });
+    }
+  }, [currentStep]);
 
   // Auto-save form data periodically
   useEffect(() => {
@@ -166,10 +181,71 @@ export function AgreementCreatorWizard({
     );
   }, []);
 
+  // Validate a step and return error messages
+  const validateStep = useCallback((stepIndex: number): string[] => {
+    const errors: string[] = [];
+
+    switch (stepIndex) {
+      case 0: // Parties
+        if (!formData.landlordName?.trim()) errors.push('Landlord name is required');
+        if (!formData.landlordAddress?.trim()) errors.push('Landlord address is required');
+        if (!formData.tenantName?.trim()) errors.push('Tenant name is required');
+        break;
+      case 1: // Property
+        if (!formData.propertyAddress?.trim()) errors.push('Property address is required');
+        if (!formData.tenancyStartDate) errors.push('Tenancy start date is required');
+        if (!formData.furnishingLevel) errors.push('Furnishing level is required');
+        break;
+      case 2: // Rent & Deposit
+        if (!formData.rentAmount || formData.rentAmount <= 0) errors.push('Rent amount is required');
+        if (!formData.depositAmount || formData.depositAmount <= 0) errors.push('Deposit amount is required');
+        if (!formData.depositScheme) errors.push('Deposit protection scheme is required');
+        break;
+      case 3: // Occupants (optional step)
+        // No required fields
+        break;
+      case 4: // Pets
+        if (formData.petsAllowed === undefined) errors.push('Please select whether pets are allowed');
+        if (formData.petsAllowed && !formData.petDetails?.trim()) errors.push('Pet details are required when pets are allowed');
+        break;
+      case 5: // Utilities
+        if (formData.councilTaxResponsibility === undefined) errors.push('Council tax responsibility is required');
+        break;
+      case 6: // Compliance
+        if (!formData.prsRegistrationNumber?.trim()) errors.push('PRS registration number is required');
+        if (!formData.ombudsmanScheme) errors.push('Ombudsman scheme is required');
+        if (!formData.ombudsmanMembershipNumber?.trim()) errors.push('Ombudsman membership number is required');
+        if (!formData.epcRating) errors.push('EPC rating is required');
+        if (!formData.epcExpiryDate) errors.push('EPC expiry date is required');
+        if (formData.hasGas !== false && !formData.gasSafetyDate) errors.push('Gas safety certificate date is required');
+        if (!formData.eicrDate) errors.push('EICR (electrical safety) date is required');
+        break;
+      case 7: // Special Conditions (optional step)
+        // No required fields
+        break;
+      case 8: // Review
+        // No required fields - just a review step
+        break;
+      case 9: // Generate
+        // No required fields - action step
+        break;
+    }
+
+    return errors;
+  }, [formData]);
+
+  // Check if current step is valid
+  const currentStepErrors = validateStep(currentStep);
+  const isCurrentStepValid = currentStepErrors.length === 0;
+
   const goToStep = (step: number) => {
     if (step >= 0 && step < steps.length) {
-      // Mark current step as complete if moving forward
-      if (step > currentStep) {
+      // Only allow going forward if current step is valid (or going backward)
+      if (step > currentStep && !isCurrentStepValid) {
+        return; // Block navigation forward if current step is invalid
+      }
+      // Mark current step as complete if moving forward and it's valid
+      if (step > currentStep && isCurrentStepValid) {
         markStepComplete(currentStep);
       }
       setCurrentStep(step);
@@ -177,7 +253,7 @@ export function AgreementCreatorWizard({
   };
 
   const handleNext = () => {
-    if (currentStep < steps.length - 1) {
+    if (currentStep < steps.length - 1 && isCurrentStepValid) {
       markStepComplete(currentStep);
       setCurrentStep((prev) => prev + 1);
     }
@@ -206,11 +282,9 @@ export function AgreementCreatorWizard({
 
   if (!isOpen) return null;
 
-  const StepIcon = STEP_ICONS[currentStep];
-
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4">
         {/* Backdrop */}
         <motion.div
           initial={{ opacity: 0 }}
@@ -220,42 +294,42 @@ export function AgreementCreatorWizard({
           className="absolute inset-0 bg-black/50 backdrop-blur-sm"
         />
 
-        {/* Modal */}
+        {/* Modal - Full screen on mobile, centered modal on desktop */}
         <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 20 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 20 }}
+          initial={{ opacity: 0, y: 100 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 100 }}
           transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-          className="relative bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col"
+          className="relative bg-white sm:rounded-2xl shadow-2xl w-full sm:max-w-3xl h-[100dvh] sm:h-auto sm:max-h-[85vh] overflow-hidden flex flex-col"
         >
-          {/* Header */}
-          <div className="bg-gradient-to-br from-primary-500 to-primary-600 p-6 text-white">
+          {/* Header - Compact on mobile */}
+          <div className="bg-gradient-to-br from-primary-500 to-primary-600 p-4 sm:p-5 text-white flex-shrink-0">
             <button
               onClick={handleClose}
               disabled={isLoading}
-              className="absolute top-4 right-4 p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-full transition-colors disabled:opacity-50"
+              className="absolute top-3 right-3 sm:top-4 sm:right-4 p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-full transition-colors disabled:opacity-50 z-10"
             >
               <X size={20} />
             </button>
 
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
-                <FileText size={24} className="text-white" />
+            <div className="flex items-center gap-3 pr-10">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                <FileText size={20} className="sm:w-6 sm:h-6 text-white" />
               </div>
-              <div>
-                <h2 className="text-xl font-bold">Create Tenancy Agreement</h2>
-                <p className="text-primary-100 text-sm">
-                  RRA 2025 Compliant Agreement for {match.property.address.street}
+              <div className="min-w-0">
+                <h2 className="text-lg sm:text-xl font-bold truncate">Create Agreement</h2>
+                <p className="text-primary-100 text-xs sm:text-sm truncate">
+                  {match.property.address.street}
                 </p>
               </div>
             </div>
 
-            {/* Progress indicator */}
-            <div className="mt-4 flex items-center gap-1">
+            {/* Progress bar */}
+            <div className="mt-3 flex items-center gap-0.5">
               {steps.map((step, i) => (
                 <div
                   key={step.id}
-                  className={`flex-1 h-1.5 rounded-full transition-colors ${
+                  className={`flex-1 h-1 sm:h-1.5 rounded-full transition-colors ${
                     i < currentStep
                       ? 'bg-white'
                       : i === currentStep
@@ -266,48 +340,53 @@ export function AgreementCreatorWizard({
               ))}
             </div>
 
-            {/* Step info */}
-            <div className="mt-3 flex items-center justify-between text-sm">
-              <div className="flex items-center gap-2">
-                <StepIcon size={16} className="text-primary-200" />
-                <span className="text-primary-100">
-                  Step {currentStep + 1} of {steps.length}
-                </span>
-              </div>
+            {/* Step counter */}
+            <div className="mt-2 flex items-center justify-between text-xs sm:text-sm">
+              <span className="text-primary-100">
+                Step {currentStep + 1}/{steps.length}
+              </span>
               <span className="font-medium">{steps[currentStep].title}</span>
             </div>
           </div>
 
-          {/* Step navigation tabs */}
-          <div className="border-b border-neutral-200 px-6 py-2 flex gap-1 overflow-x-auto">
-            {steps.map((step, i) => {
-              const Icon = STEP_ICONS[i];
-              return (
-                <button
-                  key={step.id}
-                  onClick={() => goToStep(i)}
-                  disabled={isLoading}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors ${
-                    i === currentStep
-                      ? 'bg-primary-100 text-primary-700'
-                      : step.isComplete
-                      ? 'text-success-600 hover:bg-success-50'
-                      : 'text-neutral-500 hover:bg-neutral-100'
-                  }`}
-                >
-                  {step.isComplete ? (
-                    <Check size={12} className="text-success-500" />
-                  ) : (
-                    <Icon size={12} />
-                  )}
-                  {step.title}
-                </button>
-              );
-            })}
+          {/* Step navigation - Horizontal scrollable */}
+          <div className="border-b border-neutral-200 flex-shrink-0">
+            <div
+              ref={stepNavRef}
+              className="flex gap-1.5 px-3 py-2.5 overflow-x-auto scrollbar-hide"
+            >
+              {steps.map((step, i) => {
+                const Icon = STEP_ICONS[i];
+                const isActive = i === currentStep;
+                const isCompleted = step.isComplete;
+                return (
+                  <button
+                    key={step.id}
+                    ref={(el) => { stepButtonRefs.current[i] = el; }}
+                    onClick={() => goToStep(i)}
+                    disabled={isLoading}
+                    className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-all flex-shrink-0 ${
+                      isActive
+                        ? 'bg-primary-500 text-white shadow-md ring-2 ring-primary-300'
+                        : isCompleted
+                        ? 'bg-success-100 text-success-700 hover:bg-success-200'
+                        : 'bg-neutral-100 text-neutral-500 hover:bg-neutral-200'
+                    }`}
+                  >
+                    {isCompleted && !isActive ? (
+                      <Check size={14} />
+                    ) : (
+                      <Icon size={14} />
+                    )}
+                    <span>{step.title}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
-          {/* Content */}
-          <div className="flex-1 overflow-y-auto p-6">
+          {/* Content - Scrollable */}
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6 min-h-0">
             {isLoading ? (
               <div className="flex flex-col items-center justify-center h-64 gap-4">
                 <div className="w-12 h-12 border-4 border-primary-200 border-t-primary-500 rounded-full animate-spin" />
@@ -334,14 +413,12 @@ export function AgreementCreatorWizard({
                     <PartiesStep
                       formData={formData}
                       onChange={updateFormData}
-                      match={match}
                     />
                   )}
                   {currentStep === 1 && (
                     <PropertyStep
                       formData={formData}
                       onChange={updateFormData}
-                      match={match}
                     />
                   )}
                   {currentStep === 2 && (
@@ -361,21 +438,18 @@ export function AgreementCreatorWizard({
                     <PetsStep
                       formData={formData}
                       onChange={updateFormData}
-                      match={match}
                     />
                   )}
                   {currentStep === 5 && (
                     <UtilitiesStep
                       formData={formData}
                       onChange={updateFormData}
-                      match={match}
                     />
                   )}
                   {currentStep === 6 && (
                     <ComplianceStep
                       formData={formData}
                       onChange={updateFormData}
-                      match={match}
                       complianceResult={complianceResult}
                     />
                   )}
@@ -410,13 +484,30 @@ export function AgreementCreatorWizard({
           </div>
 
           {/* Footer */}
-          <div className="border-t border-neutral-200 p-4 bg-neutral-50">
-            <div className="flex items-center justify-between">
-              {/* Compliance indicator */}
-              <div className="flex items-center gap-2">
+          <div className="border-t border-neutral-200 p-3 sm:p-4 bg-neutral-50 flex-shrink-0">
+            {/* Validation errors */}
+            {currentStepErrors.length > 0 && (
+              <div className="mb-3 p-2.5 bg-danger-50 border border-danger-200 rounded-lg">
+                <div className="flex items-start gap-2">
+                  <AlertCircle size={16} className="text-danger-500 flex-shrink-0 mt-0.5" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-danger-700 mb-1">Please complete required fields:</p>
+                    <ul className="text-xs text-danger-600 space-y-0.5">
+                      {currentStepErrors.map((err, i) => (
+                        <li key={i}>• {err}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="flex items-center justify-between gap-3">
+              {/* Compliance indicator - hidden on mobile when there are errors */}
+              <div className={`flex items-center gap-2 flex-shrink-0 ${currentStepErrors.length > 0 ? 'hidden sm:flex' : ''}`}>
                 {complianceResult && (
                   <div
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium ${
+                    className={`flex items-center gap-1.5 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full text-xs font-medium ${
                       complianceResult.isCompliant
                         ? 'bg-success-100 text-success-700'
                         : 'bg-warning-100 text-warning-700'
@@ -425,12 +516,13 @@ export function AgreementCreatorWizard({
                     {complianceResult.isCompliant ? (
                       <>
                         <Check size={12} />
-                        RRA 2025 Compliant
+                        <span className="hidden sm:inline">RRA 2025 Compliant</span>
+                        <span className="sm:hidden">Compliant</span>
                       </>
                     ) : (
                       <>
                         <AlertCircle size={12} />
-                        {complianceResult.errors.length} issue{complianceResult.errors.length !== 1 ? 's' : ''} to fix
+                        {complianceResult.errors.length} issue{complianceResult.errors.length !== 1 ? 's' : ''}
                       </>
                     )}
                   </div>
@@ -441,12 +533,12 @@ export function AgreementCreatorWizard({
               </div>
 
               {/* Navigation buttons */}
-              <div className="flex gap-3">
+              <div className="flex gap-2 sm:gap-3 ml-auto">
                 <Button
                   variant="secondary"
                   onClick={handlePrevious}
                   disabled={currentStep === 0 || isLoading}
-                  className="flex items-center gap-1"
+                  className="flex items-center gap-1 px-3 sm:px-4"
                 >
                   <ChevronLeft size={16} />
                   Back
@@ -456,8 +548,8 @@ export function AgreementCreatorWizard({
                   <Button
                     variant="primary"
                     onClick={handleNext}
-                    disabled={isLoading}
-                    className="flex items-center gap-1"
+                    disabled={isLoading || !isCurrentStepValid}
+                    className="flex items-center gap-1 px-3 sm:px-4"
                   >
                     Next
                     <ChevronRight size={16} />

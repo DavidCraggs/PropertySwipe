@@ -2,7 +2,7 @@
  * RentDepositStep - Rent and deposit configuration with RRA 2025 compliance
  */
 
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { Banknote, Shield, AlertCircle, Check, Info } from 'lucide-react';
 import {
   calculateMaxDeposit,

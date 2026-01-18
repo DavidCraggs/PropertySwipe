@@ -125,9 +125,17 @@ export async function uploadAgreement(
     throw new Error('Match not found');
   }
 
-  // Generate unique storage path
+  // Security check: verify the uploader is authorized for this match
+  const isLandlord = matchData.landlord_id === createdBy;
+  const isAgency = matchData.property?.managing_agency_id === createdBy;
+  if (!isLandlord && !isAgency) {
+    throw new Error('Unauthorized: You are not authorized to upload agreements for this match');
+  }
+
+  // Generate unique storage path with user ID for RLS validation
+  // Path format: original/{userId}/{agreementId}/{filename}
   const agreementId = crypto.randomUUID();
-  const storagePath = `original/${agreementId}/${file.name}`;
+  const storagePath = `original/${createdBy}/${agreementId}/${file.name}`;
 
   // Upload file to Supabase Storage
   const { error: uploadError } = await supabase.storage

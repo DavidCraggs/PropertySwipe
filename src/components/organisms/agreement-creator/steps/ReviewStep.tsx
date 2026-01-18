@@ -3,7 +3,7 @@
  */
 
 import { useState } from 'react';
-import { Eye, Check, AlertCircle, ChevronDown, ChevronUp, FileText } from 'lucide-react';
+import { Check, AlertCircle, ChevronDown, ChevronUp, FileText } from 'lucide-react';
 import { substituteVariables } from '../../../../lib/agreementCreatorService';
 import type { AgreementFormData, AgreementTemplate, ComplianceCheckResult } from '../../../../types';
 

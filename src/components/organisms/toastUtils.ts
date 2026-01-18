@@ -16,13 +16,16 @@ interface ToastStore {
   removeToast: (id: string) => void;
 }
 
+// Counter to ensure unique toast IDs even when added in same millisecond
+let toastCounter = 0;
+
 /**
  * Toast notification store
  */
 export const useToastStore = create<ToastStore>((set) => ({
   toasts: [],
   addToast: (toast) => {
-    const id = `toast-${Date.now()}`;
+    const id = `toast-${Date.now()}-${++toastCounter}`;
     set((state) => ({
       toasts: [...state.toasts, { ...toast, id }],
     }));

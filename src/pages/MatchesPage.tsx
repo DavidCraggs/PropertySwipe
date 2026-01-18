@@ -98,7 +98,7 @@ export const MatchesPage: React.FC = () => {
         } else if (userType === 'landlord') {
           console.log('[MatchesPage] Querying matches for landlord:', currentUser.id);
           query = query.eq('landlord_id', currentUser.id);
-        } else if (userType === 'agency') {
+        } else if (userType === 'estate_agent' || userType === 'management_agency') {
           // For agencies, get matches for properties they manage
           console.log('[MatchesPage] Querying matches for agency:', currentUser.id);
           // First get properties managed by this agency
@@ -902,7 +902,7 @@ export const MatchesPage: React.FC = () => {
                 <div className="border-t border-neutral-200 p-4 bg-neutral-50">
                   <div className="flex items-center justify-between mb-3">
                     <h4 className="text-sm font-medium text-neutral-700">Agreements</h4>
-                    {(userType === 'landlord' || userType === 'agency') && (
+                    {(userType === 'landlord' || userType === 'estate_agent' || userType === 'management_agency') && (
                       <button
                         onClick={() => {
                           setAgreementModalMatch(match);
@@ -1027,7 +1027,7 @@ export const MatchesPage: React.FC = () => {
                       )}
 
                       {/* Create/Upload Agreement buttons - available after offer accepted */}
-                      {(match.applicationStatus === 'offer_accepted' || match.applicationStatus === 'offer_made' || match.tenancyStatus === 'active') && (
+                      {(match.applicationStatus === 'offer_accepted' || match.applicationStatus === 'offer_made') && (
                         <>
                           <button
                             onClick={() => {
@@ -1408,8 +1408,8 @@ export const MatchesPage: React.FC = () => {
           }}
           match={agreementModalMatch}
           currentUserId={currentUser.id}
-          currentUserType={userType as 'landlord' | 'agency'}
-          currentUserName={currentUser.names || currentUser.email || 'User'}
+          currentUserType={userType === 'landlord' ? 'landlord' : 'agency'}
+          currentUserName={'names' in currentUser ? currentUser.names : ('companyName' in currentUser ? currentUser.companyName : currentUser.email) || 'User'}
           currentUserEmail={currentUser.email || ''}
           onSuccess={() => {
             setAgreementsRefreshKey((k) => k + 1);
@@ -1432,7 +1432,7 @@ export const MatchesPage: React.FC = () => {
           }}
           agreement={agreementToSign}
           currentUserId={currentUser.id}
-          currentUserName={currentUser.names || currentUser.email || 'User'}
+          currentUserName={'names' in currentUser ? currentUser.names : ('companyName' in currentUser ? currentUser.companyName : currentUser.email) || 'User'}
           onSuccess={() => {
             setAgreementsRefreshKey((k) => k + 1);
             refetchMatches();

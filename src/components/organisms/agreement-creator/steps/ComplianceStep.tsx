@@ -2,13 +2,12 @@
  * ComplianceStep - RRA 2025 legal compliance requirements
  */
 
-import { Shield, AlertCircle, Check, ExternalLink, Info } from 'lucide-react';
-import type { AgreementFormData, Match, ComplianceCheckResult, OmbudsmanSchemeOption, EPCRating } from '../../../../types';
+import { Shield, AlertCircle, Check, Info } from 'lucide-react';
+import type { AgreementFormData, ComplianceCheckResult, OmbudsmanSchemeOption, EPCRating } from '../../../../types';
 
 interface ComplianceStepProps {
   formData: Partial<AgreementFormData>;
   onChange: (updates: Partial<AgreementFormData>) => void;
-  match: Match;
   complianceResult: ComplianceCheckResult | null;
 }
 
@@ -20,7 +19,7 @@ const OMBUDSMAN_SCHEMES: { value: OmbudsmanSchemeOption; label: string }[] = [
 
 const EPC_RATINGS: EPCRating[] = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
 
-export function ComplianceStep({ formData, onChange, match, complianceResult }: ComplianceStepProps) {
+export function ComplianceStep({ formData, onChange, complianceResult }: ComplianceStepProps) {
   const isEpcCompliant = formData.epcRating && ['A', 'B', 'C'].includes(formData.epcRating);
 
   return (

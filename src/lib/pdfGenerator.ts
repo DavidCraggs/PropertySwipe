@@ -8,8 +8,6 @@ import { substituteVariables } from './agreementCreatorService';
 import type {
   AgreementTemplate,
   AgreementFormData,
-  AgreementSection,
-  AgreementClause,
 } from '../types';
 
 // Page settings
@@ -459,7 +457,7 @@ export async function generateAgreementPdf(
 
   for (let i = 0; i < totalPages; i++) {
     const page = pages[i];
-    const { width: pageWidth, height: pageHeight } = page.getSize();
+    const { width: pageWidth } = page.getSize();
 
     // Footer
     page.drawText(`Page ${i + 1} of ${totalPages}`, {
@@ -505,14 +503,14 @@ function formatDate(dateString: string): string {
 /**
  * Convert PDF bytes to a Blob for download
  */
-export function pdfBytesToBlob(pdfBytes: Uint8Array): Blob {
-  return new Blob([pdfBytes], { type: 'application/pdf' });
+export function pdfBytesToBlob(pdfBytes: Uint8Array | ArrayBuffer): Blob {
+  return new Blob([pdfBytes as BlobPart], { type: 'application/pdf' });
 }
 
 /**
  * Trigger PDF download in the browser
  */
-export function downloadPdf(pdfBytes: Uint8Array, filename: string): void {
+export function downloadPdf(pdfBytes: Uint8Array | ArrayBuffer, filename: string): void {
   const blob = pdfBytesToBlob(pdfBytes);
   const url = URL.createObjectURL(blob);
 
@@ -529,7 +527,7 @@ export function downloadPdf(pdfBytes: Uint8Array, filename: string): void {
 /**
  * Open PDF in a new browser tab
  */
-export function openPdfInNewTab(pdfBytes: Uint8Array): void {
+export function openPdfInNewTab(pdfBytes: Uint8Array | ArrayBuffer): void {
   const blob = pdfBytesToBlob(pdfBytes);
   const url = URL.createObjectURL(blob);
   window.open(url, '_blank');

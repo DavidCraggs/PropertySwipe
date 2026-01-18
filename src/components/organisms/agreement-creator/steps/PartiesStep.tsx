@@ -3,15 +3,14 @@
  */
 
 import { Users, Building, User } from 'lucide-react';
-import type { AgreementFormData, Match } from '../../../../types';
+import type { AgreementFormData } from '../../../../types';
 
 interface PartiesStepProps {
   formData: Partial<AgreementFormData>;
   onChange: (updates: Partial<AgreementFormData>) => void;
-  match: Match;
 }
 
-export function PartiesStep({ formData, onChange, match }: PartiesStepProps) {
+export function PartiesStep({ formData, onChange }: PartiesStepProps) {
   return (
     <div className="space-y-6">
       <div>

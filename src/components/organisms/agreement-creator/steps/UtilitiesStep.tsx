@@ -3,17 +3,16 @@
  */
 
 import { Zap, Droplet, Wifi, Flame, Building } from 'lucide-react';
-import type { AgreementFormData, Match } from '../../../../types';
+import type { AgreementFormData } from '../../../../types';
 
 interface UtilitiesStepProps {
   formData: Partial<AgreementFormData>;
   onChange: (updates: Partial<AgreementFormData>) => void;
-  match: Match;
 }
 
 const COUNCIL_TAX_BANDS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
 
-export function UtilitiesStep({ formData, onChange, match }: UtilitiesStepProps) {
+export function UtilitiesStep({ formData, onChange }: UtilitiesStepProps) {
   return (
     <div className="space-y-6">
       <div>

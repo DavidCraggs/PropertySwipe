@@ -12,7 +12,6 @@ import {
 } from '../../../../lib/pdfGenerator';
 import {
   updateAgreementData,
-  markAgreementGenerated,
   linkToTenancyAgreement,
 } from '../../../../lib/agreementCreatorService';
 import { uploadAgreement } from '../../../../lib/agreementService';
@@ -105,7 +104,7 @@ export function GenerateStep({
 
     try {
       // Convert PDF bytes to File object
-      const blob = new Blob([generatedPdf], { type: 'application/pdf' });
+      const blob = new Blob([generatedPdf as BlobPart], { type: 'application/pdf' });
       const filename = `Tenancy_Agreement_${match.property.address.street.replace(/\s+/g, '_')}.pdf`;
       const file = new File([blob], filename, { type: 'application/pdf' });
 

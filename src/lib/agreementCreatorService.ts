@@ -18,7 +18,6 @@ import type {
   Property,
   LandlordProfile,
   RenterProfile,
-  Match,
   EPCRating,
 } from '../types';
 
@@ -366,8 +365,7 @@ export async function linkToTenancyAgreement(
  */
 export function checkCompliance(
   formData: Partial<AgreementFormData>,
-  property?: Property,
-  landlord?: LandlordProfile
+  _property?: Property
 ): ComplianceCheckResult {
   const errors: ComplianceError[] = [];
   const warnings: ComplianceWarning[] = [];

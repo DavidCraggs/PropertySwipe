@@ -3,15 +3,14 @@
  */
 
 import { PawPrint, Info, AlertTriangle } from 'lucide-react';
-import type { AgreementFormData, Match } from '../../../../types';
+import type { AgreementFormData } from '../../../../types';
 
 interface PetsStepProps {
   formData: Partial<AgreementFormData>;
   onChange: (updates: Partial<AgreementFormData>) => void;
-  match: Match;
 }
 
-export function PetsStep({ formData, onChange, match }: PetsStepProps) {
+export function PetsStep({ formData, onChange }: PetsStepProps) {
   return (
     <div className="space-y-6">
       <div>

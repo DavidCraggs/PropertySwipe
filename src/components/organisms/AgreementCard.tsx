@@ -11,7 +11,6 @@ import {
   CheckCircle,
   AlertCircle,
   Trash2,
-  Bell,
 } from 'lucide-react';
 import { AgreementStatusBadge } from '../molecules/AgreementStatusBadge';
 import { getDocumentUrl, downloadDocument, cancelAgreement } from '../../lib/agreementService';

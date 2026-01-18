@@ -48,7 +48,7 @@ export function ViewingsList({ refetchTrigger = 0, onViewingConfirmed }: Viewing
           query = query.eq('renter_id', currentUser.id);
         } else if (userType === 'landlord') {
           query = query.eq('landlord_id', currentUser.id);
-        } else if (userType === 'agency') {
+        } else if (userType === 'estate_agent' || userType === 'management_agency') {
           const { data: managedProperties } = await supabase
             .from('properties')
             .select('id')

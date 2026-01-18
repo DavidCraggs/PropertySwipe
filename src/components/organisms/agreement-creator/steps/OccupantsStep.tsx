@@ -2,7 +2,6 @@
  * OccupantsStep - Additional occupants management
  */
 
-import { useState } from 'react';
 import { UserPlus, Trash2, Plus, Users } from 'lucide-react';
 import { Button } from '../../../atoms/Button';
 import type { AgreementFormData, AdditionalOccupant } from '../../../../types';
