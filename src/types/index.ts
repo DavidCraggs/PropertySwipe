@@ -7,6 +7,18 @@
 // BASIC TYPES
 // =====================================================
 
+/**
+ * Standard address structure used across all profile types
+ */
+export interface Address {
+  line1: string;
+  line2?: string;
+  city: string;
+  county?: string;
+  postcode: string;
+  country: string;
+}
+
 export type PropertyType = 'Detached' | 'Semi-detached' | 'Terraced' | 'End-Terraced' | 'Bungalow' | 'Flat';
 export type EPCRating = 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G';
 export type UserType = 'landlord' | 'renter' | 'estate_agent' | 'management_agency' | 'admin';
@@ -362,6 +374,7 @@ export interface RenterProfile {
   names: string;
   ages: string;
   localArea: LocalArea;
+  address?: Address; // Current residential address
   renterType: RenterType;
   employmentStatus: EmploymentStatus;
   monthlyIncome: number; // For affordability checks (not discrimination)
@@ -420,6 +433,7 @@ export interface LandlordProfile {
   email: string;
   passwordHash: string;  // Hashed password for secure authentication
   names: string;
+  businessAddress?: Address; // Business/correspondence address
   propertyType: PropertyType;
 
   // Preferences (not filters - cannot discriminate)
@@ -487,11 +501,7 @@ export interface AgencyProfile {
   email: string;
   passwordHash: string;  // Hashed password for secure authentication
   phone: string;
-  address: {
-    street: string;
-    city: string;
-    postcode: string;
-  };
+  address: Address; // Office address
 
   // Service Areas
   serviceAreas: LocalArea[]; // ['Southport', 'Liverpool', 'Manchester']

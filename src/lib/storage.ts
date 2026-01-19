@@ -383,7 +383,7 @@ export const saveAgencyProfile = async (profile: AgencyProfile | Omit<AgencyProf
 
     // Handle address - either flat fields or nested object
     if (p.address_street || profile.address) {
-      profileData.address_street = p.address_street || profile.address?.street;
+      profileData.address_street = p.address_street || profile.address?.line1;
       profileData.address_city = p.address_city || profile.address?.city;
       profileData.address_postcode = p.address_postcode || profile.address?.postcode;
     }
@@ -3884,7 +3884,7 @@ const PROPERTY_COSTS_KEY = 'property-costs';
  * Save a property cost record
  */
 export const savePropertyCost = async (cost: PropertyCost | Omit<PropertyCost, 'id'>): Promise<PropertyCost> => {
-  const costId = ('id' in cost && cost.id) ? cost.id : `cost-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  const costId = ('id' in cost && cost.id) ? cost.id : crypto.randomUUID();
   const costWithId: PropertyCost = {
     ...cost,
     id: costId,

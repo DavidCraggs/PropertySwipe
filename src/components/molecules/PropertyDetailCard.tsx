@@ -92,14 +92,14 @@ export function PropertyDetailCard({
           className="w-full h-full object-cover"
         />
 
-        {/* Close Button */}
+        {/* Close Button - inside image carousel, safe from clipping */}
         {onClose && (
           <button
-            onClick={onClose}
-            className="absolute top-4 right-4 p-2 bg-black/50 hover:bg-black/70 text-white rounded-full transition-colors"
+            onClick={(e) => { e.stopPropagation(); onClose(); }}
+            className="absolute top-4 right-4 z-50 p-2.5 bg-white hover:bg-neutral-100 text-neutral-800 rounded-full shadow-xl"
             aria-label="Close"
           >
-            <X className="h-5 w-5" />
+            <X className="h-6 w-6 stroke-[2.5]" />
           </button>
         )}
 

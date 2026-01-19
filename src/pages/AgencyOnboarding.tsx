@@ -118,9 +118,10 @@ export function AgencyOnboarding({ onComplete, onLogin, initialAgencyType = 'man
         primaryContactName: formData.primaryContactName,
         phone: formData.phone,
       address: {
-        street: formData.street,
+        line1: formData.street,
         city: formData.city,
         postcode: formData.postcode,
+        country: 'United Kingdom',
       },
       serviceAreas: formData.serviceAreas,
       managedPropertyIds: [],

@@ -63,7 +63,8 @@
       "Bash(else echo \"No .env file found\")",
       "Bash(test:*)",
       "Bash(npx playwright:*)",
-      "Bash(timeout 120 npx tsc:*)"
+      "Bash(timeout 120 npx tsc:*)",
+      "Bash(npx supabase:*)"
     ],
     "deny": [],
     "ask": []

@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { User, TrendingUp, Heart, X, Home, LogOut, ShoppingBag, MapPin, CreditCard, Users, Download, Trash2, Shield, FileText } from 'lucide-react';
+import { User, TrendingUp, Heart, X, Home, LogOut, ShoppingBag, MapPin, CreditCard, Users, Download, Trash2, Shield, FileText, Pencil } from 'lucide-react';
 import { Button } from '../components/atoms/Button';
 import { useAppStore } from '../hooks';
 import { useAuthStore } from '../hooks/useAuthStore';
 import { useToastStore } from '../components/organisms/toastUtils';
 import { RatingsSummaryCard } from '../components/molecules/RatingsSummaryCard';
+import { EditProfileModal } from '../components/organisms/EditProfileModal';
 import { exportUserData, downloadExportData } from '../services/DataExportService';
 import { DataDeletionService } from '../services/DataDeletionService';
 
@@ -20,6 +21,7 @@ export const ProfilePage: React.FC = () => {
   const [isLoadingRatings, setIsLoadingRatings] = useState(true);
   const [isExportingData, setIsExportingData] = useState(false);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   // Load user ratings on mount
   useEffect(() => {
@@ -205,6 +207,14 @@ export const ProfilePage: React.FC = () => {
                 Member since {new Date(currentUser.createdAt).toLocaleDateString()}
               </p>
             </div>
+            <Button
+              variant="outline"
+              size="sm"
+              icon={<Pencil size={16} />}
+              onClick={() => setIsEditModalOpen(true)}
+            >
+              Edit
+            </Button>
           </div>
         </div>
 
@@ -458,6 +468,12 @@ export const ProfilePage: React.FC = () => {
           </Button>
         </div>
       </main>
+
+      {/* Edit Profile Modal */}
+      <EditProfileModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+      />
     </div>
   );
 };

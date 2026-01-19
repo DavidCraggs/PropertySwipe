@@ -3,8 +3,25 @@
  * Handles conversion between Supabase snake_case and TypeScript camelCase
  */
 
-import type { LandlordProfile, PropertyType, FurnishingType, RenterType, PRSRegistrationStatus, OmbudsmanScheme } from '../../types';
+import type { LandlordProfile, PropertyType, FurnishingType, RenterType, PRSRegistrationStatus, OmbudsmanScheme, Address } from '../../types';
 import type { DbRecord } from './index';
+
+/**
+ * Build an Address object from database fields with a given prefix
+ */
+const buildAddressFromDb = (d: DbRecord, prefix: string): Address | undefined => {
+  const line1 = d[`${prefix}_line1`] as string | undefined;
+  if (!line1) return undefined;
+
+  return {
+    line1,
+    line2: d[`${prefix}_line2`] as string | undefined,
+    city: (d[`${prefix}_city`] as string) || '',
+    county: d[`${prefix}_county`] as string | undefined,
+    postcode: (d[`${prefix}_postcode`] as string) || '',
+    country: (d[`${prefix}_country`] as string) || 'United Kingdom',
+  };
+};
 
 /**
  * Transform a Supabase landlord_profiles record to a TypeScript LandlordProfile object
@@ -14,6 +31,7 @@ export const transformLandlordProfile = (d: DbRecord): LandlordProfile => ({
   email: (d.email as string) || '',
   passwordHash: (d.password_hash as string) || '',
   names: (d.names as string) || '',
+  businessAddress: buildAddressFromDb(d, 'business_address'),
   propertyType: (d.property_type as PropertyType) || 'house',
 
   // Preferences
@@ -72,6 +90,15 @@ export const transformLandlordProfileToDb = (
   email: profile.email,
   password_hash: profile.passwordHash,
   names: profile.names,
+
+  // Business address fields
+  business_address_line1: profile.businessAddress?.line1,
+  business_address_line2: profile.businessAddress?.line2,
+  business_address_city: profile.businessAddress?.city,
+  business_address_county: profile.businessAddress?.county,
+  business_address_postcode: profile.businessAddress?.postcode,
+  business_address_country: profile.businessAddress?.country,
+
   property_type: profile.propertyType,
 
   // Preferences

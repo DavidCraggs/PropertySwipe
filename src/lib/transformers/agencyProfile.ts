@@ -24,9 +24,12 @@ export const transformAgencyProfile = (d: DbRecord): AgencyProfile => ({
   passwordHash: (d.password_hash as string) || '',
   phone: (d.phone as string) || '',
   address: {
-    street: (d.address_street as string) || '',
+    line1: (d.address_street as string) || (d.address_line1 as string) || '',
+    line2: d.address_line2 as string | undefined,
     city: (d.address_city as string) || '',
+    county: d.address_county as string | undefined,
     postcode: (d.address_postcode as string) || '',
+    country: (d.address_country as string) || 'United Kingdom',
   },
 
   // Service Areas
@@ -91,9 +94,13 @@ export const transformAgencyProfileToDb = (
   email: profile.email,
   password_hash: profile.passwordHash,
   phone: profile.phone,
-  address_street: profile.address?.street,
+  address_street: profile.address?.line1, // Legacy column name
+  address_line1: profile.address?.line1,
+  address_line2: profile.address?.line2,
   address_city: profile.address?.city,
+  address_county: profile.address?.county,
   address_postcode: profile.address?.postcode,
+  address_country: profile.address?.country,
 
   // Service Areas
   service_areas: profile.serviceAreas,

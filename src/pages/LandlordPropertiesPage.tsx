@@ -383,8 +383,14 @@ export function LandlordPropertiesPage() {
 
       {/* Selected Property Modal (for list/grid views) */}
       {selectedProperty && viewMode !== 'card' && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="w-full max-w-2xl my-8">
+        <div
+          className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center p-8 overflow-y-auto"
+          onClick={() => setSelectedProperty(null)}
+        >
+          <div
+            className="w-full max-w-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
             <PropertyDetailCard
               property={selectedProperty}
               onClose={() => setSelectedProperty(null)}

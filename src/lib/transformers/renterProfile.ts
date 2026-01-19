@@ -3,8 +3,25 @@
  * Handles conversion between Supabase snake_case and TypeScript camelCase
  */
 
-import type { RenterProfile, RenterSituation, LocalArea, RenterType, EmploymentStatus, RenterStatus } from '../../types';
+import type { RenterProfile, RenterSituation, LocalArea, RenterType, EmploymentStatus, RenterStatus, Address } from '../../types';
 import type { DbRecord } from './index';
+
+/**
+ * Build an Address object from database fields with a given prefix
+ */
+const buildAddressFromDb = (d: DbRecord, prefix: string): Address | undefined => {
+  const line1 = d[`${prefix}_line1`] as string | undefined;
+  if (!line1) return undefined;
+
+  return {
+    line1,
+    line2: d[`${prefix}_line2`] as string | undefined,
+    city: (d[`${prefix}_city`] as string) || '',
+    county: d[`${prefix}_county`] as string | undefined,
+    postcode: (d[`${prefix}_postcode`] as string) || '',
+    country: (d[`${prefix}_country`] as string) || 'United Kingdom',
+  };
+};
 
 /**
  * Transform a Supabase renter_profiles record to a TypeScript RenterProfile object
@@ -17,6 +34,7 @@ export const transformRenterProfile = (d: DbRecord): RenterProfile => ({
   names: (d.names as string) || '',
   ages: (d.ages as string) || '',
   localArea: (d.local_area as LocalArea) || '',
+  address: buildAddressFromDb(d, 'address'),
   renterType: (d.renter_type as RenterType) || 'single',
   employmentStatus: (d.employment_status as EmploymentStatus) || 'employed',
   monthlyIncome: (d.monthly_income as number) || 0,
@@ -73,6 +91,15 @@ export const transformRenterProfileToDb = (
   names: profile.names,
   ages: profile.ages,
   local_area: profile.localArea,
+
+  // Address fields
+  address_line1: profile.address?.line1,
+  address_line2: profile.address?.line2,
+  address_city: profile.address?.city,
+  address_county: profile.address?.county,
+  address_postcode: profile.address?.postcode,
+  address_country: profile.address?.country,
+
   renter_type: profile.renterType,
   employment_status: profile.employmentStatus,
   monthly_income: profile.monthlyIncome,
