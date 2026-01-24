@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { Home, TrendingUp, Users, Heart, MessageSquare, Calendar, Eye, Clock, Edit, Trash2, LinkIcon, PlusCircle, AlertTriangle, CheckCircle2, UserPlus, Shield, FileText } from 'lucide-react';
+import { Home, TrendingUp, Users, Heart, MessageSquare, Calendar, Eye, Clock, Edit, Trash2, LinkIcon, PlusCircle, AlertTriangle, CheckCircle2, UserPlus, Shield, FileText, LayoutDashboard } from 'lucide-react';
 import { useAuthStore } from '../hooks/useAuthStore';
 import { useAppStore } from '../hooks';
 import type { LandlordProfile, Match, Issue, IssueStatus, Property } from '../types';
@@ -18,13 +18,14 @@ import { getIssuesForProperty, updateIssueStatus, saveProperty, getLandlordPrope
 interface VendorDashboardProps {
   onNavigateToMatches?: (matchId?: string) => void;
   onNavigateToAgencyMessages?: () => void;
+  onNavigateToDashboardBuilder?: () => void;
 }
 
 /**
  * Dashboard for landlords showing their rental property listing and interested renters
  * Different from renter swipe interface
  */
-export function VendorDashboard({ onNavigateToMatches, onNavigateToAgencyMessages }: VendorDashboardProps) {
+export function VendorDashboard({ onNavigateToMatches, onNavigateToAgencyMessages, onNavigateToDashboardBuilder }: VendorDashboardProps) {
   const { currentUser, updateProfile } = useAuthStore();
   const {
     allProperties,
@@ -324,9 +325,20 @@ export function VendorDashboard({ onNavigateToMatches, onNavigateToAgencyMessage
     <div className="min-h-screen bg-gradient-to-br from-secondary-50 via-white to-primary-50 pb-24">
       {/* Header */}
       <header className="bg-white border-b border-neutral-200 px-4 py-6">
-        <div className="max-w-4xl mx-auto">
-          <h1 className="text-3xl font-bold text-neutral-900">Landlord Dashboard</h1>
-          <p className="text-neutral-600 mt-1">Manage your rental listing and connect with renters</p>
+        <div className="max-w-4xl mx-auto flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-neutral-900">Landlord Dashboard</h1>
+            <p className="text-neutral-600 mt-1">Manage your rental listing and connect with renters</p>
+          </div>
+          {onNavigateToDashboardBuilder && (
+            <button
+              onClick={onNavigateToDashboardBuilder}
+              className="flex items-center gap-2 px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-xl font-medium transition-colors"
+            >
+              <LayoutDashboard size={20} />
+              <span className="hidden sm:inline">Custom Dashboard</span>
+            </button>
+          )}
         </div>
       </header>
 
@@ -724,6 +736,7 @@ export function VendorDashboard({ onNavigateToMatches, onNavigateToAgencyMessage
             </button>
           </div>
         )}
+
 
         {/* Tips Card */}
         <div className="bg-primary-50 border border-primary-200 rounded-2xl p-6">

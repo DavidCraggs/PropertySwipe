@@ -20,6 +20,7 @@ import { LandlordPropertiesPage } from './pages/LandlordPropertiesPage';
 import { AgencyPropertiesPage } from './pages/AgencyPropertiesPage';
 import { AdminLoginPage } from './pages/AdminLoginPage';
 import { AdminDashboard } from './pages/AdminDashboard';
+import { DashboardBuilderPage } from './pages/DashboardBuilderPage';
 import { AdminModeIndicator } from './components/AdminModeIndicator';
 import { BottomNav } from './components/organisms/BottomNav';
 import { ToastContainer } from './components/organisms/Toast';
@@ -30,7 +31,7 @@ import { useAppStore } from './hooks/useAppStore';
 import type { UserType, RenterProfile } from './types';
 
 type AppRoute = 'welcome' | 'role-select' | 'login' | 'renter-onboarding' | 'landlord-onboarding' | 'agency-onboarding' | 'admin-login' | 'admin-dashboard' | 'app';
-type AppPage = 'swipe' | 'matches' | 'profile' | 'tenancy' | 'agency-messages' | 'properties';
+type AppPage = 'swipe' | 'matches' | 'profile' | 'tenancy' | 'agency-messages' | 'properties' | 'dashboard-builder';
 
 /**
  * Main App component with authentication and routing
@@ -229,11 +230,12 @@ function App() {
                     {userType === 'renter' ? (
                       <SwipePage />
                     ) : userType === 'estate_agent' || userType === 'management_agency' ? (
-                      <AgencyDashboard />
+                      <AgencyDashboard onNavigateToDashboardBuilder={() => setCurrentPage('dashboard-builder')} />
                     ) : (
                       <LandlordDashboard
                           onNavigateToMatches={() => setCurrentPage('matches')}
                           onNavigateToAgencyMessages={() => setCurrentPage('agency-messages')}
+                          onNavigateToDashboardBuilder={() => setCurrentPage('dashboard-builder')}
                         />
                     )}
                   </motion.div>
@@ -304,6 +306,17 @@ function App() {
                     }
                   </motion.div>
                 )}
+                {currentPage === 'dashboard-builder' && (userType === 'landlord' || userType === 'estate_agent' || userType === 'management_agency') && (
+                  <motion.div
+                    key="dashboard-builder"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="h-[calc(100vh-64px)]"
+                  >
+                    <DashboardBuilderPage onBack={() => setCurrentPage('swipe')} />
+                  </motion.div>
+                )}
               </AnimatePresence>
               <BottomNav
                 currentPage={(['swipe', 'matches', 'profile', 'tenancy', 'properties'].includes(currentPage) ? currentPage : 'swipe') as 'swipe' | 'matches' | 'profile' | 'tenancy' | 'properties'}
@@ -328,6 +341,18 @@ function App() {
               {isAdminMode && <AdminModeIndicator />}
               <div className={isAdminMode ? 'pt-12' : ''}>
                 <LandlordDiscoverPage />
+              </div>
+            </>
+          ) : (
+            <WelcomeScreen onGetStarted={handleGetStarted} onLogin={() => setCurrentRoute('login')} />
+          )
+        } />
+        <Route path="/dashboard/builder" element={
+          isAuthenticated && (userType === 'landlord' || userType === 'estate_agent' || userType === 'management_agency' || isAdminMode) ? (
+            <>
+              {isAdminMode && <AdminModeIndicator />}
+              <div className={`h-screen ${isAdminMode ? 'pt-12' : ''}`}>
+                <DashboardBuilderPage onBack={() => window.history.back()} />
               </div>
             </>
           ) : (

@@ -1925,3 +1925,235 @@ export interface AgreementWizardState {
   isDirty: boolean;
   lastSavedAt?: Date;
 }
+
+// =====================================================
+// CUSTOM DASHBOARDS & REPORTS (Analytics System)
+// =====================================================
+
+/**
+ * Widget types available for dashboards
+ */
+export type WidgetType =
+  | 'stat_card'        // Single KPI value
+  | 'line_chart'       // Trend over time
+  | 'bar_chart'        // Comparisons
+  | 'pie_chart'        // Distribution
+  | 'table'            // Data grid
+  | 'property_list'    // Property summary cards
+  | 'issue_tracker'    // Open issues with status
+  | 'recent_activity'; // Activity feed timeline
+
+/**
+ * Data sources available for widgets
+ */
+export type DataSource =
+  | 'properties'
+  | 'matches'
+  | 'issues'
+  | 'ratings'
+  | 'payments'
+  | 'tenancies'
+  | 'sla_performance';
+
+/**
+ * Widget position and size in grid
+ */
+export interface WidgetPosition {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+/**
+ * Widget configuration options
+ */
+export interface WidgetConfig {
+  dataSource: DataSource;
+  metrics?: string[];
+  filters?: Record<string, unknown>;
+  dateRange?: 'week' | 'month' | 'quarter' | 'year' | 'custom';
+  customDateRange?: {
+    from: string;
+    to: string;
+  };
+  refreshInterval?: number; // seconds, 0 = manual only
+  chartOptions?: {
+    showLegend?: boolean;
+    colorScheme?: string;
+    stacked?: boolean;
+  };
+}
+
+/**
+ * Individual dashboard widget
+ */
+export interface DashboardWidget {
+  id: string;
+  dashboardId: string;
+  widgetType: WidgetType;
+  title: string;
+  config: WidgetConfig;
+  position: WidgetPosition;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+/**
+ * Dashboard permission level
+ */
+export type DashboardPermission = 'view' | 'edit' | 'admin';
+
+/**
+ * Dashboard sharing entry
+ */
+export interface DashboardShare {
+  id: string;
+  dashboardId: string;
+  userId: string;
+  permission: DashboardPermission;
+  sharedAt: Date;
+  sharedBy: string;
+}
+
+/**
+ * Pre-defined dashboard templates
+ */
+export type DashboardTemplateId =
+  | 'landlord_portfolio'
+  | 'agency_overview'
+  | 'financial_summary'
+  | 'maintenance_focus';
+
+/**
+ * Custom dashboard configuration
+ */
+export interface CustomDashboard {
+  id: string;
+  userId: string;
+  name: string;
+  description?: string;
+  isDefault: boolean;
+  templateId?: DashboardTemplateId;
+  layout: DashboardWidget[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+/**
+ * Saved report schedule type
+ */
+export type ReportScheduleType = 'daily' | 'weekly' | 'monthly' | 'quarterly';
+
+/**
+ * Report export format
+ */
+export type ReportExportFormat = 'pdf' | 'xlsx' | 'csv' | 'json';
+
+/**
+ * Saved report configuration
+ */
+export interface SavedReport {
+  id: string;
+  userId: string;
+  name: string;
+  reportType: string;
+  config: {
+    dateRange: 'week' | 'month' | 'quarter' | 'year' | 'custom';
+    customDateRange?: { from: string; to: string };
+    filters?: Record<string, unknown>;
+    format: ReportExportFormat;
+  };
+  schedule?: ReportScheduleType;
+  recipients?: string[];
+  lastRunAt?: Date;
+  nextRunAt?: Date;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+/**
+ * Metric goal for KPI tracking
+ */
+export interface MetricGoal {
+  id: string;
+  userId: string;
+  metric: string;
+  targetValue: number;
+  targetType: 'above' | 'below' | 'exact';
+  deadline?: Date;
+  achievedAt?: Date;
+  createdAt: Date;
+}
+
+/**
+ * Alert condition operators
+ */
+export type AlertCondition = 'gt' | 'lt' | 'eq' | 'gte' | 'lte';
+
+/**
+ * Notification channels
+ */
+export type NotificationChannel = 'email' | 'in_app';
+
+/**
+ * Metric alert configuration
+ */
+export interface MetricAlert {
+  id: string;
+  userId: string;
+  metric: string;
+  condition: AlertCondition;
+  threshold: number;
+  notifyVia: NotificationChannel[];
+  isActive: boolean;
+  lastTriggeredAt?: Date;
+  createdAt: Date;
+}
+
+/**
+ * Data point for chart widgets
+ */
+export interface ChartDataPoint {
+  label: string;
+  value: number;
+  date?: string;
+  category?: string;
+}
+
+/**
+ * Stat card data
+ */
+export interface StatCardData {
+  value: number;
+  previousValue?: number;
+  change?: number;
+  changePercent?: number;
+  trend?: 'up' | 'down' | 'neutral';
+  suffix?: string;
+  prefix?: string;
+}
+
+/**
+ * Activity feed item
+ */
+export interface ActivityFeedItem {
+  id: string;
+  type: 'match' | 'issue' | 'payment' | 'viewing' | 'contract';
+  title: string;
+  description: string;
+  timestamp: Date;
+  relatedId?: string;
+  userId?: string;
+}
+
+/**
+ * Widget data union type
+ */
+export type WidgetData =
+  | StatCardData
+  | ChartDataPoint[]
+  | ActivityFeedItem[]
+  | Property[]
+  | Issue[];

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Building2, Users, AlertTriangle, CheckCircle2, Clock, TrendingUp, Home, MessageSquare, Settings, Edit, Shield } from 'lucide-react';
+import { Building2, Users, AlertTriangle, CheckCircle2, Clock, TrendingUp, Home, MessageSquare, Settings, Edit, Shield, LayoutDashboard } from 'lucide-react';
 import { useAuthStore } from '../hooks/useAuthStore';
 import type { AgencyProfile, Issue, Property, Match } from '../types';
 import { AgencyLandlordManager } from '../components/organisms/AgencyLandlordManager';
@@ -13,11 +13,15 @@ import type { IssueStatus } from '../types';
 import { useAppStore } from '../hooks';
 import { useToast } from '../components/organisms/toastUtils';
 
+interface AgencyDashboardProps {
+  onNavigateToDashboardBuilder?: () => void;
+}
+
 /**
  * Phase 6: Dashboard for estate agents and management agencies
  * Shows portfolio overview, SLA performance, active issues, and tenant management
  */
-export function AgencyDashboard() {
+export function AgencyDashboard({ onNavigateToDashboardBuilder }: AgencyDashboardProps) {
   const { currentUser, userType, updateProfile } = useAuthStore();
   const { matches } = useAppStore();
   const toast = useToast();
@@ -172,11 +176,22 @@ export function AgencyDashboard() {
     <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-success-50 pb-24 overflow-x-hidden">
       {/* Header */}
       <header className="bg-white border-b border-neutral-200 px-3 sm:px-4 py-4 sm:py-6">
-        <div className="max-w-7xl mx-auto">
-          <h1 className="text-3xl font-bold text-neutral-900">{agencyProfile.companyName}</h1>
-          <p className="text-neutral-600 mt-1">
-            {agencyProfile.agencyType === 'estate_agent' ? 'Estate Agent' : 'Management Agency'} Dashboard
-          </p>
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-neutral-900">{agencyProfile.companyName}</h1>
+            <p className="text-neutral-600 mt-1">
+              {agencyProfile.agencyType === 'estate_agent' ? 'Estate Agent' : 'Management Agency'} Dashboard
+            </p>
+          </div>
+          {onNavigateToDashboardBuilder && (
+            <button
+              onClick={onNavigateToDashboardBuilder}
+              className="flex items-center gap-2 px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-xl font-medium transition-colors"
+            >
+              <LayoutDashboard size={20} />
+              <span className="hidden sm:inline">Custom Dashboard</span>
+            </button>
+          )}
         </div>
       </header>
 
@@ -246,6 +261,7 @@ export function AgencyDashboard() {
               </div>
               <AgencyIssuesDashboard issues={allIssues} limit={5} onViewIssue={setSelectedIssue} />
             </div>
+
           </div>
         )}
 
