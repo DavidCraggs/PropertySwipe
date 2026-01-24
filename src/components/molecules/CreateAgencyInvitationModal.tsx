@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { X } from 'lucide-react';
 import { Button } from '../atoms/Button';
+import { useToastStore } from '../organisms/toastUtils';
 import type { InvitationType } from '../../types';
 
 interface CreateAgencyInvitationModalProps {
@@ -30,6 +31,7 @@ export function CreateAgencyInvitationModal({
   agencyType,
   initiatedBy,
 }: CreateAgencyInvitationModalProps) {
+  const { addToast } = useToastStore();
   const [landlordId, setLandlordId] = useState('');
   const [agencyId, setAgencyId] = useState('');
   const [propertyId, setPropertyId] = useState('');
@@ -68,7 +70,11 @@ export function CreateAgencyInvitationModal({
       onClose();
     } catch (error) {
       console.error('[CreateAgencyInvitationModal] Error creating invitation:', error);
-      alert('Failed to create invitation. Please try again.');
+      addToast({
+        type: 'danger',
+        title: 'Error',
+        message: 'Failed to create invitation. Please try again.',
+      });
     } finally {
       setLoading(false);
     }

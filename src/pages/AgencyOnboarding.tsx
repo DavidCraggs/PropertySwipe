@@ -3,6 +3,7 @@ import { Building2, MapPin, Clock, Shield, Check } from 'lucide-react';
 import { Button } from '../components/atoms/Button';
 import { PasswordInput } from '../components/molecules/PasswordInput';
 import { LoginButton } from '../components/molecules/LoginButton';
+import { useToastStore } from '../components/organisms/toastUtils';
 import type { AgencyProfile, AgencyType, LocalArea } from '../types';
 import { useAuthStore } from '../hooks/useAuthStore';
 import { validatePassword, hashPassword } from '../utils/validation';
@@ -19,6 +20,7 @@ interface AgencyOnboardingProps {
  */
 export function AgencyOnboarding({ onComplete, onLogin, initialAgencyType = 'management_agency' }: AgencyOnboardingProps) {
   const { login } = useAuthStore();
+  const { addToast } = useToastStore();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [password, setPassword] = useState('');
   const [passwordError, setPasswordError] = useState('');
@@ -159,7 +161,11 @@ export function AgencyOnboarding({ onComplete, onLogin, initialAgencyType = 'man
       onComplete();
     } catch (error) {
       console.error('[AgencyOnboarding] Error creating profile:', error);
-      alert('Failed to create account. Please try again.');
+      addToast({
+        type: 'danger',
+        title: 'Registration Failed',
+        message: 'Failed to create account. Please try again.',
+      });
       setIsSubmitting(false);
     }
   };

@@ -11,6 +11,7 @@ import type { RenterProfile, RenterSituation, LocalArea, RenterType, EmploymentS
 import { useAuthStore } from '../hooks/useAuthStore';
 import { validatePassword, hashPassword } from '../utils/validation';
 import { redeemInviteCode } from '../lib/storage';
+import { useToastStore } from '../components/organisms/toastUtils';
 
 interface RenterOnboardingProps {
   onComplete: () => void;
@@ -36,6 +37,7 @@ interface RenterFormData {
  */
 export function RenterOnboarding({ onComplete, onLogin }: RenterOnboardingProps) {
   const { login } = useAuthStore();
+  const { addToast } = useToastStore();
   const [currentStep, setCurrentStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -94,7 +96,11 @@ export function RenterOnboarding({ onComplete, onLogin }: RenterOnboardingProps)
     if (step === 0) {
       // Validate email
       if (!email || !email.includes('@')) {
-        alert('Please enter a valid email address');
+        addToast({
+          type: 'warning',
+          title: 'Invalid Email',
+          message: 'Please enter a valid email address',
+        });
         return false;
       }
 
@@ -227,7 +233,11 @@ export function RenterOnboarding({ onComplete, onLogin }: RenterOnboardingProps)
       onComplete();
     } catch (error) {
       console.error('[RenterOnboarding] Error creating profile:', error);
-      alert('Failed to create account. Please try again.');
+      addToast({
+        type: 'danger',
+        title: 'Registration Failed',
+        message: 'Failed to create account. Please try again.',
+      });
       setIsSubmitting(false);
     }
   };

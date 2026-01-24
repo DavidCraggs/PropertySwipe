@@ -5,6 +5,7 @@ import { useAppStore } from '../hooks';
 import { useAuthStore } from '../hooks/useAuthStore';
 import { useToastStore } from '../components/organisms/toastUtils';
 import { RatingsSummaryCard } from '../components/molecules/RatingsSummaryCard';
+import { ConfirmationModal } from '../components/molecules/ConfirmationModal';
 import { EditProfileModal } from '../components/organisms/EditProfileModal';
 import { exportUserData, downloadExportData } from '../services/DataExportService';
 import { DataDeletionService } from '../services/DataDeletionService';
@@ -22,6 +23,8 @@ export const ProfilePage: React.FC = () => {
   const [isExportingData, setIsExportingData] = useState(false);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   // Load user ratings on mount
   useEffect(() => {
@@ -58,12 +61,14 @@ export const ProfilePage: React.FC = () => {
     window.location.reload();
   };
 
-  const handleReset = () => {
-    if (confirm('Are you sure you want to reset all data? This cannot be undone.')) {
-      resetApp();
-      logout();
-      window.location.reload();
-    }
+  const handleResetClick = () => {
+    setShowResetConfirm(true);
+  };
+
+  const handleResetConfirm = () => {
+    resetApp();
+    logout();
+    window.location.reload();
   };
 
   const handleExportData = async () => {
@@ -98,20 +103,14 @@ export const ProfilePage: React.FC = () => {
     }
   };
 
-  const handleRequestDeletion = async () => {
+  const handleDeleteClick = () => {
     if (!currentUser || !userType) return;
+    setShowDeleteConfirm(true);
+  };
 
-    const confirmed = confirm(
-      'Are you sure you want to request account deletion?\n\n' +
-      'This will:\n' +
-      '• Start a 30-day grace period before permanent deletion\n' +
-      '• Send you a verification email\n' +
-      '• Allow you to cancel within 30 days\n' +
-      '• Permanently delete all your data after 30 days\n\n' +
-      'This action complies with GDPR Article 17 (Right to Erasure).'
-    );
-
-    if (!confirmed) return;
+  const handleDeleteConfirm = async () => {
+    if (!currentUser || !userType) return;
+    setShowDeleteConfirm(false);
 
     try {
       setIsDeletingAccount(true);
@@ -429,7 +428,7 @@ export const ProfilePage: React.FC = () => {
                 variant="danger"
                 size="sm"
                 icon={<Trash2 size={16} />}
-                onClick={handleRequestDeletion}
+                onClick={handleDeleteClick}
                 disabled={isDeletingAccount}
               >
                 {isDeletingAccount ? 'Processing...' : 'Request Account Deletion'}
@@ -463,7 +462,7 @@ export const ProfilePage: React.FC = () => {
             Reset all your data including liked properties, matches, and preferences. This action
             cannot be undone.
           </p>
-          <Button variant="danger" size="md" onClick={handleReset}>
+          <Button variant="danger" size="md" onClick={handleResetClick}>
             Reset All Data
           </Button>
         </div>
@@ -473,6 +472,44 @@ export const ProfilePage: React.FC = () => {
       <EditProfileModal
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
+      />
+
+      {/* Reset Data Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showResetConfirm}
+        onClose={() => setShowResetConfirm(false)}
+        onConfirm={handleResetConfirm}
+        title="Reset All Data?"
+        message="Are you sure you want to reset all data? This will delete all your liked properties, matches, and preferences. This action cannot be undone."
+        confirmText="Reset All Data"
+        cancelText="Cancel"
+        variant="danger"
+      />
+
+      {/* Account Deletion Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={handleDeleteConfirm}
+        title="Request Account Deletion?"
+        message={
+          <div className="space-y-3">
+            <p>Are you sure you want to request account deletion?</p>
+            <p className="font-medium">This will:</p>
+            <ul className="list-disc list-inside space-y-1 text-neutral-600">
+              <li>Start a 30-day grace period before permanent deletion</li>
+              <li>Send you a verification email</li>
+              <li>Allow you to cancel within 30 days</li>
+              <li>Permanently delete all your data after 30 days</li>
+            </ul>
+            <p className="text-xs text-neutral-500 mt-2">
+              This action complies with GDPR Article 17 (Right to Erasure).
+            </p>
+          </div>
+        }
+        confirmText="Request Deletion"
+        cancelText="Cancel"
+        variant="danger"
       />
     </div>
   );

@@ -5,6 +5,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { X, Save, Loader2 } from 'lucide-react';
 import { Button } from '../atoms/Button';
+import { ConfirmationModal } from '../molecules/ConfirmationModal';
 import { RenterProfileForm } from './edit-profile/RenterProfileForm';
 import { LandlordProfileForm } from './edit-profile/LandlordProfileForm';
 import { AgencyProfileForm } from './edit-profile/AgencyProfileForm';
@@ -25,6 +26,7 @@ export function EditProfileModal({ isOpen, onClose }: EditProfileModalProps) {
   const [editedProfile, setEditedProfile] = useState<Partial<ProfileType> | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
+  const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
 
   // Initialize edited profile when modal opens
   useEffect(() => {
@@ -68,9 +70,16 @@ export function EditProfileModal({ isOpen, onClose }: EditProfileModalProps) {
 
   const handleClose = () => {
     if (hasChanges) {
-      const confirmed = confirm('You have unsaved changes. Are you sure you want to close?');
-      if (!confirmed) return;
+      setShowDiscardConfirm(true);
+      return;
     }
+    setEditedProfile(null);
+    setHasChanges(false);
+    onClose();
+  };
+
+  const handleDiscardConfirm = () => {
+    setShowDiscardConfirm(false);
     setEditedProfile(null);
     setHasChanges(false);
     onClose();
@@ -187,6 +196,18 @@ export function EditProfileModal({ isOpen, onClose }: EditProfileModalProps) {
           </Button>
         </div>
       </div>
+
+      {/* Discard Changes Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showDiscardConfirm}
+        onClose={() => setShowDiscardConfirm(false)}
+        onConfirm={handleDiscardConfirm}
+        title="Discard Changes?"
+        message="You have unsaved changes. Are you sure you want to close without saving?"
+        confirmText="Discard"
+        cancelText="Keep Editing"
+        variant="warning"
+      />
     </>
   );
 }

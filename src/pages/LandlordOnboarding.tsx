@@ -10,6 +10,7 @@ import type { LandlordProfile, PropertyType, FurnishingType, RenterType, Propert
 import { useAuthStore } from '../hooks/useAuthStore';
 import { useAppStore } from '../hooks';
 import { extractPostcode, comparePostcodes, isValidPropertyListingUrl, validatePassword, hashPassword } from '../utils/validation';
+import { useToastStore } from '../components/organisms/toastUtils';
 
 interface LandlordOnboardingProps {
   onComplete: () => void;
@@ -43,6 +44,7 @@ interface LandlordFormData {
 export function LandlordOnboarding({ onComplete, onLogin }: LandlordOnboardingProps) {
   const { login } = useAuthStore();
   const { allProperties, linkPropertyToLandlord } = useAppStore();
+  const { addToast } = useToastStore();
   const [currentStep, setCurrentStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -120,7 +122,11 @@ export function LandlordOnboarding({ onComplete, onLogin }: LandlordOnboardingPr
     if (step === 0) {
       // Validate email
       if (!email || !email.includes('@')) {
-        alert('Please enter a valid email address');
+        addToast({
+          type: 'warning',
+          title: 'Invalid Email',
+          message: 'Please enter a valid email address',
+        });
         return false;
       }
 
@@ -304,7 +310,11 @@ export function LandlordOnboarding({ onComplete, onLogin }: LandlordOnboardingPr
       onComplete();
     } catch (error) {
       console.error('[LandlordOnboarding] Error creating profile:', error);
-      alert('Failed to create account. Please try again.');
+      addToast({
+        type: 'danger',
+        title: 'Registration Failed',
+        message: 'Failed to create account. Please try again.',
+      });
       setIsSubmitting(false);
     }
   };

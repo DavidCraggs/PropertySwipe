@@ -13,6 +13,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { AgreementStatusBadge } from '../molecules/AgreementStatusBadge';
+import { ConfirmationModal } from '../molecules/ConfirmationModal';
 import { getDocumentUrl, downloadDocument, cancelAgreement } from '../../lib/agreementService';
 import { useToastStore } from './toastUtils';
 import type { TenancyAgreement } from '../../types';
@@ -37,6 +38,7 @@ export function AgreementCard({
   const { addToast } = useToastStore();
   const [showMenu, setShowMenu] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
 
   // Find current user's signatory status
   const currentSignatory = agreement.signatories?.find((s) => s.userId === currentUserId);
@@ -46,9 +48,9 @@ export function AgreementCard({
   const totalRequired = agreement.signatories?.filter((s) => s.isRequired).length ?? 0;
   const signedCount = agreement.signatories?.filter((s) => s.hasSigned).length ?? 0;
 
-  // Check if user can sign
+  // Check if user can sign - any signatory who hasn't signed yet can sign
   const canSign =
-    userType === 'renter' &&
+    currentSignatory &&
     !hasUserSigned &&
     agreement.status !== 'expired' &&
     agreement.status !== 'cancelled' &&
@@ -104,11 +106,12 @@ export function AgreementCard({
     }
   };
 
-  const handleCancel = async () => {
-    if (!confirm('Are you sure you want to cancel this agreement? This cannot be undone.')) {
-      return;
-    }
+  const handleCancelClick = () => {
+    setShowCancelConfirm(true);
+    setShowMenu(false);
+  };
 
+  const handleCancelConfirm = async () => {
     try {
       await cancelAgreement(agreement.id, currentUserId, 'Cancelled by user');
       addToast({
@@ -125,7 +128,7 @@ export function AgreementCard({
         message: error instanceof Error ? error.message : 'Could not cancel the agreement.',
       });
     }
-    setShowMenu(false);
+    setShowCancelConfirm(false);
   };
 
   const formatDate = (date: Date) => {
@@ -185,7 +188,7 @@ export function AgreementCard({
                   />
                   <div className="absolute right-0 top-full mt-1 w-40 bg-white border border-neutral-200 rounded-lg shadow-lg z-20 py-1">
                     <button
-                      onClick={handleCancel}
+                      onClick={handleCancelClick}
                       className="w-full px-3 py-2 text-left text-sm text-danger-600 hover:bg-danger-50 flex items-center gap-2"
                     >
                       <Trash2 size={14} />
@@ -296,6 +299,18 @@ export function AgreementCard({
           </button>
         )}
       </div>
+
+      {/* Cancel Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showCancelConfirm}
+        onClose={() => setShowCancelConfirm(false)}
+        onConfirm={handleCancelConfirm}
+        title="Cancel Agreement"
+        message="Are you sure you want to cancel this agreement? This cannot be undone."
+        confirmText="Cancel Agreement"
+        cancelText="Keep Agreement"
+        variant="danger"
+      />
     </motion.div>
   );
 }

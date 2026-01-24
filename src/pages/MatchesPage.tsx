@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Heart, MessageCircle, MapPin, Calendar, Clock, CheckCircle, Star, AlertTriangle, Users, ArrowRight } from 'lucide-react';
 import { useAppStore, useAuthStore } from '../hooks';
 import { useToastStore } from '../components/organisms/toastUtils';
+import { ConfirmationModal } from '../components/molecules/ConfirmationModal';
 import { formatRelativeTime } from '../utils/formatters';
 import { Badge } from '../components/atoms/Badge';
 import { ViewingsList } from '../components/organisms/ViewingsList';
@@ -57,6 +58,12 @@ export const MatchesPage: React.FC = () => {
   const [unreadCounts, setUnreadCounts] = useState<{ landlord: number; agency: number }>({ landlord: 0, agency: 0 });
   const [isLoadingConversations, setIsLoadingConversations] = useState(false);
   const messageInputRef = useRef<HTMLInputElement>(null); // Moved to top level to follow Rules of Hooks
+
+  // Pet request modal state
+  const [petRequestMatchId, setPetRequestMatchId] = useState<string | null>(null);
+
+  // Agreements section collapsed state
+  const [agreementsExpanded, setAgreementsExpanded] = useState(false);
 
 
   // State to trigger refetch
@@ -894,38 +901,48 @@ export const MatchesPage: React.FC = () => {
                 return null;
               })()}
 
-              {/* Agreements Section - Compact view in conversation */}
+              {/* Agreements Section - Collapsible view in conversation */}
               {(match.applicationStatus === 'offer_made' ||
                 match.applicationStatus === 'offer_accepted' ||
                 match.applicationStatus === 'tenancy_signed' ||
                 match.tenancyStatus === 'active') && currentUser && (
-                <div className="border-t border-neutral-200 p-4 bg-neutral-50">
-                  <div className="flex items-center justify-between mb-3">
-                    <h4 className="text-sm font-medium text-neutral-700">Agreements</h4>
+                <div className="border-t border-neutral-200 bg-neutral-50">
+                  <button
+                    onClick={() => setAgreementsExpanded(!agreementsExpanded)}
+                    className="w-full p-3 flex items-center justify-between hover:bg-neutral-100 transition-colors"
+                  >
+                    <h4 className="text-sm font-medium text-neutral-700">
+                      📄 Agreements {agreementsExpanded ? '▼' : '▶'}
+                    </h4>
                     {(userType === 'landlord' || userType === 'estate_agent' || userType === 'management_agency') && (
-                      <button
-                        onClick={() => {
+                      <span
+                        onClick={(e) => {
+                          e.stopPropagation();
                           setAgreementModalMatch(match);
                           setShowUploadAgreementModal(true);
                         }}
                         className="text-xs text-primary-600 hover:text-primary-700 font-medium"
                       >
                         + Upload New
-                      </button>
+                      </span>
                     )}
-                  </div>
-                  <AgreementsList
-                    key={agreementsRefreshKey}
-                    matchId={match.id}
-                    userId={currentUser.id}
-                    userType={userType as 'landlord' | 'agency' | 'renter'}
-                    showUploadButton={false}
-                    compact={true}
-                    onSignAgreement={(agreement) => {
-                      setAgreementToSign(agreement);
-                      setShowSignAgreementModal(true);
-                    }}
-                  />
+                  </button>
+                  {agreementsExpanded && (
+                    <div className="px-4 pb-4 max-h-48 overflow-y-auto">
+                      <AgreementsList
+                        key={agreementsRefreshKey}
+                        matchId={match.id}
+                        userId={currentUser.id}
+                        userType={userType as 'landlord' | 'agency' | 'renter'}
+                        showUploadButton={false}
+                        compact={true}
+                        onSignAgreement={(agreement) => {
+                          setAgreementToSign(agreement);
+                          setShowSignAgreementModal(true);
+                        }}
+                      />
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -935,12 +952,7 @@ export const MatchesPage: React.FC = () => {
                   {/* Pet Request Button (RRA 2025) */}
                   {userType === 'renter' && match.petRequestStatus === 'none' && (
                     <button
-                      onClick={() => {
-                        const details = prompt('Please describe your pet(s) (Type, Breed, Age):');
-                        if (details) {
-                          useAppStore.getState().requestPet(match.id, details);
-                        }
-                      }}
+                      onClick={() => setPetRequestMatchId(match.id)}
                       className="flex items-center gap-1 px-3 py-1.5 bg-secondary-100 text-secondary-700 rounded-full text-xs font-medium hover:bg-secondary-200 transition-colors whitespace-nowrap"
                     >
                       🐾 Request Pet
@@ -1461,6 +1473,37 @@ export const MatchesPage: React.FC = () => {
           }}
         />
       )}
+
+      {/* Pet Request Modal */}
+      <ConfirmationModal
+        isOpen={!!petRequestMatchId}
+        onClose={() => setPetRequestMatchId(null)}
+        onConfirm={(details) => {
+          if (petRequestMatchId && details) {
+            useAppStore.getState().requestPet(petRequestMatchId, details);
+            addToast({
+              type: 'success',
+              title: 'Pet Request Sent',
+              message: 'Your landlord will review your pet request.',
+            });
+          }
+          setPetRequestMatchId(null);
+        }}
+        title="Request to Keep a Pet"
+        message={
+          <div className="space-y-2">
+            <p>Under the Renters' Rights Act 2025, landlords cannot unreasonably refuse pet requests.</p>
+            <p className="text-sm text-neutral-600">Please provide details about your pet(s) so the landlord can make an informed decision.</p>
+          </div>
+        }
+        confirmText="Submit Request"
+        cancelText="Cancel"
+        variant="info"
+        inputLabel="Pet details"
+        inputPlaceholder="e.g., 1 cat, British Shorthair, 3 years old, indoor only..."
+        inputRequired={true}
+        inputMultiline={true}
+      />
     </div>
   );
 };

@@ -26,6 +26,7 @@ import {
 } from '../utils/constants';
 import { filterProperties } from '../utils/filters';
 import { validateMessage, getValidationErrorMessage } from '../utils/messageValidation';
+import { useToastStore } from '../components/organisms/toastUtils';
 import {
   getAllProperties,
   saveProperty,
@@ -152,9 +153,9 @@ interface AppState {
   };
 
   // RRA 2025: Compliance Actions
-  requestPet: (matchId: string, petDetails: string) => void;
-  reviewPetRequest: (matchId: string, status: 'approved' | 'refused', refusalReason?: string) => void;
-  verifyRightToRent: (matchId: string) => void;
+  requestPet: (matchId: string, petDetails: string) => Promise<void>;
+  reviewPetRequest: (matchId: string, status: 'approved' | 'refused', refusalReason?: string) => Promise<void>;
+  verifyRightToRent: (matchId: string) => Promise<void>;
 
   // Two-Sided Matching (Phase 3)
   createInterest: (propertyId: string, renterId: string, renterProfile: RenterProfile) => Promise<Interest | null>;
@@ -431,8 +432,12 @@ export const useAppStore = create<AppState>()(
         if (!validationResult.isValid) {
           const errorMsg = getValidationErrorMessage(validationResult);
           console.error('[RRA 2025 Violation] Message blocked:', errorMsg);
-          // In a real app, this would show a toast/alert to the user
-          alert(`MESSAGE BLOCKED\n\n${errorMsg}`);
+          useToastStore.getState().addToast({
+            type: 'danger',
+            title: 'Message Blocked',
+            message: errorMsg,
+            duration: 6000,
+          });
           return; // Block the message from being sent
         }
 
@@ -1178,18 +1183,35 @@ export const useAppStore = create<AppState>()(
       // RRA 2025: COMPLIANCE ACTIONS
       // ========================================
 
-      requestPet: (matchId, petDetails) => {
+      requestPet: async (matchId, petDetails) => {
+        // Persist to Supabase first
+        try {
+          const { supabase } = await import('../lib/supabase');
+          const { error } = await supabase
+            .from('matches')
+            .update({ pet_request_status: 'requested' })
+            .eq('id', matchId);
+
+          if (error) {
+            console.error('[useAppStore] Failed to persist pet request:', error);
+            return;
+          }
+        } catch (err) {
+          console.error('[useAppStore] Error updating pet request:', err);
+          return;
+        }
+
+        // Update local state
         const { matches } = get();
         const matchIndex = matches.findIndex((m) => m.id === matchId);
-        if (matchIndex === -1) return;
-
-        const updatedMatches = [...matches];
-        updatedMatches[matchIndex] = {
-          ...updatedMatches[matchIndex],
-          petRequestStatus: 'requested',
-        };
-
-        set({ matches: updatedMatches });
+        if (matchIndex !== -1) {
+          const updatedMatches = [...matches];
+          updatedMatches[matchIndex] = {
+            ...updatedMatches[matchIndex],
+            petRequestStatus: 'requested',
+          };
+          set({ matches: updatedMatches });
+        }
 
         // Send automated message
         get().sendMessage(
@@ -1198,19 +1220,39 @@ export const useAppStore = create<AppState>()(
         );
       },
 
-      reviewPetRequest: (matchId, status, refusalReason) => {
+      reviewPetRequest: async (matchId, status, refusalReason) => {
+        // Persist to Supabase first
+        try {
+          const { supabase } = await import('../lib/supabase');
+          const { error } = await supabase
+            .from('matches')
+            .update({
+              pet_request_status: status,
+              pet_request_refusal_reason: refusalReason || null,
+            })
+            .eq('id', matchId);
+
+          if (error) {
+            console.error('[useAppStore] Failed to persist pet review:', error);
+            return;
+          }
+        } catch (err) {
+          console.error('[useAppStore] Error updating pet review:', err);
+          return;
+        }
+
+        // Update local state
         const { matches } = get();
         const matchIndex = matches.findIndex((m) => m.id === matchId);
-        if (matchIndex === -1) return;
-
-        const updatedMatches = [...matches];
-        updatedMatches[matchIndex] = {
-          ...updatedMatches[matchIndex],
-          petRequestStatus: status,
-          petRefusalReason: refusalReason,
-        };
-
-        set({ matches: updatedMatches });
+        if (matchIndex !== -1) {
+          const updatedMatches = [...matches];
+          updatedMatches[matchIndex] = {
+            ...updatedMatches[matchIndex],
+            petRequestStatus: status,
+            petRefusalReason: refusalReason,
+          };
+          set({ matches: updatedMatches });
+        }
 
         // Send automated message
         const message = status === 'approved'
@@ -1220,18 +1262,37 @@ export const useAppStore = create<AppState>()(
         get().sendMessage(matchId, message);
       },
 
-      verifyRightToRent: (matchId) => {
+      verifyRightToRent: async (matchId) => {
+        const verifiedAt = new Date();
+
+        // Persist to Supabase first
+        try {
+          const { supabase } = await import('../lib/supabase');
+          const { error } = await supabase
+            .from('matches')
+            .update({ right_to_rent_verified_at: verifiedAt.toISOString() })
+            .eq('id', matchId);
+
+          if (error) {
+            console.error('[useAppStore] Failed to persist Right to Rent verification:', error);
+            return;
+          }
+        } catch (err) {
+          console.error('[useAppStore] Error updating Right to Rent:', err);
+          return;
+        }
+
+        // Update local state
         const { matches } = get();
         const matchIndex = matches.findIndex((m) => m.id === matchId);
-        if (matchIndex === -1) return;
-
-        const updatedMatches = [...matches];
-        updatedMatches[matchIndex] = {
-          ...updatedMatches[matchIndex],
-          rightToRentVerifiedAt: new Date(),
-        };
-
-        set({ matches: updatedMatches });
+        if (matchIndex !== -1) {
+          const updatedMatches = [...matches];
+          updatedMatches[matchIndex] = {
+            ...updatedMatches[matchIndex],
+            rightToRentVerifiedAt: verifiedAt,
+          };
+          set({ matches: updatedMatches });
+        }
       },
 
       // ========================================

@@ -2217,23 +2217,38 @@ export const createIssue = async (
 };
 
 /**
- * Get all issues for a match (via propertyId lookup)
- * Note: Issues are linked to properties, not matches directly
+ * Get all issues for a match (via property_id and renter_id lookup)
+ * Note: Issues table uses property_id and renter_id, not match_id
  */
 export const getIssuesForMatch = async (matchId: string): Promise<Issue[]> => {
   if (isSupabaseConfigured()) {
-    // In DB, issues may have a match_id column for legacy compatibility
+    // First get the match to find property_id and renter_id
+    const { data: matchData, error: matchError } = await supabase
+      .from('matches')
+      .select('property_id, renter_id')
+      .eq('id', matchId)
+      .single();
+
+    if (matchError || !matchData) {
+      console.error('[getIssuesForMatch] Failed to get match:', matchError);
+      return [];
+    }
+
+    // Query issues by property_id and renter_id
     const { data, error } = await supabase
       .from('issues')
       .select('*')
-      .eq('match_id', matchId)
+      .eq('property_id', matchData.property_id)
+      .eq('renter_id', matchData.renter_id)
       .order('created_at', { ascending: false });
 
-    if (error) throw error;
-    return (data || []) as Issue[];
+    if (error) {
+      console.error('[getIssuesForMatch] Failed to get issues:', error);
+      return [];
+    }
+    return (data || []).map(mapDbIssueToIssue);
   } else {
     // In localStorage, filter by propertyId since matchId isn't on Issue type
-    // This is a compatibility layer - in practice, lookup by propertyId
     const stored = localStorage.getItem('issues');
     const issues: Issue[] = stored ? JSON.parse(stored) : [];
     // Cast to access potential matchId from legacy data

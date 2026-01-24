@@ -1164,6 +1164,144 @@ export interface AgencyPropertyLink {
 }
 
 // =====================================================
+// MANAGEMENT CONTRACT TYPES (Landlord-Agency Contracts)
+// =====================================================
+
+/**
+ * Service level for agency management contracts
+ * - let_only: Tenant finding only (one-time fee)
+ * - rent_collection: Tenant finding + rent collection
+ * - full_management: Complete property management service
+ */
+export type ManagementServiceLevel = 'let_only' | 'rent_collection' | 'full_management';
+
+/**
+ * Contract renewal options
+ */
+export type ContractRenewalType = 'auto' | 'manual' | 'none';
+
+/**
+ * Management contract status lifecycle
+ */
+export type ManagementContractStatus =
+  | 'draft'
+  | 'pending_landlord'
+  | 'pending_agency'
+  | 'active'
+  | 'terminated'
+  | 'expired';
+
+/**
+ * Service inclusions for management contracts
+ * Defines what services are included at each level
+ */
+export interface ManagementServiceInclusions {
+  tenantFinding: boolean;
+  referenceChecking: boolean;
+  rentCollection: boolean;
+  propertyInspections: boolean;
+  maintenanceCoordination: boolean;
+  tenantCommunication: boolean;
+  legalCompliance: boolean; // Gas certs, EPC, deposit protection
+  evictionHandling: boolean;
+}
+
+/**
+ * Payment terms for management contracts
+ */
+export interface ManagementPaymentTerms {
+  paymentFrequency: 'monthly' | 'quarterly';
+  paymentMethod: 'bank_transfer' | 'standing_order';
+  invoiceDueWithinDays: number;
+}
+
+/**
+ * SLA commitments for management contracts
+ */
+export interface ManagementSlaTerms {
+  emergencyResponseHours: number;
+  routineResponseDays: number;
+  rentRemittanceDays: number; // Days after collection to remit to landlord
+  inspectionFrequency: 'monthly' | 'quarterly' | 'biannually';
+}
+
+/**
+ * Management contract terms
+ * All negotiable terms between landlord and agency
+ */
+export interface ManagementContractTerms {
+  serviceLevel: ManagementServiceLevel;
+  commissionRate: number; // Percentage (e.g., 10 = 10%)
+  letOnlyFee?: number; // One-time fee for let-only service
+  contractLengthMonths: number;
+  noticePeriodDays: number;
+  renewalType: ContractRenewalType;
+  includedServices: ManagementServiceInclusions;
+  paymentTerms: ManagementPaymentTerms;
+  slaTerms: ManagementSlaTerms;
+}
+
+/**
+ * Management Contract
+ * Represents a formal agreement between a landlord and agency
+ * for property management services
+ */
+export interface ManagementContract {
+  id: string;
+  landlordId: string;
+  agencyId: string;
+  propertyIds: string[]; // Properties covered by this contract
+  terms: ManagementContractTerms;
+  status: ManagementContractStatus;
+
+  // Signatures
+  signedByLandlordAt?: Date;
+  signedByAgencyAt?: Date;
+
+  // Contract dates
+  effectiveFrom?: Date;
+  effectiveUntil?: Date;
+
+  // Termination
+  terminatedAt?: Date;
+  terminationReason?: string;
+
+  // Audit
+  createdAt: Date;
+  updatedAt: Date;
+  createdBy: string;
+
+  // PDF generation
+  generatedPdfPath?: string;
+  generatedAt?: Date;
+
+  // Joined data
+  landlord?: LandlordProfile;
+  agency?: AgencyProfile;
+  properties?: Property[];
+}
+
+/**
+ * Management contract wizard form state
+ */
+export interface ManagementContractWizardState {
+  currentStep: number;
+  selectedAgencyId?: string;
+  selectedPropertyIds: string[];
+  serviceLevel: ManagementServiceLevel;
+  commissionRate: number;
+  letOnlyFee?: number;
+  contractLengthMonths: number;
+  noticePeriodDays: number;
+  renewalType: ContractRenewalType;
+  includedServices: ManagementServiceInclusions;
+  paymentTerms: ManagementPaymentTerms;
+  slaTerms: ManagementSlaTerms;
+  isDirty: boolean;
+  lastSavedAt?: Date;
+}
+
+// =====================================================
 // LEGACY TYPES (For Migration - Will be removed)
 // =====================================================
 

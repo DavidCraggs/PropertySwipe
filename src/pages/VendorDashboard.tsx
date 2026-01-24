@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { Home, TrendingUp, Users, Heart, MessageSquare, Calendar, Eye, Clock, Edit, Trash2, LinkIcon, PlusCircle, AlertTriangle, CheckCircle2, UserPlus, Shield } from 'lucide-react';
+import { Home, TrendingUp, Users, Heart, MessageSquare, Calendar, Eye, Clock, Edit, Trash2, LinkIcon, PlusCircle, AlertTriangle, CheckCircle2, UserPlus, Shield, FileText } from 'lucide-react';
 import { useAuthStore } from '../hooks/useAuthStore';
 import { useAppStore } from '../hooks';
 import type { LandlordProfile, Match, Issue, IssueStatus, Property } from '../types';
@@ -10,8 +10,10 @@ import { PropertyImage } from '../components/atoms/PropertyImage';
 import { AgencyLinkManager } from '../components/organisms/AgencyLinkManager';
 import { CreateRenterInviteModal } from '../components/organisms/CreateRenterInviteModal';
 import { IssueDetailsModal } from '../components/organisms/IssueDetailsModal';
+import { ConfirmationModal } from '../components/molecules/ConfirmationModal';
+import { ManagementContractWizard } from '../components/organisms/management-contract-creator';
 import { useToastStore } from '../components/organisms/toastUtils';
-import { getIssuesForMatch, updateIssueStatus, saveProperty, getLandlordProperties } from '../lib/storage';
+import { getIssuesForProperty, updateIssueStatus, saveProperty, getLandlordProperties, getAgencyLinksForLandlord } from '../lib/storage';
 
 interface VendorDashboardProps {
   onNavigateToMatches?: (matchId?: string) => void;
@@ -25,7 +27,6 @@ interface VendorDashboardProps {
 export function VendorDashboard({ onNavigateToMatches, onNavigateToAgencyMessages }: VendorDashboardProps) {
   const { currentUser, updateProfile } = useAuthStore();
   const {
-    matches,
     allProperties,
     confirmViewing,
     linkPropertyToLandlord,
@@ -44,6 +45,15 @@ export function VendorDashboard({ onNavigateToMatches, onNavigateToAgencyMessage
   const [allIssues, setAllIssues] = useState<Issue[]>([]);
   const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null);
   const [landlordProperties, setLandlordProperties] = useState<Property[]>([]);
+  const [matches, setMatches] = useState<Match[]>([]);
+  // Confirmation modal states
+  const [petApprovalMatch, setPetApprovalMatch] = useState<Match | null>(null);
+  const [petRefusalMatch, setPetRefusalMatch] = useState<Match | null>(null);
+  const [rightToRentMatch, setRightToRentMatch] = useState<Match | null>(null);
+  // Management contract wizard
+  const [showContractWizard, setShowContractWizard] = useState(false);
+  // Track if landlord has any active agency links (for showing messages button)
+  const [hasAgencyLinks, setHasAgencyLinks] = useState(false);
 
   const landlordProfile = currentUser as LandlordProfile;
 
@@ -59,6 +69,128 @@ export function VendorDashboard({ onNavigateToMatches, onNavigateToAgencyMessage
       }
     };
     fetchProperties();
+  }, [landlordProfile?.id]);
+
+  // Check if landlord has any active agency links (for showing messages button)
+  useEffect(() => {
+    const checkAgencyLinks = async () => {
+      if (!landlordProfile?.id) return;
+      try {
+        const links = await getAgencyLinksForLandlord(landlordProfile.id);
+        const activeLinks = links.filter(link => link.isActive);
+        setHasAgencyLinks(activeLinks.length > 0);
+      } catch (error) {
+        console.error('[VendorDashboard] Failed to check agency links:', error);
+      }
+    };
+    checkAgencyLinks();
+  }, [landlordProfile?.id]);
+
+  // Fetch matches for this landlord from Supabase
+  useEffect(() => {
+    const fetchMatches = async () => {
+      if (!landlordProfile?.id) return;
+      try {
+        const { supabase } = await import('../lib/supabase');
+        const { data: matchData, error } = await supabase
+          .from('matches')
+          .select(`
+            *,
+            property:properties(*)
+          `)
+          .eq('landlord_id', landlordProfile.id);
+
+        if (error) {
+          console.error('[VendorDashboard] Error fetching matches:', error);
+          return;
+        }
+
+        if (matchData && matchData.length > 0) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const transformedMatches = matchData
+            .filter((m: any) => m.property)
+            .map((m: any) => {
+              const p = m.property;
+              const matchedAt = m.matched_at ? new Date(m.matched_at) : new Date();
+              return {
+                id: m.id,
+                renterId: m.renter_id,
+                landlordId: m.landlord_id,
+                landlordName: m.landlord_name || landlordProfile?.names || 'Landlord',
+                renterName: m.renter_name || 'Renter',
+                propertyId: m.property_id,
+                status: m.status || 'pending',
+                tenancyStatus: m.tenancy_status || 'prospective',
+                applicationStatus: m.application_status || 'pending',
+                matchedAt,
+                timestamp: matchedAt.toISOString(),
+                hasViewingScheduled: m.has_viewing_scheduled || false,
+                confirmedViewingDate: m.confirmed_viewing_date ? new Date(m.confirmed_viewing_date) : undefined,
+                viewingPreference: m.viewing_preference,
+                messages: m.messages || [],
+                unreadCount: m.unread_count || 0,
+                lastMessageAt: m.last_message_at,
+                activeIssueIds: m.active_issue_ids || [],
+                canRate: m.can_rate ?? true,
+                hasRatedLandlord: m.has_rated_landlord ?? false,
+                hasRatedRenter: m.has_rated_renter ?? false,
+                hasRatedProperty: m.has_rated_property ?? false,
+                hasRenterRated: m.has_renter_rated ?? false,
+                hasLandlordRated: m.has_landlord_rated ?? false,
+                petRequestStatus: m.pet_request_status,
+                petRequestRefusalReason: m.pet_request_refusal_reason,
+                rightToRentVerifiedAt: m.right_to_rent_verified_at ? new Date(m.right_to_rent_verified_at) : undefined,
+                isUnderEvictionProceedings: m.is_under_eviction_proceedings ?? false,
+                rentArrears: m.rent_arrears ?? 0,
+                monthlyRentAmount: m.monthly_rent_amount,
+                tenancyStartDate: m.tenancy_start_date ? new Date(m.tenancy_start_date) : undefined,
+                totalIssuesRaised: m.total_issues_raised ?? 0,
+                totalIssuesResolved: m.total_issues_resolved ?? 0,
+                property: p ? {
+                  id: p.id,
+                  address: {
+                    street: p.address_street || '',
+                    city: p.address_city || '',
+                    postcode: p.address_postcode || '',
+                  },
+                  rentPcm: p.rent_pcm || 0,
+                  deposit: p.deposit || 0,
+                  bedrooms: p.bedrooms || 0,
+                  bathrooms: p.bathrooms || 0,
+                  images: p.images || [],
+                  propertyType: p.property_type || 'Flat',
+                  furnishing: p.furnishing || 'Unfurnished',
+                  availableFrom: p.available_from ? new Date(p.available_from) : new Date(),
+                  features: p.features || [],
+                  description: p.description || '',
+                  landlordId: p.landlord_id,
+                  maxRentInAdvance: p.max_rent_in_advance ?? 2,
+                  epcRating: p.epc_rating || 'C',
+                  yearBuilt: p.year_built,
+                  tenancyType: p.tenancy_type || 'periodic',
+                  petPolicy: p.pet_policy || 'negotiable',
+                  petsAllowed: p.pets_allowed ?? true,
+                  smokingAllowed: p.smoking_allowed ?? false,
+                  dssAccepted: p.dss_accepted ?? true,
+                  studentFriendly: p.student_friendly ?? true,
+                  minTenancyMonths: p.min_tenancy_months,
+                  councilTaxBand: p.council_tax_band,
+                  floorArea: p.floor_area,
+                  parkingSpaces: p.parking_spaces ?? 0,
+                } as unknown as Property : {} as Property,
+              } as unknown as Match;
+            });
+
+          setMatches(transformedMatches);
+          console.log('[VendorDashboard] Loaded matches:', transformedMatches.length);
+        } else {
+          setMatches([]);
+        }
+      } catch (error) {
+        console.error('[VendorDashboard] Failed to fetch matches:', error);
+      }
+    };
+    fetchMatches();
   }, [landlordProfile?.id]);
 
   // Handler to navigate to matches page with a specific match selected
@@ -101,15 +233,15 @@ export function VendorDashboard({ onNavigateToMatches, onNavigateToAgencyMessage
   const activeTenancies = allLandlordMatches.filter((m) => m.tenancyStatus === 'active');
   const renterInterests = allLandlordMatches.filter((m) => m.tenancyStatus === 'prospective');
 
-  // Fetch issues for active tenancies
+  // Fetch issues for all landlord properties
   useEffect(() => {
     const fetchIssues = async () => {
-      if (activeTenancies.length === 0) {
+      if (landlordProperties.length === 0) {
         setAllIssues([]);
         return;
       }
       try {
-        const issuesPromises = activeTenancies.map(t => getIssuesForMatch(t.id));
+        const issuesPromises = landlordProperties.map(p => getIssuesForProperty(p.id));
         const issuesArrays = await Promise.all(issuesPromises);
         setAllIssues(issuesArrays.flat());
       } catch (error) {
@@ -117,7 +249,7 @@ export function VendorDashboard({ onNavigateToMatches, onNavigateToAgencyMessage
       }
     };
     fetchIssues();
-  }, [activeTenancies.length, landlordProfile?.id]);
+  }, [landlordProperties.length, landlordProfile?.id]);
 
   // Handler for updating issue status
   const handleIssueStatusUpdate = async (issueId: string, newStatus: IssueStatus) => {
@@ -175,6 +307,7 @@ export function VendorDashboard({ onNavigateToMatches, onNavigateToAgencyMessage
     landlordProperty?.landlordCanEditWhenManaged;
 
   // FIX BUG #12: Calculate real stats from match data instead of random numbers
+  const openIssues = allIssues.filter(i => i.status !== 'resolved' && i.status !== 'closed');
   const stats = {
     // Profile views = interested renters (each renter "viewed" the property by swiping right)
     totalViews: renterInterests.length,
@@ -184,7 +317,7 @@ export function VendorDashboard({ onNavigateToMatches, onNavigateToAgencyMessage
     viewingRequests: renterInterests.filter((m) => m.viewingPreference && !m.hasViewingScheduled).length,
     // Phase 4: Add active tenancy stats
     activeTenants: activeTenancies.length,
-    totalIssuesOpen: activeTenancies.reduce((acc, m) => acc + (m.activeIssueIds?.length || 0), 0),
+    totalIssuesOpen: openIssues.length,
   };
 
   return (
@@ -209,7 +342,7 @@ export function VendorDashboard({ onNavigateToMatches, onNavigateToAgencyMessage
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-6 gap-4">
           <div className="bg-white rounded-xl shadow-sm p-5">
             <div className="flex items-center gap-3 mb-2">
               <div className="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center">
@@ -266,6 +399,20 @@ export function VendorDashboard({ onNavigateToMatches, onNavigateToAgencyMessage
             </div>
             <div className="text-sm text-neutral-600">
               {stats.viewingRequests > 0 ? 'Viewing Requests' : 'No Requests'}
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-sm p-5">
+            <div className="flex items-center gap-3 mb-2">
+              <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${stats.totalIssuesOpen > 0 ? 'bg-warning-100' : 'bg-neutral-100'
+                }`}>
+                <AlertTriangle className={`w-5 h-5 ${stats.totalIssuesOpen > 0 ? 'text-warning-600' : 'text-neutral-600'
+                  }`} />
+              </div>
+              <div className="text-2xl font-bold text-neutral-900">{stats.totalIssuesOpen}</div>
+            </div>
+            <div className="text-sm text-neutral-600">
+              {stats.totalIssuesOpen > 0 ? 'Open Issues' : 'No Issues'}
             </div>
           </div>
         </div>
@@ -511,6 +658,9 @@ export function VendorDashboard({ onNavigateToMatches, onNavigateToAgencyMessage
                   match={match}
                   onScheduleViewing={setSchedulingMatch}
                   onViewChat={handleViewMatch}
+                  onApprovePet={setPetApprovalMatch}
+                  onRefusePet={setPetRefusalMatch}
+                  onVerifyRightToRent={setRightToRentMatch}
                 />
               ))}
             </div>
@@ -518,7 +668,7 @@ export function VendorDashboard({ onNavigateToMatches, onNavigateToAgencyMessage
         </div>
 
         {/* Agency Messages Card */}
-        {landlordProfile?.id && landlordProperty?.managingAgencyId && (
+        {landlordProfile?.id && hasAgencyLinks && (
           <div className="bg-white rounded-2xl shadow-sm p-6">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-12 h-12 bg-secondary-100 rounded-xl flex items-center justify-center">
@@ -527,7 +677,7 @@ export function VendorDashboard({ onNavigateToMatches, onNavigateToAgencyMessage
               <div className="flex-1">
                 <h3 className="text-lg font-bold text-neutral-900">Agency Messages</h3>
                 <p className="text-sm text-neutral-500">
-                  Communicate with your managing agency
+                  Communicate with your linked agencies
                 </p>
               </div>
             </div>
@@ -548,6 +698,30 @@ export function VendorDashboard({ onNavigateToMatches, onNavigateToAgencyMessage
               landlordId={landlordProfile.id}
               properties={landlordProperty ? [landlordProperty] : []}
             />
+          </div>
+        )}
+
+        {/* Create Management Contract Button */}
+        {landlordProfile?.id && landlordProperties.length > 0 && (
+          <div className="bg-white rounded-2xl shadow-sm p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 bg-primary-100 rounded-xl flex items-center justify-center">
+                <FileText size={24} className="text-primary-600" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-bold text-neutral-900">Agency Management Contracts</h3>
+                <p className="text-sm text-neutral-500">
+                  Create formal contracts with management agencies
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowContractWizard(true)}
+              className="w-full px-4 py-3 bg-primary-500 hover:bg-primary-600 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
+            >
+              <FileText size={20} />
+              Create Management Contract
+            </button>
           </div>
         )}
 
@@ -792,6 +966,98 @@ export function VendorDashboard({ onNavigateToMatches, onNavigateToAgencyMessage
         onStatusUpdate={handleIssueStatusUpdate}
         showStatusActions={true}
       />
+
+      {/* Pet Approval Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={!!petApprovalMatch}
+        onClose={() => setPetApprovalMatch(null)}
+        onConfirm={async () => {
+          if (petApprovalMatch) {
+            await useAppStore.getState().reviewPetRequest(petApprovalMatch.id, 'approved');
+            // Update local state
+            setMatches(prev => prev.map(m =>
+              m.id === petApprovalMatch.id ? { ...m, petRequestStatus: 'approved' as const } : m
+            ));
+            addToast({ type: 'success', title: 'Pet Request Approved', message: 'The tenant can now keep their pet.' });
+          }
+          setPetApprovalMatch(null);
+        }}
+        title="Approve Pet Request"
+        message="Are you sure you want to approve this pet request? The tenant will be notified that they can keep their pet at the property."
+        confirmText="Approve"
+        cancelText="Cancel"
+        variant="success"
+      />
+
+      {/* Pet Refusal Confirmation Modal (with reason input) */}
+      <ConfirmationModal
+        isOpen={!!petRefusalMatch}
+        onClose={() => setPetRefusalMatch(null)}
+        onConfirm={async (reason) => {
+          if (petRefusalMatch && reason) {
+            await useAppStore.getState().reviewPetRequest(petRefusalMatch.id, 'refused', reason);
+            // Update local state
+            setMatches(prev => prev.map(m =>
+              m.id === petRefusalMatch.id ? { ...m, petRequestStatus: 'refused' as const, petRequestRefusalReason: reason } : m
+            ));
+            addToast({ type: 'info', title: 'Pet Request Refused', message: 'The tenant has been notified of your decision.' });
+          }
+          setPetRefusalMatch(null);
+        }}
+        title="Refuse Pet Request"
+        message="Under the Renters' Rights Act 2025, you must provide a valid reason for refusing a pet request."
+        confirmText="Refuse Request"
+        cancelText="Cancel"
+        variant="danger"
+        inputLabel="Reason for refusal (Required by RRA 2025)"
+        inputPlaceholder="e.g., Property not suitable for pets, building restrictions..."
+        inputRequired={true}
+        inputMultiline={true}
+      />
+
+      {/* Right to Rent Verification Modal */}
+      <ConfirmationModal
+        isOpen={!!rightToRentMatch}
+        onClose={() => setRightToRentMatch(null)}
+        onConfirm={async () => {
+          if (rightToRentMatch) {
+            await useAppStore.getState().verifyRightToRent(rightToRentMatch.id);
+            // Update local state
+            setMatches(prev => prev.map(m =>
+              m.id === rightToRentMatch.id ? { ...m, rightToRentVerifiedAt: new Date() } : m
+            ));
+            addToast({ type: 'success', title: 'Right to Rent Verified', message: 'Document verification has been recorded.' });
+          }
+          setRightToRentMatch(null);
+        }}
+        title="Verify Right to Rent"
+        message={
+          <div className="space-y-2">
+            <p>Please confirm that you have physically seen original documents proving the tenant's right to rent in the UK.</p>
+            <p className="text-xs text-neutral-500">This is a legal requirement. You must keep copies of these documents for the duration of the tenancy and for at least one year after it ends.</p>
+          </div>
+        }
+        confirmText="Confirm Verification"
+        cancelText="Cancel"
+        variant="warning"
+      />
+
+      {/* Management Contract Wizard */}
+      {landlordProfile?.id && (
+        <ManagementContractWizard
+          landlordId={landlordProfile.id}
+          isOpen={showContractWizard}
+          onClose={() => setShowContractWizard(false)}
+          onComplete={() => {
+            setShowContractWizard(false);
+            addToast({
+              type: 'success',
+              title: 'Contract Sent',
+              message: 'Your management contract has been sent to the agency for review.'
+            });
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -800,9 +1066,12 @@ interface RenterInterestCardProps {
   match: Match;
   onScheduleViewing: (match: Match) => void;
   onViewChat?: (match: Match) => void;
+  onApprovePet?: (match: Match) => void;
+  onRefusePet?: (match: Match) => void;
+  onVerifyRightToRent?: (match: Match) => void;
 }
 
-function RenterInterestCard({ match, onScheduleViewing, onViewChat }: RenterInterestCardProps) {
+function RenterInterestCard({ match, onScheduleViewing, onViewChat, onApprovePet, onRefusePet, onVerifyRightToRent }: RenterInterestCardProps) {
   const lastMessage = match.messages[match.messages.length - 1];
 
   return (
@@ -887,22 +1156,13 @@ function RenterInterestCard({ match, onScheduleViewing, onViewChat }: RenterInte
               </div>
               <div className="flex gap-2">
                 <button
-                  onClick={() => {
-                    if (confirm('Approve pet request?')) {
-                      useAppStore.getState().reviewPetRequest(match.id, 'approved');
-                    }
-                  }}
+                  onClick={() => onApprovePet?.(match)}
                   className="flex-1 px-3 py-1.5 bg-success-500 text-white rounded-lg text-xs font-medium hover:bg-success-600 transition-colors"
                 >
                   Approve
                 </button>
                 <button
-                  onClick={() => {
-                    const reason = prompt('Reason for refusal (Required by RRA 2025):');
-                    if (reason) {
-                      useAppStore.getState().reviewPetRequest(match.id, 'refused', reason);
-                    }
-                  }}
+                  onClick={() => onRefusePet?.(match)}
                   className="flex-1 px-3 py-1.5 bg-danger-500 text-white rounded-lg text-xs font-medium hover:bg-danger-600 transition-colors"
                 >
                   Refuse
@@ -919,11 +1179,7 @@ function RenterInterestCard({ match, onScheduleViewing, onViewChat }: RenterInte
                 <AlertTriangle size={14} className="text-warning-600" />
               </div>
               <button
-                onClick={() => {
-                  if (confirm('Confirm you have seen original documents proving the tenant\'s right to rent in the UK?')) {
-                    useAppStore.getState().verifyRightToRent(match.id);
-                  }
-                }}
+                onClick={() => onVerifyRightToRent?.(match)}
                 className="w-full px-3 py-1.5 bg-white border border-warning-300 text-warning-700 rounded-lg text-xs font-medium hover:bg-warning-50 transition-colors"
               >
                 Verify Documents

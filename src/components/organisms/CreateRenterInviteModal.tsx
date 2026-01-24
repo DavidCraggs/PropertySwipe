@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { X, Copy, CheckCircle2, Calendar, PoundSterling } from 'lucide-react';
 import { createRenterInvite } from '../../lib/storage';
+import { useToastStore } from './toastUtils';
 import type { Property, RenterInvite } from '../../types';
 
 interface CreateRenterInviteModalProps {
@@ -24,6 +25,7 @@ export function CreateRenterInviteModal({
     managingAgencyId,
     createdByType,
 }: CreateRenterInviteModalProps) {
+    const { addToast } = useToastStore();
     const [proposedRentPcm, setProposedRentPcm] = useState(property.rentPcm.toString());
     const [proposedDepositAmount, setProposedDepositAmount] = useState('');
     const [proposedMoveInDate, setProposedMoveInDate] = useState('');
@@ -34,7 +36,11 @@ export function CreateRenterInviteModal({
 
     const handleCreate = async () => {
         if (!proposedRentPcm || parseInt(proposedRentPcm) <= 0) {
-            alert('Please enter a valid rent amount');
+            addToast({
+                type: 'warning',
+                title: 'Invalid Amount',
+                message: 'Please enter a valid rent amount',
+            });
             return;
         }
 
@@ -55,7 +61,11 @@ export function CreateRenterInviteModal({
             setCreatedInvite(invite);
         } catch (error) {
             console.error('[CreateRenterInviteModal] Error creating invite:', error);
-            alert('Failed to create invite. Please try again.');
+            addToast({
+                type: 'danger',
+                title: 'Error',
+                message: 'Failed to create invite. Please try again.',
+            });
         } finally {
             setIsCreating(false);
         }
@@ -69,7 +79,11 @@ export function CreateRenterInviteModal({
                 setTimeout(() => setCopiedCode(false), 2000);
             } catch (error) {
                 console.error('[CreateRenterInviteModal] Failed to copy:', error);
-                alert('Failed to copy code. Please copy manually.');
+                addToast({
+                    type: 'warning',
+                    title: 'Copy Failed',
+                    message: 'Failed to copy code. Please copy manually.',
+                });
             }
         }
     };
