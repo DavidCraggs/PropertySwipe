@@ -70,7 +70,7 @@ export const SwipePage: React.FC = () => {
       {/* Header */}
       <header className="max-w-md mx-auto px-4 py-6">
         <h1 className="text-4xl font-bold text-center bg-gradient-to-r from-primary-600 to-success-600 bg-clip-text text-transparent mb-2">
-          Get On
+          Let Right
         </h1>
         <p className="text-center text-neutral-600">Swipe right to like, left to pass</p>
         {matches.length > 0 && (

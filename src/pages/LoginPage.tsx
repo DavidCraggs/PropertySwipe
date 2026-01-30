@@ -1,7 +1,9 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
+import { motion } from 'framer-motion';
 import { Lock, Mail, ArrowLeft, Eye, EyeOff } from 'lucide-react';
 import { Button } from '../components/atoms/Button';
 import { useAuthStore } from '../hooks/useAuthStore';
+import { LOGIN_TAGLINES } from '../data/taglines';
 
 interface LoginPageProps {
   onBack: () => void;
@@ -19,6 +21,12 @@ export function LoginPage({ onBack, onLoginSuccess }: LoginPageProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
+  // Select a random tagline on mount (stable across re-renders)
+  const tagline = useMemo(() => {
+    const index = Math.floor(Math.random() * LOGIN_TAGLINES.length);
+    return LOGIN_TAGLINES[index];
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,7 +82,14 @@ export function LoginPage({ onBack, onLoginSuccess }: LoginPageProps) {
               <Lock className="w-8 h-8 text-white" />
             </div>
             <h1 className="text-3xl font-bold text-neutral-900 mb-2">Welcome Back</h1>
-            <p className="text-neutral-600">Sign in to your account</p>
+            <motion.p
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, ease: 'easeOut' }}
+              className="text-neutral-600 italic"
+            >
+              "{tagline}"
+            </motion.p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">

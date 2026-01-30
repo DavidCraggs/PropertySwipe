@@ -1,7 +1,9 @@
+import { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Home, Heart, Zap, ArrowRight } from 'lucide-react';
 import { Button } from '../components/atoms/Button';
 import { LoginButton } from '../components/molecules/LoginButton';
+import { LOGIN_TAGLINES } from '../data/taglines';
 
 interface WelcomeScreenProps {
   onGetStarted: () => void;
@@ -9,10 +11,16 @@ interface WelcomeScreenProps {
 }
 
 /**
- * Landing page for Get On
+ * Landing page for Let Right
  * Shows value propositions and CTAs for getting started
  */
 export function WelcomeScreen({ onGetStarted, onLogin }: WelcomeScreenProps) {
+  // Select a random tagline on mount (stable across re-renders)
+  const tagline = useMemo(() => {
+    const index = Math.floor(Math.random() * LOGIN_TAGLINES.length);
+    return LOGIN_TAGLINES[index];
+  }, []);
+
   const features = [
     {
       icon: Zap,
@@ -44,11 +52,13 @@ export function WelcomeScreen({ onGetStarted, onLogin }: WelcomeScreenProps) {
           transition={{ duration: 0.5 }}
           className="flex items-center gap-2"
         >
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center">
-            <Home className="w-6 h-6 text-white" />
-          </div>
+          <img
+            src="/icon-transparent.png"
+            alt="Let Right"
+            className="w-10 h-10"
+          />
           <span className="text-2xl font-bold bg-gradient-to-r from-primary-600 to-primary-700 bg-clip-text text-transparent">
-            Get On
+            Let Right
           </span>
         </motion.div>
       </header>
@@ -64,14 +74,19 @@ export function WelcomeScreen({ onGetStarted, onLogin }: WelcomeScreenProps) {
             className="text-center mb-12"
           >
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-neutral-900 mb-4">
-              Get On with living better,{' '}
+              Let Right, live better,{' '}
               <span className="bg-gradient-to-r from-primary-500 to-secondary-500 bg-clip-text text-transparent">
                 faster
               </span>
             </h1>
-            <p className="text-lg md:text-xl text-neutral-600 max-w-2xl mx-auto">
-              The modern way to match renters and landlords. Swipe. Match. Move in.
-            </p>
+            <motion.p
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.3, ease: 'easeOut' }}
+              className="text-lg md:text-xl text-neutral-600 max-w-2xl mx-auto italic"
+            >
+              "{tagline}"
+            </motion.p>
           </motion.div>
 
           {/* Features Grid */}
@@ -111,7 +126,7 @@ export function WelcomeScreen({ onGetStarted, onLogin }: WelcomeScreenProps) {
               onClick={onGetStarted}
               className="group px-8 py-4 text-lg"
             >
-              Get On
+              Get Started
               <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
             </Button>
           </motion.div>
@@ -132,7 +147,7 @@ export function WelcomeScreen({ onGetStarted, onLogin }: WelcomeScreenProps) {
 
       {/* Footer */}
       <footer className="p-6 text-center text-sm text-neutral-500">
-        <p>&copy; 2025 Get On. Making property moves efficient.</p>
+        <p>&copy; 2026 Let Right. Making property moves efficient.</p>
       </footer>
     </div>
   );

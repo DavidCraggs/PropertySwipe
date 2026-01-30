@@ -550,7 +550,7 @@ export class EmailService {
     </div>
 
     <p style="font-size: 12px; color: #999; margin-top: 30px; text-align: center;">
-      GetOn - Making Renting Better<br>
+      Let Right - Making Renting Better<br>
       You're receiving this because messages are automatically emailed for visibility.<br>
       <a href="[unsubscribe]" style="color: #999;">Unsubscribe</a>
     </p>
@@ -621,7 +621,7 @@ export class EmailService {
     </div>
 
     <p style="font-size: 12px; color: #999; margin-top: 30px; text-align: center;">
-      GetOn Issue Management<br>
+      Let Right Issue Management<br>
       Please respond according to your SLA commitments.<br>
       <a href="[unsubscribe]" style="color: #999;">Unsubscribe</a>
     </p>
@@ -679,7 +679,7 @@ export class EmailService {
     </div>
 
     <p style="font-size: 12px; color: #999; margin-top: 30px; text-align: center;">
-      GetOn Issue Management<br>
+      Let Right Issue Management<br>
       <a href="[unsubscribe]" style="color: #999;">Unsubscribe</a>
     </p>
   </div>
@@ -744,7 +744,7 @@ export class EmailService {
     </div>
 
     <p style="font-size: 12px; color: #999; margin-top: 30px; text-align: center;">
-      GetOn SLA Monitoring<br>
+      Let Right SLA Monitoring<br>
       ${data.isBreached ? 'Immediate action required to maintain service standards.' : 'Please respond within the SLA timeframe.'}<br>
       <a href="[unsubscribe]" style="color: #999;">Unsubscribe</a>
     </p>
@@ -772,7 +772,7 @@ ${data.messagePreview}
 View full message: ${data.viewUrl}
 
 ---
-GetOn - Making Renting Better
+Let Right - Making Renting Better
 You're receiving this because messages are automatically emailed for visibility.
 To unsubscribe, visit: [unsubscribe]
     `.trim();
@@ -798,7 +798,7 @@ Property: ${data.propertyAddress}
 View and respond: ${data.viewUrl}
 
 ---
-GetOn Issue Management
+Let Right Issue Management
 Please respond according to your SLA commitments.
 To unsubscribe, visit: [unsubscribe]
     `.trim();
@@ -820,7 +820,7 @@ ${data.updateNotes ? `Notes: ${data.updateNotes}` : ''}
 View issue details: ${data.viewUrl}
 
 ---
-GetOn Issue Management
+Let Right Issue Management
 To unsubscribe, visit: [unsubscribe]
     `.trim();
   }
@@ -842,7 +842,7 @@ ${data.isBreached ? 'Overdue by:' : 'Time remaining:'} ${data.timeRemaining}
 Take action now: ${data.viewUrl}
 
 ---
-GetOn SLA Monitoring
+Let Right SLA Monitoring
 ${data.isBreached ? 'Immediate action required to maintain service standards.' : 'Please respond within the SLA timeframe.'}
 To unsubscribe, visit: [unsubscribe]
     `.trim();
@@ -857,8 +857,8 @@ export function createEmailService(config?: Partial<EmailConfig>): EmailService 
   const defaultConfig: EmailConfig = {
     provider: (import.meta.env.VITE_EMAIL_PROVIDER as EmailConfig['provider']) || 'mock',
     apiKey: import.meta.env.VITE_EMAIL_API_KEY,
-    fromEmail: import.meta.env.VITE_EMAIL_FROM || 'noreply@geton.app',
-    fromName: import.meta.env.VITE_EMAIL_FROM_NAME || 'GetOn',
+    fromEmail: import.meta.env.VITE_EMAIL_FROM || 'noreply@letright.app',
+    fromName: import.meta.env.VITE_EMAIL_FROM_NAME || 'Let Right',
     isDevelopment: import.meta.env.DEV || false,
     ...config,
   };

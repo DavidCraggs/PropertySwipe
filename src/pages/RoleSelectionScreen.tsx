@@ -84,7 +84,7 @@ export function RoleSelectionScreen({ onSelectRole, onLogin, onBack }: RoleSelec
               How can we help you?
             </h1>
             <p className="text-lg text-neutral-600">
-              Choose your role to get started with Get On
+              Choose your role to get started with Let Right
             </p>
           </motion.div>
 

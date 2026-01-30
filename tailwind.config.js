@@ -16,7 +16,7 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Get On brand colors - modern teal/turquoise primary with coral accents
+        // Let Right brand colors - modern teal/turquoise primary with coral accents
         primary: {
           50: '#f0fdfa',
           100: '#ccfbf1',

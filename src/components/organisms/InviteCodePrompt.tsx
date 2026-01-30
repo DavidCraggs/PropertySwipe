@@ -76,7 +76,7 @@ export function InviteCodePrompt({ onContinueAsNew, onContinueWithInvite }: Invi
             <div className="max-w-lg w-full">
                 {/* Header */}
                 <div className="text-center mb-8">
-                    <h1 className="text-4xl font-bold text-neutral-900 mb-3">Welcome to GetOn</h1>
+                    <h1 className="text-4xl font-bold text-neutral-900 mb-3">Welcome to Let Right</h1>
                     <p className="text-lg text-neutral-600">Let's get you set up</p>
                 </div>
 
