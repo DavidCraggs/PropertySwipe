@@ -105,11 +105,11 @@ export const CurrentRenterDashboard: React.FC<CurrentRenterDashboardProps> = ({ 
   // Type guard - must be after hooks
   if (userType !== 'renter') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-success-50 flex items-center justify-center p-4">
+      <div className="min-h-screen flex items-center justify-center p-4" style={{ background: 'var(--color-bg)' }}>
         <div className="text-center">
-          <Package className="mx-auto text-neutral-400 mb-4" size={64} />
-          <h2 className="text-2xl font-bold text-neutral-900 mb-2">Access Denied</h2>
-          <p className="text-neutral-600">This page is only accessible to renters.</p>
+          <Package className="mx-auto mb-4" size={64} style={{ color: 'var(--color-sub)' }} />
+          <h2 className="mb-2" style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 24, letterSpacing: 2, color: 'var(--color-text)' }}>Access Denied</h2>
+          <p style={{ color: 'var(--color-sub)' }}>This page is only accessible to renters.</p>
         </div>
       </div>
     );
@@ -118,11 +118,11 @@ export const CurrentRenterDashboard: React.FC<CurrentRenterDashboardProps> = ({ 
   // Check if renter is current (not prospective)
   if (renterProfile.status !== 'current') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-success-50 flex items-center justify-center p-4">
+      <div className="min-h-screen flex items-center justify-center p-4" style={{ background: 'var(--color-bg)' }}>
         <div className="text-center">
-          <Home className="mx-auto text-neutral-400 mb-4" size={64} />
-          <h2 className="text-2xl font-bold text-neutral-900 mb-2">No Active Tenancy</h2>
-          <p className="text-neutral-600">
+          <Home className="mx-auto mb-4" size={64} style={{ color: 'var(--color-sub)' }} />
+          <h2 className="mb-2" style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 24, letterSpacing: 2, color: 'var(--color-text)' }}>No Active Tenancy</h2>
+          <p style={{ color: 'var(--color-sub)' }}>
             You don't have an active tenancy yet. Continue swiping to find your next home!
           </p>
         </div>
@@ -134,10 +134,10 @@ export const CurrentRenterDashboard: React.FC<CurrentRenterDashboardProps> = ({ 
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-success-50 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--color-bg)' }}>
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
-          <p className="text-neutral-600">Loading your dashboard...</p>
+          <p style={{ color: 'var(--color-sub)' }}>Loading your dashboard...</p>
         </div>
       </div>
     );
@@ -164,13 +164,13 @@ export const CurrentRenterDashboard: React.FC<CurrentRenterDashboardProps> = ({ 
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-success-50 pb-24">
+    <div className="min-h-screen" style={{ background: 'var(--color-bg)', color: 'var(--color-text)', paddingBottom: 96 }}>
       {/* Header */}
-      <header className="bg-white border-b border-neutral-200 px-4 py-6">
+      <header className="px-4 py-6" style={{ background: 'var(--color-card)', borderBottom: '1px solid var(--color-line)' }}>
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-neutral-900">My Tenancy</h1>
-            <p className="text-neutral-600 mt-1">Manage your current rental</p>
+            <h1 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 32, letterSpacing: 3, color: 'var(--color-text)', margin: 0 }}>My Tenancy</h1>
+            <p style={{ fontFamily: "'Libre Franklin', sans-serif", fontSize: 13, fontWeight: 600, color: 'var(--color-sub)', marginTop: 4 }}>Manage your current rental</p>
           </div>
           <Button
             variant="ghost"
@@ -184,24 +184,26 @@ export const CurrentRenterDashboard: React.FC<CurrentRenterDashboardProps> = ({ 
       </header>
 
       {/* Tab Navigation */}
-      <div className="bg-white border-b border-neutral-200 sticky top-0 z-10">
+      <div className="sticky top-0 z-10" style={{ background: 'var(--color-card)', borderBottom: '1px solid var(--color-line)' }}>
         <div className="max-w-4xl mx-auto px-4">
           <div className="flex gap-6">
             <button
               onClick={() => setActiveTab('overview')}
               className={`py-4 px-2 border-b-2 font-medium transition-colors ${activeTab === 'overview'
-                ? 'border-primary-600 text-primary-600'
-                : 'border-transparent text-neutral-600 hover:text-neutral-900'
+                ? 'border-transparent'
+                : 'border-transparent'
                 }`}
+              style={activeTab === 'overview' ? { borderColor: 'var(--color-teal)', color: 'var(--color-teal)' } : { color: 'var(--color-sub)' }}
             >
               Overview
             </button>
             <button
               onClick={() => setActiveTab('issues')}
               className={`py-4 px-2 border-b-2 font-medium transition-colors ${activeTab === 'issues'
-                ? 'border-primary-600 text-primary-600'
-                : 'border-transparent text-neutral-600 hover:text-neutral-900'
+                ? 'border-transparent'
+                : 'border-transparent'
                 }`}
+              style={activeTab === 'issues' ? { borderColor: 'var(--color-teal)', color: 'var(--color-teal)' } : { color: 'var(--color-sub)' }}
             >
               Issues & Maintenance
               {issues.filter(i => i.status !== 'resolved' && i.status !== 'closed').length > 0 && (
@@ -240,8 +242,8 @@ export const CurrentRenterDashboard: React.FC<CurrentRenterDashboardProps> = ({ 
             </div>
 
             {/* Quick Actions */}
-            <div className="bg-white rounded-2xl shadow-sm p-6">
-              <h3 className="text-xl font-bold text-neutral-900 mb-4">Quick Actions</h3>
+            <div className="p-6" style={{ background: 'var(--color-card)', border: '1.5px solid var(--color-line)', borderRadius: 16 }}>
+              <h3 className="mb-4" style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 22, letterSpacing: 2, color: 'var(--color-text)' }}>Quick Actions</h3>
               <div className="grid sm:grid-cols-2 gap-4">
                 <Button
                   variant="outline"
@@ -306,16 +308,16 @@ const CurrentPropertyCard: React.FC<CurrentPropertyCardProps> = ({
 }) => {
   if (!property) {
     return (
-      <div className="bg-white rounded-2xl shadow-sm p-6 border-2 border-dashed border-neutral-200">
-        <p className="text-neutral-600 text-center">Property information not available</p>
+      <div className="p-6 border-2 border-dashed" style={{ background: 'var(--color-card)', borderColor: 'var(--color-line)', borderRadius: 16 }}>
+        <p className="text-center" style={{ color: 'var(--color-sub)' }}>Property information not available</p>
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+    <div className="overflow-hidden" style={{ background: 'var(--color-card)', border: '1.5px solid var(--color-line)', borderRadius: 16 }}>
       {/* Property Image */}
-      <div className="h-48 bg-gradient-to-br from-primary-100 to-primary-200 relative overflow-hidden">
+      <div className="h-48 relative overflow-hidden" style={{ background: 'var(--color-line)' }}>
         {property.images && property.images.length > 0 ? (
           <img
             src={property.images[0]}
@@ -333,9 +335,9 @@ const CurrentPropertyCard: React.FC<CurrentPropertyCardProps> = ({
       <div className="p-6">
         <div className="flex items-start justify-between mb-4">
           <div>
-            <h3 className="text-xl font-bold text-neutral-900">Your Current Home</h3>
+            <h3 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 22, letterSpacing: 2, color: 'var(--color-text)' }}>Your Current Home</h3>
             {moveInDate && (
-              <p className="text-sm text-neutral-600 mt-1">
+              <p className="text-sm mt-1" style={{ color: 'var(--color-sub)' }}>
                 Living here since {new Date(moveInDate).toLocaleDateString()}
               </p>
             )}
@@ -345,8 +347,8 @@ const CurrentPropertyCard: React.FC<CurrentPropertyCardProps> = ({
           </span>
         </div>
 
-        <div className="space-y-2 text-sm text-neutral-600">
-          <p className="font-medium text-neutral-900">{property.address.street}</p>
+        <div className="space-y-2 text-sm" style={{ color: 'var(--color-sub)' }}>
+          <p className="font-medium" style={{ color: 'var(--color-text)' }}>{property.address.street}</p>
           <p>{property.address.city}, {property.address.postcode}</p>
           <div className="flex gap-4 mt-3">
             <span>{property.bedrooms} bed</span>
@@ -384,14 +386,14 @@ const AgencyContactCard: React.FC<AgencyContactCardProps> = ({ agency, currentMa
   const slaColor = 'text-success-600';
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm p-6">
+    <div className="p-6" style={{ background: 'var(--color-card)', border: '1.5px solid var(--color-line)', borderRadius: 16 }}>
       <div className="flex items-start gap-4 mb-4">
         <div className="w-12 h-12 rounded-full bg-primary-100 flex items-center justify-center">
           <Home size={24} className="text-primary-600" />
         </div>
         <div className="flex-1">
-          <h3 className="font-bold text-neutral-900">Managing Agency</h3>
-          <p className="text-sm text-neutral-600">{agency.companyName}</p>
+          <h3 className="font-bold" style={{ color: 'var(--color-text)' }}>Managing Agency</h3>
+          <p className="text-sm" style={{ color: 'var(--color-sub)' }}>{agency.companyName}</p>
         </div>
       </div>
 
@@ -455,14 +457,14 @@ const LandlordContactCard: React.FC<LandlordContactCardProps> = ({ landlordId, c
   }
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm p-6">
+    <div className="p-6" style={{ background: 'var(--color-card)', border: '1.5px solid var(--color-line)', borderRadius: 16 }}>
       <div className="flex items-start gap-4 mb-4">
         <div className="w-12 h-12 rounded-full bg-secondary-100 flex items-center justify-center">
           <Home size={24} className="text-secondary-600" />
         </div>
         <div className="flex-1">
-          <h3 className="font-bold text-neutral-900">Your Landlord</h3>
-          <p className="text-sm text-neutral-600">{landlordName}</p>
+          <h3 className="font-bold" style={{ color: 'var(--color-text)' }}>Your Landlord</h3>
+          <p className="text-sm" style={{ color: 'var(--color-sub)' }}>{landlordName}</p>
         </div>
       </div>
 
@@ -630,7 +632,7 @@ const RenterIssueReporter: React.FC<RenterIssueReporterProps> = ({
 
   if (!isExpanded) {
     return (
-      <div className="bg-white rounded-2xl shadow-sm p-6">
+      <div className="p-6" style={{ background: 'var(--color-card)', border: '1.5px solid var(--color-line)', borderRadius: 16 }}>
         <Button
           variant="primary"
           icon={<AlertTriangle size={20} />}
@@ -644,9 +646,9 @@ const RenterIssueReporter: React.FC<RenterIssueReporterProps> = ({
   }
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm p-6">
-      <h3 className="text-xl font-bold text-neutral-900 mb-4">Report an Issue</h3>
-      <p className="text-sm text-neutral-600 mb-4">
+    <div className="p-6" style={{ background: 'var(--color-card)', border: '1.5px solid var(--color-line)', borderRadius: 16 }}>
+      <h3 className="mb-4" style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 22, letterSpacing: 2, color: 'var(--color-text)' }}>Report an Issue</h3>
+      <p className="text-sm mb-4" style={{ color: 'var(--color-sub)' }}>
         Describe the issue you're experiencing. Your {agencyId ? 'managing agency' : 'landlord'}{' '}
         will be notified immediately.
       </p>
@@ -680,7 +682,8 @@ const RenterIssueReporter: React.FC<RenterIssueReporterProps> = ({
         <div>
           <label
             htmlFor="issue-category"
-            className="block text-sm font-medium text-neutral-700 mb-2"
+            className="block text-sm font-medium mb-2"
+            style={{ color: 'var(--color-sub)' }}
           >
             Issue Type <span className="text-danger-500">*</span>
           </label>
@@ -691,8 +694,9 @@ const RenterIssueReporter: React.FC<RenterIssueReporterProps> = ({
               setFormData({ ...formData, category: e.target.value as IssueCategory });
               setValidationErrors({ ...validationErrors, category: undefined });
             }}
-            className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${validationErrors.category ? 'border-danger-500' : 'border-neutral-300'
+            className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${validationErrors.category ? 'border-danger-500' : ''
               }`}
+            style={!validationErrors.category ? { borderColor: 'var(--color-line)' } : undefined}
             disabled={isSubmitting}
             aria-describedby={validationErrors.category ? 'category-error' : undefined}
           >
@@ -714,7 +718,8 @@ const RenterIssueReporter: React.FC<RenterIssueReporterProps> = ({
         <div>
           <label
             htmlFor="issue-priority"
-            className="block text-sm font-medium text-neutral-700 mb-2"
+            className="block text-sm font-medium mb-2"
+            style={{ color: 'var(--color-sub)' }}
           >
             Priority <span className="text-danger-500">*</span>
           </label>
@@ -722,7 +727,8 @@ const RenterIssueReporter: React.FC<RenterIssueReporterProps> = ({
             id="issue-priority"
             value={formData.priority}
             onChange={(e) => setFormData({ ...formData, priority: e.target.value as IssuePriority })}
-            className="w-full px-4 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            style={{ borderColor: 'var(--color-line)' }}
             disabled={isSubmitting}
           >
             <option value="low">Low - Can wait</option>
@@ -736,7 +742,8 @@ const RenterIssueReporter: React.FC<RenterIssueReporterProps> = ({
         <div>
           <label
             htmlFor="issue-subject"
-            className="block text-sm font-medium text-neutral-700 mb-2"
+            className="block text-sm font-medium mb-2"
+            style={{ color: 'var(--color-sub)' }}
           >
             Subject <span className="text-danger-500">*</span>
           </label>
@@ -748,8 +755,9 @@ const RenterIssueReporter: React.FC<RenterIssueReporterProps> = ({
               setFormData({ ...formData, subject: e.target.value });
               setValidationErrors({ ...validationErrors, subject: undefined });
             }}
-            className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${validationErrors.subject ? 'border-danger-500' : 'border-neutral-300'
+            className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${validationErrors.subject ? 'border-danger-500' : ''
               }`}
+            style={!validationErrors.subject ? { borderColor: 'var(--color-line)' } : undefined}
             placeholder="Brief summary of the issue"
             maxLength={100}
             disabled={isSubmitting}
@@ -761,7 +769,7 @@ const RenterIssueReporter: React.FC<RenterIssueReporterProps> = ({
                 {validationErrors.subject}
               </p>
             ) : (
-              <p className="text-xs text-neutral-500">
+              <p className="text-xs" style={{ color: 'var(--color-sub)' }}>
                 {formData.subject.length}/100 characters
               </p>
             )}
@@ -772,7 +780,8 @@ const RenterIssueReporter: React.FC<RenterIssueReporterProps> = ({
         <div>
           <label
             htmlFor="issue-description"
-            className="block text-sm font-medium text-neutral-700 mb-2"
+            className="block text-sm font-medium mb-2"
+            style={{ color: 'var(--color-sub)' }}
           >
             Description <span className="text-danger-500">*</span>
           </label>
@@ -783,8 +792,9 @@ const RenterIssueReporter: React.FC<RenterIssueReporterProps> = ({
               setFormData({ ...formData, description: e.target.value });
               setValidationErrors({ ...validationErrors, description: undefined });
             }}
-            className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${validationErrors.description ? 'border-danger-500' : 'border-neutral-300'
+            className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${validationErrors.description ? 'border-danger-500' : ''
               }`}
+            style={!validationErrors.description ? { borderColor: 'var(--color-line)' } : undefined}
             rows={4}
             placeholder="Please describe the issue in detail (minimum 20 characters)..."
             maxLength={2000}
@@ -797,7 +807,7 @@ const RenterIssueReporter: React.FC<RenterIssueReporterProps> = ({
                 {validationErrors.description}
               </p>
             ) : (
-              <p className="text-xs text-neutral-500">
+              <p className="text-xs" style={{ color: 'var(--color-sub)' }}>
                 {formData.description.length}/2000 characters
               </p>
             )}
@@ -850,11 +860,11 @@ const IssueSection: React.FC<IssueSectionProps> = ({ issues, onViewIssue }) => {
 
   if (issues.length === 0) {
     return (
-      <div className="bg-white rounded-2xl shadow-sm p-6">
-        <h3 className="text-xl font-bold text-neutral-900 mb-4">Your Issues</h3>
+      <div className="p-6" style={{ background: 'var(--color-card)', border: '1.5px solid var(--color-line)', borderRadius: 16 }}>
+        <h3 className="mb-4" style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 22, letterSpacing: 2, color: 'var(--color-text)' }}>Your Issues</h3>
         <div className="text-center py-8">
-          <CheckCircle2 size={48} className="mx-auto text-neutral-400 mb-4" />
-          <p className="text-neutral-600">No issues reported yet</p>
+          <CheckCircle2 size={48} className="mx-auto mb-4" style={{ color: 'var(--color-sub)' }} />
+          <p style={{ color: 'var(--color-sub)' }}>No issues reported yet</p>
         </div>
       </div>
     );
@@ -864,8 +874,8 @@ const IssueSection: React.FC<IssueSectionProps> = ({ issues, onViewIssue }) => {
     <div className="space-y-6">
       {/* Active Issues */}
       {activeIssues.length > 0 && (
-        <div className="bg-white rounded-2xl shadow-sm p-6">
-          <h3 className="text-xl font-bold text-neutral-900 mb-4">
+        <div className="p-6" style={{ background: 'var(--color-card)', border: '1.5px solid var(--color-line)', borderRadius: 16 }}>
+          <h3 className="mb-4" style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 22, letterSpacing: 2, color: 'var(--color-text)' }}>
             Active Issues ({activeIssues.length})
           </h3>
           <div className="space-y-3">
@@ -878,8 +888,8 @@ const IssueSection: React.FC<IssueSectionProps> = ({ issues, onViewIssue }) => {
 
       {/* Resolved Issues */}
       {resolvedIssues.length > 0 && (
-        <div className="bg-white rounded-2xl shadow-sm p-6">
-          <h3 className="text-xl font-bold text-neutral-900 mb-4">
+        <div className="p-6" style={{ background: 'var(--color-card)', border: '1.5px solid var(--color-line)', borderRadius: 16 }}>
+          <h3 className="mb-4" style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 22, letterSpacing: 2, color: 'var(--color-text)' }}>
             Resolved Issues ({resolvedIssues.length})
           </h3>
           <div className="space-y-3">
@@ -907,8 +917,10 @@ const IssueCard: React.FC<IssueCardProps> = ({ issue, onClick }) => {
     emergency: 'bg-danger-100 text-danger-700',
     urgent: 'bg-warning-100 text-warning-700',
     routine: 'bg-success-100 text-success-700',
-    low: 'bg-neutral-100 text-neutral-700',
+    low: '',
   };
+
+  const lowPriorityStyle = { background: 'var(--color-bg)', color: 'var(--color-sub)' };
 
   const statusIcons: Record<IssueStatus, React.ReactNode> = {
     open: <Clock size={16} />,
@@ -924,23 +936,27 @@ const IssueCard: React.FC<IssueCardProps> = ({ issue, onClick }) => {
   return (
     <div
       onClick={onClick}
-      className="border border-neutral-200 rounded-lg p-4 hover:border-primary-300 transition-colors cursor-pointer"
+      className="border rounded-lg p-4 hover:border-primary-300 transition-colors cursor-pointer"
+      style={{ borderColor: 'var(--color-line)' }}
     >
       <div className="flex items-start justify-between mb-2">
-        <h4 className="font-semibold text-neutral-900">{issue.subject}</h4>
-        <span className={`px-2 py-1 text-xs font-medium rounded ${priorityColors[issue.priority]}`}>
+        <h4 className="font-semibold" style={{ color: 'var(--color-text)' }}>{issue.subject}</h4>
+        <span
+          className={`px-2 py-1 text-xs font-medium rounded ${priorityColors[issue.priority]}`}
+          style={issue.priority === 'low' ? lowPriorityStyle : undefined}
+        >
           {issue.priority}
         </span>
       </div>
 
-      <p className="text-sm text-neutral-600 mb-3 line-clamp-2">{issue.description}</p>
+      <p className="text-sm mb-3 line-clamp-2" style={{ color: 'var(--color-sub)' }}>{issue.description}</p>
 
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 text-sm text-neutral-600">
+        <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--color-sub)' }}>
           {statusIcons[issue.status]}
           <span className="capitalize">{issue.status.replace('_', ' ')}</span>
         </div>
-        <span className="text-xs text-neutral-500">
+        <span className="text-xs" style={{ color: 'var(--color-sub)' }}>
           {new Date(issue.raisedAt).toLocaleDateString()}
         </span>
       </div>

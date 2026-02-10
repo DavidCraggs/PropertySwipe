@@ -11,7 +11,9 @@ import type { RenterProfile, RenterSituation, LocalArea, RenterType, EmploymentS
 import { useAuthStore } from '../hooks/useAuthStore';
 import { validatePassword, hashPassword } from '../utils/validation';
 import { redeemInviteCode } from '../lib/storage';
+import { linkRoleProfile } from '../lib/profiles';
 import { useToastStore } from '../components/organisms/toastUtils';
+import { pageShell, card, heading } from '../utils/conceptCStyles';
 
 interface RenterOnboardingProps {
   onComplete: () => void;
@@ -36,7 +38,7 @@ interface RenterFormData {
  * Collects personal info, location, employment, income, preferences
  */
 export function RenterOnboarding({ onComplete, onLogin }: RenterOnboardingProps) {
-  const { login } = useAuthStore();
+  const { login, supabaseUserId } = useAuthStore();
   const { addToast } = useToastStore();
   const [currentStep, setCurrentStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -228,6 +230,16 @@ export function RenterOnboarding({ onComplete, onLogin }: RenterOnboardingProps)
       }
 
       localStorage.removeItem('renter-onboarding-draft');
+
+      // Link role profile to unified profiles table
+      const savedProfile = useAuthStore.getState().currentUser;
+      if (supabaseUserId && savedProfile?.id) {
+        try {
+          await linkRoleProfile(supabaseUserId, savedProfile.id, 'renter');
+        } catch (err) {
+          console.error('[Onboarding] Failed to link profile:', err);
+        }
+      }
 
       setIsSubmitting(false);
       onComplete();
@@ -697,7 +709,7 @@ export function RenterOnboarding({ onComplete, onLogin }: RenterOnboardingProps)
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-neutral-50 to-white p-6">
+    <div className="p-6" style={{ ...pageShell, paddingBottom: 96 }}>
       {/* Login Button - Only on Step 1 */}
       {currentStep === 0 && <LoginButton onLogin={onLogin} />}
 
@@ -716,12 +728,13 @@ interface ReviewCardProps {
 
 function ReviewCard({ title, items, onEdit }: ReviewCardProps) {
   return (
-    <div className="bg-white rounded-xl border-2 border-neutral-200 p-5">
+    <div className="rounded-xl p-5" style={card}>
       <div className="flex items-center justify-between mb-4">
-        <h3 className="font-semibold text-lg text-neutral-900">{title}</h3>
+        <h3 style={heading(20, 2)}>{title}</h3>
         <button
           onClick={onEdit}
-          className="text-sm text-primary-600 hover:text-primary-700 font-medium"
+          className="text-sm font-medium"
+          style={{ color: 'var(--color-teal)' }}
         >
           Edit
         </button>
@@ -729,8 +742,8 @@ function ReviewCard({ title, items, onEdit }: ReviewCardProps) {
       <div className="space-y-2">
         {items.map((item) => (
           <div key={item.label} className="flex justify-between text-sm">
-            <span className="text-neutral-600">{item.label}:</span>
-            <span className="text-neutral-900 font-medium">{item.value}</span>
+            <span style={{ color: 'var(--color-sub)' }}>{item.label}:</span>
+            <span className="font-medium" style={{ color: 'var(--color-text)' }}>{item.value}</span>
           </div>
         ))}
       </div>

@@ -483,7 +483,7 @@ export function VendorOnboarding({ onComplete, onLogin }: VendorOnboardingProps)
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-neutral-50 to-white p-6">
+    <div className="min-h-screen p-6">
       {/* Login Button - Only on Step 1 */}
       {currentStep === 0 && <LoginButton onLogin={onLogin} />}
 

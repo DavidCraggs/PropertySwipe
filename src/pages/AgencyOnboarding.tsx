@@ -7,6 +7,7 @@ import { useToastStore } from '../components/organisms/toastUtils';
 import type { AgencyProfile, AgencyType, LocalArea } from '../types';
 import { useAuthStore } from '../hooks/useAuthStore';
 import { validatePassword, hashPassword } from '../utils/validation';
+import { pageShell, card, heading, subText } from '../utils/conceptCStyles';
 
 interface AgencyOnboardingProps {
   onComplete: () => void;
@@ -171,22 +172,22 @@ export function AgencyOnboarding({ onComplete, onLogin, initialAgencyType = 'man
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-success-50 py-8 px-4">
+    <div className="py-8 px-4" style={{ ...pageShell, paddingBottom: 96 }}>
       {/* Login Button */}
       <LoginButton onLogin={onLogin} />
 
       <div className="max-w-3xl mx-auto">
-        <div className="bg-white rounded-2xl shadow-lg p-8">
+        <div className="rounded-2xl p-8" style={card}>
           <div className="text-center mb-8">
-            <Building2 size={48} className="mx-auto text-primary-600 mb-4" />
-            <h1 className="text-3xl font-bold text-neutral-900 mb-2">Agency Registration</h1>
-            <p className="text-neutral-600">Join PropertySwipe as a property professional</p>
+            <Building2 size={48} className="mx-auto mb-4" style={{ color: 'var(--color-teal)' }} />
+            <h1 className="mb-2" style={heading(30, 3)}>Agency Registration</h1>
+            <p style={subText(14)}>Join PropertySwipe as a property professional</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-8">
             {/* Agency Type */}
             <div>
-              <label className="block text-sm font-medium text-neutral-700 mb-3">
+              <label className="block text-sm font-medium mb-3" style={{ color: 'var(--color-sub)' }}>
                 Agency Type <span className="text-danger-600">*</span>
               </label>
               <div className="grid grid-cols-2 gap-4">
@@ -200,11 +201,12 @@ export function AgencyOnboarding({ onComplete, onLogin, initialAgencyType = 'man
                     onClick={() =>
                       setFormData((prev) => ({ ...prev, agencyType: type.value as AgencyType }))
                     }
-                    className={`p-4 rounded-lg border-2 transition-all ${
-                      formData.agencyType === type.value
-                        ? 'border-primary-500 bg-primary-50'
-                        : 'border-neutral-200 hover:border-neutral-300'
-                    }`}
+                    className="p-4 rounded-lg border-2 transition-all"
+                    style={{
+                      borderColor: formData.agencyType === type.value ? 'var(--color-teal)' : 'var(--color-line)',
+                      background: formData.agencyType === type.value ? 'var(--color-card)' : 'transparent',
+                      color: 'var(--color-text)',
+                    }}
                   >
                     <span className="font-medium">{type.label}</span>
                   </button>
@@ -214,13 +216,13 @@ export function AgencyOnboarding({ onComplete, onLogin, initialAgencyType = 'man
 
             {/* Company Details */}
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-neutral-900 flex items-center gap-2">
+              <h3 className="flex items-center gap-2" style={heading(22, 2)}>
                 <Building2 size={20} />
                 Company Details
               </h3>
 
               <input
-                className="w-full px-4 py-3 border border-neutral-300 rounded-lg"
+                className="w-full px-4 py-3 border rounded-lg" style={{ borderColor: 'var(--color-line)', background: 'var(--color-card)', color: 'var(--color-text)' }}
                 placeholder="Company Name *"
                 value={formData.companyName}
                 onChange={(e) => setFormData((prev) => ({ ...prev, companyName: e.target.value }))}
@@ -228,7 +230,7 @@ export function AgencyOnboarding({ onComplete, onLogin, initialAgencyType = 'man
               {errors.companyName && <p className="text-sm text-danger-600">{errors.companyName}</p>}
 
               <input
-                className="w-full px-4 py-3 border border-neutral-300 rounded-lg"
+                className="w-full px-4 py-3 border rounded-lg" style={{ borderColor: 'var(--color-line)', background: 'var(--color-card)', color: 'var(--color-text)' }}
                 placeholder="Companies House Registration Number *"
                 value={formData.registrationNumber}
                 onChange={(e) =>
@@ -240,7 +242,7 @@ export function AgencyOnboarding({ onComplete, onLogin, initialAgencyType = 'man
               )}
 
               <input
-                className="w-full px-4 py-3 border border-neutral-300 rounded-lg"
+                className="w-full px-4 py-3 border rounded-lg" style={{ borderColor: 'var(--color-line)', background: 'var(--color-card)', color: 'var(--color-text)' }}
                 placeholder="Primary Contact Name *"
                 value={formData.primaryContactName}
                 onChange={(e) =>
@@ -254,14 +256,14 @@ export function AgencyOnboarding({ onComplete, onLogin, initialAgencyType = 'man
 
             {/* Contact Information */}
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-neutral-900 flex items-center gap-2">
+              <h3 className="flex items-center gap-2" style={heading(22, 2)}>
                 <MapPin size={20} />
                 Contact Information
               </h3>
 
               <input
                 type="email"
-                className="w-full px-4 py-3 border border-neutral-300 rounded-lg"
+                className="w-full px-4 py-3 border rounded-lg" style={{ borderColor: 'var(--color-line)', background: 'var(--color-card)', color: 'var(--color-text)' }}
                 placeholder="Email Address *"
                 value={formData.email}
                 onChange={(e) => setFormData((prev) => ({ ...prev, email: e.target.value }))}
@@ -280,7 +282,7 @@ export function AgencyOnboarding({ onComplete, onLogin, initialAgencyType = 'man
 
               <input
                 type="tel"
-                className="w-full px-4 py-3 border border-neutral-300 rounded-lg"
+                className="w-full px-4 py-3 border rounded-lg" style={{ borderColor: 'var(--color-line)', background: 'var(--color-card)', color: 'var(--color-text)' }}
                 placeholder="Phone Number *"
                 value={formData.phone}
                 onChange={(e) => setFormData((prev) => ({ ...prev, phone: e.target.value }))}
@@ -288,7 +290,7 @@ export function AgencyOnboarding({ onComplete, onLogin, initialAgencyType = 'man
               {errors.phone && <p className="text-sm text-danger-600">{errors.phone}</p>}
 
               <input
-                className="w-full px-4 py-3 border border-neutral-300 rounded-lg"
+                className="w-full px-4 py-3 border rounded-lg" style={{ borderColor: 'var(--color-line)', background: 'var(--color-card)', color: 'var(--color-text)' }}
                 placeholder="Office Street Address *"
                 value={formData.street}
                 onChange={(e) => setFormData((prev) => ({ ...prev, street: e.target.value }))}
@@ -298,7 +300,7 @@ export function AgencyOnboarding({ onComplete, onLogin, initialAgencyType = 'man
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <input
-                    className="w-full px-4 py-3 border border-neutral-300 rounded-lg"
+                    className="w-full px-4 py-3 border rounded-lg" style={{ borderColor: 'var(--color-line)', background: 'var(--color-card)', color: 'var(--color-text)' }}
                     placeholder="City *"
                     value={formData.city}
                     onChange={(e) => setFormData((prev) => ({ ...prev, city: e.target.value }))}
@@ -307,7 +309,7 @@ export function AgencyOnboarding({ onComplete, onLogin, initialAgencyType = 'man
                 </div>
                 <div>
                   <input
-                    className="w-full px-4 py-3 border border-neutral-300 rounded-lg"
+                    className="w-full px-4 py-3 border rounded-lg" style={{ borderColor: 'var(--color-line)', background: 'var(--color-card)', color: 'var(--color-text)' }}
                     placeholder="Postcode *"
                     value={formData.postcode}
                     onChange={(e) =>
@@ -321,11 +323,11 @@ export function AgencyOnboarding({ onComplete, onLogin, initialAgencyType = 'man
 
             {/* Service Areas */}
             <div>
-              <h3 className="text-lg font-semibold text-neutral-900 mb-3 flex items-center gap-2">
+              <h3 className="mb-3 flex items-center gap-2" style={heading(22, 2)}>
                 <MapPin size={20} />
                 Service Areas <span className="text-danger-600">*</span>
               </h3>
-              <p className="text-sm text-neutral-600 mb-4">
+              <p className="text-sm mb-4" style={{ color: 'var(--color-sub)' }}>
                 Select all areas where you provide services
               </p>
 
@@ -335,15 +337,16 @@ export function AgencyOnboarding({ onComplete, onLogin, initialAgencyType = 'man
                     key={area}
                     type="button"
                     onClick={() => toggleArea(area)}
-                    className={`p-3 rounded-lg border-2 transition-all ${
-                      formData.serviceAreas.includes(area)
-                        ? 'border-primary-500 bg-primary-50'
-                        : 'border-neutral-200 hover:border-neutral-300'
-                    }`}
+                    className="p-3 rounded-lg border-2 transition-all"
+                    style={{
+                      borderColor: formData.serviceAreas.includes(area) ? 'var(--color-teal)' : 'var(--color-line)',
+                      background: formData.serviceAreas.includes(area) ? 'var(--color-card)' : 'transparent',
+                      color: 'var(--color-text)',
+                    }}
                   >
                     <div className="flex items-center gap-2">
                       {formData.serviceAreas.includes(area) && (
-                        <Check size={16} className="text-primary-600" />
+                        <Check size={16} style={{ color: 'var(--color-teal)' }} />
                       )}
                       <span className="text-sm font-medium">{area}</span>
                     </div>
@@ -361,22 +364,22 @@ export function AgencyOnboarding({ onComplete, onLogin, initialAgencyType = 'man
 
             {/* SLA Configuration */}
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-neutral-900 flex items-center gap-2">
+              <h3 className="flex items-center gap-2" style={heading(22, 2)}>
                 <Clock size={20} />
                 Response Time Commitments (SLA)
               </h3>
-              <p className="text-sm text-neutral-600">
+              <p className="text-sm" style={{ color: 'var(--color-sub)' }}>
                 Set your response time commitments for different types of issues
               </p>
 
               <div className="grid gap-4">
                 <div className="flex items-center gap-4">
-                  <label className="flex-1 text-sm text-neutral-700">Emergency (hours):</label>
+                  <label className="flex-1 text-sm" style={{ color: 'var(--color-sub)' }}>Emergency (hours):</label>
                   <input
                     type="number"
                     min="1"
                     max="24"
-                    className="w-24 px-3 py-2 border border-neutral-300 rounded-lg"
+                    className="w-24 px-3 py-2 border rounded-lg" style={{ borderColor: 'var(--color-line)', background: 'var(--color-card)', color: 'var(--color-text)' }}
                     value={formData.emergencyResponseHours}
                     onChange={(e) =>
                       setFormData((prev) => ({
@@ -387,12 +390,12 @@ export function AgencyOnboarding({ onComplete, onLogin, initialAgencyType = 'man
                   />
                 </div>
                 <div className="flex items-center gap-4">
-                  <label className="flex-1 text-sm text-neutral-700">Urgent (hours):</label>
+                  <label className="flex-1 text-sm" style={{ color: 'var(--color-sub)' }}>Urgent (hours):</label>
                   <input
                     type="number"
                     min="1"
                     max="72"
-                    className="w-24 px-3 py-2 border border-neutral-300 rounded-lg"
+                    className="w-24 px-3 py-2 border rounded-lg" style={{ borderColor: 'var(--color-line)', background: 'var(--color-card)', color: 'var(--color-text)' }}
                     value={formData.urgentResponseHours}
                     onChange={(e) =>
                       setFormData((prev) => ({
@@ -403,12 +406,12 @@ export function AgencyOnboarding({ onComplete, onLogin, initialAgencyType = 'man
                   />
                 </div>
                 <div className="flex items-center gap-4">
-                  <label className="flex-1 text-sm text-neutral-700">Routine (hours):</label>
+                  <label className="flex-1 text-sm" style={{ color: 'var(--color-sub)' }}>Routine (hours):</label>
                   <input
                     type="number"
                     min="1"
                     max="168"
-                    className="w-24 px-3 py-2 border border-neutral-300 rounded-lg"
+                    className="w-24 px-3 py-2 border rounded-lg" style={{ borderColor: 'var(--color-line)', background: 'var(--color-card)', color: 'var(--color-text)' }}
                     value={formData.routineResponseHours}
                     onChange={(e) =>
                       setFormData((prev) => ({
@@ -419,12 +422,12 @@ export function AgencyOnboarding({ onComplete, onLogin, initialAgencyType = 'man
                   />
                 </div>
                 <div className="flex items-center gap-4">
-                  <label className="flex-1 text-sm text-neutral-700">Maintenance (days):</label>
+                  <label className="flex-1 text-sm" style={{ color: 'var(--color-sub)' }}>Maintenance (days):</label>
                   <input
                     type="number"
                     min="1"
                     max="30"
-                    className="w-24 px-3 py-2 border border-neutral-300 rounded-lg"
+                    className="w-24 px-3 py-2 border rounded-lg" style={{ borderColor: 'var(--color-line)', background: 'var(--color-card)', color: 'var(--color-text)' }}
                     value={formData.maintenanceResponseDays}
                     onChange={(e) =>
                       setFormData((prev) => ({
@@ -439,7 +442,7 @@ export function AgencyOnboarding({ onComplete, onLogin, initialAgencyType = 'man
 
             {/* Compliance */}
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-neutral-900 flex items-center gap-2">
+              <h3 className="flex items-center gap-2" style={heading(22, 2)}>
                 <Shield size={20} />
                 Compliance & Insurance
               </h3>
@@ -454,8 +457,8 @@ export function AgencyOnboarding({ onComplete, onLogin, initialAgencyType = 'man
                   className="mt-1 w-5 h-5"
                 />
                 <div>
-                  <span className="font-medium">Property Ombudsman Member *</span>
-                  <p className="text-sm text-neutral-600">isRequired for managing agents</p>
+                  <span className="font-medium" style={{ color: 'var(--color-text)' }}>Property Ombudsman Member *</span>
+                  <p className="text-sm" style={{ color: 'var(--color-sub)' }}>isRequired for managing agents</p>
                   {errors.propertyOmbudsmanMember && (
                     <p className="text-sm text-danger-600">{errors.propertyOmbudsmanMember}</p>
                   )}
@@ -463,7 +466,7 @@ export function AgencyOnboarding({ onComplete, onLogin, initialAgencyType = 'man
               </label>
 
               <input
-                className="w-full px-4 py-3 border border-neutral-300 rounded-lg"
+                className="w-full px-4 py-3 border rounded-lg" style={{ borderColor: 'var(--color-line)', background: 'var(--color-card)', color: 'var(--color-text)' }}
                 placeholder="Insurance Provider (Optional)"
                 value={formData.insuranceProvider}
                 onChange={(e) =>
@@ -472,7 +475,7 @@ export function AgencyOnboarding({ onComplete, onLogin, initialAgencyType = 'man
               />
 
               <input
-                className="w-full px-4 py-3 border border-neutral-300 rounded-lg"
+                className="w-full px-4 py-3 border rounded-lg" style={{ borderColor: 'var(--color-line)', background: 'var(--color-card)', color: 'var(--color-text)' }}
                 placeholder="Policy Number (Optional)"
                 value={formData.insurancePolicyNumber}
                 onChange={(e) =>

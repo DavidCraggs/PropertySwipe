@@ -4,6 +4,7 @@ import { X, User, Home, Calendar, Mail, Clock, CreditCard } from 'lucide-react';
 import type { Match, RenterProfile, Property } from '../../types';
 import { IconButton } from '../atoms/IconButton';
 import { formatPrice } from '../../utils/formatters';
+import { heading } from '../../utils/conceptCStyles';
 
 interface TenancyDetailsModalProps {
   tenancy: Match | null;
@@ -91,7 +92,8 @@ export const TenancyDetailsModal: React.FC<TenancyDetailsModalProps> = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
+            className="fixed inset-0 z-40"
+            style={{ background: 'rgba(0,0,0,0.5)' }}
           />
 
           {/* Modal */}
@@ -100,20 +102,21 @@ export const TenancyDetailsModal: React.FC<TenancyDetailsModalProps> = ({
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-            className="fixed inset-0 z-50 flex flex-col bg-white overflow-hidden"
+            className="fixed inset-0 z-50 flex flex-col overflow-hidden"
+            style={{ background: 'var(--color-card)', border: '1.5px solid var(--color-line)', borderRadius: 20 }}
           >
             {/* Sticky Header */}
-            <div className="sticky top-0 z-10 bg-white border-b border-neutral-200 px-4 py-3 flex items-center justify-between">
+            <div className="sticky top-0 z-10 px-4 py-3 flex items-center justify-between" style={{ background: 'var(--color-card)', borderBottom: '1.5px solid var(--color-line)' }}>
               <div className="flex-1 min-w-0 mr-4">
-                <h2 className="text-xl font-bold text-neutral-900 truncate">
+                <h2 className="truncate" style={heading(22, 1)}>
                   Tenancy Details
                 </h2>
-                <p className="text-sm text-neutral-600">
+                <p className="text-sm" style={{ color: 'var(--color-sub)' }}>
                   {tenancy.renterName}
                 </p>
               </div>
               <IconButton
-                icon={<X size={24} />}
+                icon={<X size={24} style={{ color: 'var(--color-sub)' }} />}
                 variant="ghost"
                 size="md"
                 ariaLabel="Close details"
@@ -138,47 +141,47 @@ export const TenancyDetailsModal: React.FC<TenancyDetailsModalProps> = ({
 
                 {/* Tenant Information */}
                 <section>
-                  <h4 className="text-lg font-bold text-neutral-900 mb-4 flex items-center gap-2">
+                  <h4 className="mb-4 flex items-center gap-2" style={heading(18, 1)}>
                     <User size={20} />
                     Tenant Information
                   </h4>
-                  <div className="bg-neutral-50 rounded-lg p-4 space-y-4">
+                  <div className="rounded-lg p-4 space-y-4" style={{ background: 'var(--color-card)', border: '1.5px solid var(--color-line)' }}>
                     <div className="flex items-center gap-3">
                       <div className="w-12 h-12 rounded-full bg-primary-100 flex items-center justify-center">
                         <User size={24} className="text-primary-600" />
                       </div>
                       <div>
-                        <div className="font-semibold text-neutral-900">{tenancy.renterName}</div>
+                        <div className="font-semibold" style={{ color: 'var(--color-text)' }}>{tenancy.renterName}</div>
                         {renterInfo && (
-                          <div className="text-sm text-neutral-600">{renterInfo.renterType}</div>
+                          <div className="text-sm" style={{ color: 'var(--color-sub)' }}>{renterInfo.renterType}</div>
                         )}
                       </div>
                     </div>
 
                     {renterInfo && (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-3 border-t border-neutral-200">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-3 border-t" style={{ borderColor: 'var(--color-line)' }}>
                         <div className="flex items-center gap-2">
-                          <Mail size={16} className="text-neutral-500" />
+                          <Mail size={16} style={{ color: 'var(--color-sub)' }} />
                           <div>
-                            <div className="text-xs text-neutral-500">Email</div>
-                            <div className="text-sm font-medium text-neutral-900">{renterInfo.email}</div>
+                            <div style={{ fontFamily: "'Libre Franklin', sans-serif", fontSize: 10, fontWeight: 800, letterSpacing: 2, textTransform: 'uppercase', color: 'var(--color-sub)' }}>Email</div>
+                            <div className="text-sm font-medium" style={{ color: 'var(--color-text)' }}>{renterInfo.email}</div>
                           </div>
                         </div>
                         {renterInfo.situation && (
                           <div className="flex items-center gap-2">
-                            <User size={16} className="text-neutral-500" />
+                            <User size={16} style={{ color: 'var(--color-sub)' }} />
                             <div>
-                              <div className="text-xs text-neutral-500">Situation</div>
-                              <div className="text-sm font-medium text-neutral-900">{renterInfo.situation}</div>
+                              <div style={{ fontFamily: "'Libre Franklin', sans-serif", fontSize: 10, fontWeight: 800, letterSpacing: 2, textTransform: 'uppercase', color: 'var(--color-sub)' }}>Situation</div>
+                              <div className="text-sm font-medium" style={{ color: 'var(--color-text)' }}>{renterInfo.situation}</div>
                             </div>
                           </div>
                         )}
                         {renterInfo.employmentStatus && (
                           <div className="flex items-center gap-2">
-                            <CreditCard size={16} className="text-neutral-500" />
+                            <CreditCard size={16} style={{ color: 'var(--color-sub)' }} />
                             <div>
-                              <div className="text-xs text-neutral-500">Employment</div>
-                              <div className="text-sm font-medium text-neutral-900">{renterInfo.employmentStatus}</div>
+                              <div style={{ fontFamily: "'Libre Franklin', sans-serif", fontSize: 10, fontWeight: 800, letterSpacing: 2, textTransform: 'uppercase', color: 'var(--color-sub)' }}>Employment</div>
+                              <div className="text-sm font-medium" style={{ color: 'var(--color-text)' }}>{renterInfo.employmentStatus}</div>
                             </div>
                           </div>
                         )}
@@ -190,11 +193,11 @@ export const TenancyDetailsModal: React.FC<TenancyDetailsModalProps> = ({
                 {/* Property Information */}
                 {propertyInfo && (
                   <section>
-                    <h4 className="text-lg font-bold text-neutral-900 mb-4 flex items-center gap-2">
+                    <h4 className="mb-4 flex items-center gap-2" style={heading(18, 1)}>
                       <Home size={20} />
                       Property
                     </h4>
-                    <div className="bg-neutral-50 rounded-lg p-4">
+                    <div className="rounded-lg p-4" style={{ background: 'var(--color-card)', border: '1.5px solid var(--color-line)' }}>
                       <div className="flex items-start gap-4">
                         {propertyInfo.images?.[0] && (
                           <div className="w-24 h-24 rounded-lg overflow-hidden flex-shrink-0">
@@ -206,22 +209,22 @@ export const TenancyDetailsModal: React.FC<TenancyDetailsModalProps> = ({
                           </div>
                         )}
                         <div className="flex-1">
-                          <div className="font-semibold text-neutral-900">{propertyInfo.address.street}</div>
-                          <div className="text-sm text-neutral-600">
+                          <div className="font-semibold" style={{ color: 'var(--color-text)' }}>{propertyInfo.address.street}</div>
+                          <div className="text-sm" style={{ color: 'var(--color-sub)' }}>
                             {propertyInfo.address.city}, {propertyInfo.address.postcode}
                           </div>
                           <div className="mt-2 flex flex-wrap gap-4">
                             <div className="text-sm">
-                              <span className="text-neutral-500">Rent:</span>{' '}
-                              <span className="font-medium text-neutral-900">{formatPrice(propertyInfo.rentPcm)}/mo</span>
+                              <span style={{ color: 'var(--color-sub)' }}>Rent:</span>{' '}
+                              <span className="font-medium" style={{ color: 'var(--color-text)' }}>{formatPrice(propertyInfo.rentPcm)}/mo</span>
                             </div>
                             <div className="text-sm">
-                              <span className="text-neutral-500">Bedrooms:</span>{' '}
-                              <span className="font-medium text-neutral-900">{propertyInfo.bedrooms}</span>
+                              <span style={{ color: 'var(--color-sub)' }}>Bedrooms:</span>{' '}
+                              <span className="font-medium" style={{ color: 'var(--color-text)' }}>{propertyInfo.bedrooms}</span>
                             </div>
                             <div className="text-sm">
-                              <span className="text-neutral-500">Type:</span>{' '}
-                              <span className="font-medium text-neutral-900 capitalize">{propertyInfo.propertyType}</span>
+                              <span style={{ color: 'var(--color-sub)' }}>Type:</span>{' '}
+                              <span className="font-medium capitalize" style={{ color: 'var(--color-text)' }}>{propertyInfo.propertyType}</span>
                             </div>
                           </div>
                         </div>
@@ -232,14 +235,14 @@ export const TenancyDetailsModal: React.FC<TenancyDetailsModalProps> = ({
 
                 {/* Tenancy Dates */}
                 <section>
-                  <h4 className="text-lg font-bold text-neutral-900 mb-4 flex items-center gap-2">
+                  <h4 className="mb-4 flex items-center gap-2" style={heading(18, 1)}>
                     <Calendar size={20} />
                     Tenancy Timeline
                   </h4>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    <div className="bg-neutral-50 rounded-lg p-4">
-                      <div className="text-xs text-neutral-500 mb-1">Match Date</div>
-                      <div className="font-medium text-neutral-900">
+                    <div className="rounded-lg p-4" style={{ background: 'var(--color-card)', border: '1.5px solid var(--color-line)' }}>
+                      <div className="mb-1" style={{ fontFamily: "'Libre Franklin', sans-serif", fontSize: 10, fontWeight: 800, letterSpacing: 2, textTransform: 'uppercase', color: 'var(--color-sub)' }}>Match Date</div>
+                      <div className="font-medium" style={{ color: 'var(--color-text)' }}>
                         {formatDate(tenancy.timestamp)}
                       </div>
                     </div>
@@ -260,9 +263,9 @@ export const TenancyDetailsModal: React.FC<TenancyDetailsModalProps> = ({
                       </div>
                     )}
                     {tenancy.applicationSubmittedAt && (
-                      <div className="bg-neutral-50 rounded-lg p-4">
-                        <div className="text-xs text-neutral-500 mb-1">Application Submitted</div>
-                        <div className="font-medium text-neutral-900">
+                      <div className="rounded-lg p-4" style={{ background: 'var(--color-card)', border: '1.5px solid var(--color-line)' }}>
+                        <div className="mb-1" style={{ fontFamily: "'Libre Franklin', sans-serif", fontSize: 10, fontWeight: 800, letterSpacing: 2, textTransform: 'uppercase', color: 'var(--color-sub)' }}>Application Submitted</div>
+                        <div className="font-medium" style={{ color: 'var(--color-text)' }}>
                           {formatDate(tenancy.applicationSubmittedAt)}
                         </div>
                       </div>
@@ -293,7 +296,7 @@ export const TenancyDetailsModal: React.FC<TenancyDetailsModalProps> = ({
                       <CreditCard size={20} />
                       Rent Arrears
                     </h4>
-                    <div className="bg-danger-50 rounded-lg p-4 border border-danger-200">
+                    <div className="bg-danger-50 rounded-lg p-4 border" style={{ borderColor: 'var(--color-line)' }}>
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                         <div>
                           <div className="text-xs text-danger-600 mb-1">Total Owed</div>
@@ -315,7 +318,7 @@ export const TenancyDetailsModal: React.FC<TenancyDetailsModalProps> = ({
                         </div>
                       </div>
                       {tenancy.rentArrears.lastPaymentDate && (
-                        <div className="mt-3 pt-3 border-t border-danger-200">
+                        <div className="mt-3 pt-3 border-t" style={{ borderColor: 'var(--color-line)' }}>
                           <div className="text-sm text-danger-600">
                             Last payment: {formatDate(tenancy.rentArrears.lastPaymentDate)}
                           </div>
@@ -328,11 +331,11 @@ export const TenancyDetailsModal: React.FC<TenancyDetailsModalProps> = ({
                 {/* Viewing Preference */}
                 {tenancy.viewingPreference && (
                   <section>
-                    <h4 className="text-lg font-bold text-neutral-900 mb-4 flex items-center gap-2">
+                    <h4 className="mb-4 flex items-center gap-2" style={heading(18, 1)}>
                       <Clock size={20} />
                       Viewing Preference
                     </h4>
-                    <div className="bg-neutral-50 rounded-lg p-4">
+                    <div className="rounded-lg p-4" style={{ background: 'var(--color-card)', border: '1.5px solid var(--color-line)' }}>
                       <div className="flex items-center gap-2 mb-2">
                         <span className={`px-2 py-1 text-xs font-medium rounded-full ${
                           tenancy.viewingPreference.status === 'confirmed' ? 'bg-success-100 text-success-700' :
@@ -341,12 +344,12 @@ export const TenancyDetailsModal: React.FC<TenancyDetailsModalProps> = ({
                         }`}>
                           {tenancy.viewingPreference.status.charAt(0).toUpperCase() + tenancy.viewingPreference.status.slice(1)}
                         </span>
-                        <span className="text-sm text-neutral-600">
+                        <span className="text-sm" style={{ color: 'var(--color-sub)' }}>
                           {tenancy.viewingPreference.flexibility}
                         </span>
                       </div>
                       {tenancy.viewingPreference.additionalNotes && (
-                        <p className="text-sm text-neutral-600 mt-2">
+                        <p className="text-sm mt-2" style={{ color: 'var(--color-sub)' }}>
                           {tenancy.viewingPreference.additionalNotes}
                         </p>
                       )}

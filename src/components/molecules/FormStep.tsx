@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import type { ReactNode } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '../atoms/Button';
+import { heading, subText } from '../../utils/conceptCStyles';
 
 interface FormStepProps {
   title: string;
@@ -18,8 +19,7 @@ interface FormStepProps {
 }
 
 /**
- * Reusable form step container with progress indicator
- * Provides consistent layout and animations for multi-step forms
+ * Concept C form step container — Bebas heading, teal progress, minimal borders
  */
 export function FormStep({
   title,
@@ -45,9 +45,13 @@ export function FormStep({
       className="flex flex-col h-full p-8"
     >
       {/* Progress Bar */}
-      <div className="w-full bg-neutral-200 h-1.5 rounded-full overflow-hidden mb-8">
+      <div
+        className="w-full h-1.5 rounded-full overflow-hidden mb-8"
+        style={{ background: 'var(--color-line)' }}
+      >
         <motion.div
-          className="h-full bg-gradient-to-r from-primary-500 to-primary-600 rounded-full"
+          className="h-full rounded-full"
+          style={{ background: 'var(--color-teal)' }}
           initial={{ width: 0 }}
           animate={{ width: `${progressPercentage}%` }}
           transition={{ duration: 0.5, ease: 'easeOut' }}
@@ -59,45 +63,55 @@ export function FormStep({
         {onBack && (
           <button
             onClick={onBack}
-            className="p-2 hover:bg-neutral-100 rounded-lg transition-colors"
+            className="p-2 rounded-lg transition-colors"
+            style={{ color: 'var(--color-sub)' }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--color-line)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
             aria-label="Go back"
           >
-            <ArrowLeft className="w-5 h-5 text-neutral-600" />
+            <ArrowLeft className="w-5 h-5" />
           </button>
         )}
         <div className="flex gap-2">
           {Array.from({ length: totalSteps }).map((_, index) => {
-            const stepNumber = index + 1; // Convert to 1-based for comparison
+            const stepNumber = index + 1;
             return (
               <div
                 key={index}
-                className={`h-2 rounded-full transition-all duration-300 ${
-                  stepNumber < currentStep
-                    ? 'w-8 bg-primary-500'
-                    : stepNumber === currentStep
-                      ? 'w-12 bg-primary-500'
-                      : 'w-2 bg-neutral-300'
-                }`}
+                className="h-2 rounded-full transition-all duration-300"
+                style={{
+                  width: stepNumber < currentStep ? 32 : stepNumber === currentStep ? 48 : 8,
+                  background: stepNumber <= currentStep ? 'var(--color-teal)' : 'var(--color-line)',
+                }}
               />
             );
           })}
         </div>
-        <span className="text-sm text-neutral-500 ml-auto">
-          Step {currentStep} of {totalSteps}
+        <span
+          className="ml-auto"
+          style={{
+            fontFamily: "'Libre Franklin', sans-serif",
+            fontSize: 11,
+            fontWeight: 700,
+            letterSpacing: 1.5,
+            color: 'var(--color-sub)',
+          }}
+        >
+          STEP {currentStep} OF {totalSteps}
         </span>
       </div>
 
       {/* Header */}
       <div className="mb-8">
-        <h2 className="text-2xl md:text-3xl font-bold text-neutral-900 mb-2">{title}</h2>
-        {subtitle && <p className="text-neutral-600 text-base md:text-lg">{subtitle}</p>}
+        <h2 style={heading(28, 2)}>{title}</h2>
+        {subtitle && <p style={{ ...subText(14), marginTop: 6 }}>{subtitle}</p>}
       </div>
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto mb-6">{children}</div>
 
       {/* Actions */}
-      <div className="flex gap-3 pt-4 border-t border-neutral-200">
+      <div className="flex gap-3 pt-4" style={{ borderTop: '1px solid var(--color-line)' }}>
         {onBack && (
           <Button variant="outline" onClick={onBack} className="flex-1">
             Back

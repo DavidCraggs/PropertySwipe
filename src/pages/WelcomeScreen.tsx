@@ -1,7 +1,6 @@
 import { useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Home, Heart, Zap, ArrowRight } from 'lucide-react';
-import { Button } from '../components/atoms/Button';
+import { ArrowRight } from 'lucide-react';
 import { LoginButton } from '../components/molecules/LoginButton';
 import { LOGIN_TAGLINES } from '../data/taglines';
 
@@ -11,143 +10,231 @@ interface WelcomeScreenProps {
 }
 
 /**
- * Landing page for Let Right
- * Shows value propositions and CTAs for getting started
+ * WelcomeScreen — Concept C landing page
+ * Typography-driven, warm parchment background, no orbs, no gradients
+ * Bebas Neue headings, Libre Franklin body, teal as sole accent
  */
 export function WelcomeScreen({ onGetStarted, onLogin }: WelcomeScreenProps) {
-  // Select a random tagline on mount (stable across re-renders)
   const tagline = useMemo(() => {
     const index = Math.floor(Math.random() * LOGIN_TAGLINES.length);
     return LOGIN_TAGLINES[index];
   }, []);
 
   const features = [
-    {
-      icon: Zap,
-      title: 'Fast Matching',
-      description: 'Connect with quality renters or find your perfect rental in minutes',
-    },
-    {
-      icon: Heart,
-      title: 'Direct Connection',
-      description: 'No middlemen. Chat directly with renters and landlords',
-    },
-    {
-      icon: Home,
-      title: 'Local Focus',
-      description: 'Properties in Southport, Liverpool, and Manchester',
-    },
+    { title: 'FAST MATCHING', description: 'Connect with quality renters or find your perfect rental in minutes' },
+    { title: 'DIRECT CONNECTION', description: 'No middlemen. Chat directly with renters and landlords' },
+    { title: 'LOCAL FOCUS', description: 'Properties in Southport, Liverpool, and Manchester' },
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-secondary-50 flex flex-col">
+    <div
+      style={{
+        minHeight: '100vh',
+        background: 'var(--color-bg)',
+        color: 'var(--color-text)',
+        display: 'flex',
+        flexDirection: 'column',
+        position: 'relative',
+        overflow: 'hidden',
+        transition: 'background 0.5s, color 0.5s',
+      }}
+    >
       {/* Login Button */}
       <LoginButton onLogin={onLogin} />
 
       {/* Header */}
-      <header className="p-4 md:p-6">
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="flex items-center gap-2"
+      <motion.header
+        style={{
+          padding: '24px 24px 0',
+          textAlign: 'center',
+          zIndex: 10,
+        }}
+        initial={{ opacity: 0, y: 14 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: 'easeOut', delay: 0.05 }}
+      >
+        <h1
+          style={{
+            fontFamily: "'Bebas Neue', sans-serif",
+            fontSize: 44,
+            letterSpacing: 6,
+            margin: 0,
+            lineHeight: 1,
+          }}
         >
-          <img
-            src="/icon-transparent.png"
-            alt="Let Right"
-            className="w-10 h-10"
-          />
-          <span className="text-2xl font-bold bg-gradient-to-r from-primary-600 to-primary-700 bg-clip-text text-transparent">
-            Let Right
-          </span>
-        </motion.div>
-      </header>
+          <span style={{ color: 'var(--color-teal)' }}>LET</span>RIGHT
+        </h1>
+        <p
+          style={{
+            fontFamily: "'Libre Franklin', sans-serif",
+            fontSize: 9,
+            fontWeight: 800,
+            letterSpacing: 3,
+            color: 'var(--color-sub)',
+            margin: '4px 0 0',
+          }}
+        >
+          &ldquo;SWIPE RIGHT. LET RIGHT.&rdquo;
+        </p>
+      </motion.header>
 
       {/* Main Content */}
-      <main className="flex-1 flex items-center justify-center p-6">
-        <div className="max-w-4xl w-full">
-          {/* Hero Section */}
+      <main
+        style={{
+          flex: 1,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '24px 16px',
+          zIndex: 10,
+        }}
+      >
+        <div style={{ maxWidth: 520, width: '100%' }}>
+          {/* Hero */}
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            style={{ textAlign: 'center', marginBottom: 48 }}
+            initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            className="text-center mb-12"
+            transition={{ duration: 0.5, ease: 'easeOut', delay: 0.15 }}
           >
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-neutral-900 mb-4">
-              Let Right, live better,{' '}
-              <span className="bg-gradient-to-r from-primary-500 to-secondary-500 bg-clip-text text-transparent">
-                faster
-              </span>
-            </h1>
-            <motion.p
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.3, ease: 'easeOut' }}
-              className="text-lg md:text-xl text-neutral-600 max-w-2xl mx-auto italic"
+            <h2
+              style={{
+                fontFamily: "'Bebas Neue', sans-serif",
+                fontSize: 52,
+                letterSpacing: 4,
+                lineHeight: 1,
+                margin: '0 0 12px',
+              }}
             >
-              "{tagline}"
-            </motion.p>
+              LET RIGHT,{' '}
+              <span style={{ color: 'var(--color-teal)' }}>LIVE BETTER</span>
+            </h2>
+            <p
+              style={{
+                fontFamily: "'Libre Franklin', sans-serif",
+                fontSize: 14,
+                color: 'var(--color-sub)',
+                fontWeight: 500,
+                lineHeight: 1.6,
+                fontStyle: 'italic',
+              }}
+            >
+              &ldquo;{tagline}&rdquo;
+            </p>
           </motion.div>
 
-          {/* Features Grid */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.4 }}
-            className="grid md:grid-cols-3 gap-6 mb-12"
-          >
+          {/* Features */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 48 }}>
             {features.map((feature, index) => (
               <motion.div
                 key={feature.title}
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 14 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.5 + index * 0.1 }}
-                className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 border border-neutral-200/50 hover:shadow-lg transition-shadow"
+                transition={{ duration: 0.5, ease: 'easeOut', delay: 0.25 + index * 0.08 }}
+                style={{
+                  background: 'var(--color-card)',
+                  border: '1.5px solid var(--color-line)',
+                  borderRadius: 16,
+                  padding: '16px 12px',
+                  textAlign: 'center',
+                }}
               >
-                <div className="w-12 h-12 rounded-xl bg-primary-100 flex items-center justify-center mb-4">
-                  <feature.icon className="w-6 h-6 text-primary-600" />
-                </div>
-                <h3 className="font-semibold text-lg text-neutral-900 mb-2">{feature.title}</h3>
-                <p className="text-neutral-600 text-sm">{feature.description}</p>
+                <h3
+                  style={{
+                    fontFamily: "'Bebas Neue', sans-serif",
+                    fontSize: 18,
+                    letterSpacing: 2,
+                    margin: '0 0 8px',
+                    color: 'var(--color-text)',
+                  }}
+                >
+                  {feature.title}
+                </h3>
+                <p
+                  style={{
+                    fontFamily: "'Libre Franklin', sans-serif",
+                    fontSize: 11,
+                    color: 'var(--color-sub)',
+                    fontWeight: 500,
+                    lineHeight: 1.5,
+                    margin: 0,
+                  }}
+                >
+                  {feature.description}
+                </p>
               </motion.div>
             ))}
-          </motion.div>
+          </div>
 
-          {/* CTA Buttons */}
+          {/* CTA */}
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            style={{ display: 'flex', justifyContent: 'center' }}
+            initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.8 }}
-            className="flex flex-col sm:flex-row gap-4 justify-center text-neutral-900"
+            transition={{ duration: 0.5, ease: 'easeOut', delay: 0.5 }}
           >
-            <Button
-              variant="primary"
-              size="lg"
+            <button
               onClick={onGetStarted}
-              className="group px-8 py-4 text-lg"
+              style={{
+                fontFamily: "'Libre Franklin', sans-serif",
+                fontSize: 13,
+                fontWeight: 800,
+                letterSpacing: 2,
+                textTransform: 'uppercase',
+                background: 'var(--color-teal)',
+                color: '#fff',
+                border: 'none',
+                borderRadius: 12,
+                padding: '16px 40px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                boxShadow: '0 6px 24px var(--color-glow)',
+                transition: 'transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.03)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
             >
-              Get Started
-              <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
-            </Button>
+              GET STARTED
+              <ArrowRight size={18} />
+            </button>
           </motion.div>
 
           {/* Social Proof */}
-          <motion.div
+          <motion.p
+            style={{
+              fontFamily: "'Libre Franklin', sans-serif",
+              fontSize: 11,
+              color: 'var(--color-sub)',
+              textAlign: 'center',
+              marginTop: 40,
+              fontWeight: 500,
+              letterSpacing: 0.5,
+            }}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ duration: 0.6, delay: 1 }}
-            className="text-center mt-12"
+            transition={{ duration: 0.5, delay: 0.7 }}
           >
-            <p className="text-sm text-neutral-500">
-              Helping renters and landlords connect across <strong>Southport, Liverpool & Manchester</strong>
-            </p>
-          </motion.div>
+            Helping renters and landlords connect across Southport, Liverpool & Manchester
+          </motion.p>
         </div>
       </main>
 
       {/* Footer */}
-      <footer className="p-6 text-center text-sm text-neutral-500">
-        <p>&copy; 2026 Let Right. Making property moves efficient.</p>
+      <footer
+        style={{
+          padding: 24,
+          textAlign: 'center',
+          fontFamily: "'Libre Franklin', sans-serif",
+          fontSize: 10,
+          color: 'var(--color-sub)',
+          fontWeight: 500,
+          letterSpacing: 1,
+          zIndex: 10,
+        }}
+      >
+        &copy; 2026 LetRight. Making property moves efficient.
       </footer>
     </div>
   );

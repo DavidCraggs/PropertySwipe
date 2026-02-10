@@ -1014,6 +1014,29 @@ export interface EmailNotification {
 // AUTHENTICATION STATE
 // =====================================================
 
+/** Auth provider type for tracking how users signed in */
+export type AuthProvider = 'google' | 'apple' | 'email' | 'password';
+
+/** Unified profile row from the `profiles` table (bridges auth.users to role-specific tables) */
+export interface SupabaseProfile {
+  id: string;
+  email: string;
+  role: UserType | null;
+  display_name: string | null;
+  avatar_url: string | null;
+  landlord_profile_id: string | null;
+  renter_profile_id: string | null;
+  agency_profile_id: string | null;
+  auth_provider: AuthProvider;
+  onboarding_complete: boolean;
+  created_at: string;
+  updated_at: string;
+  last_sign_in_at: string | null;
+}
+
+/** Auth screen state for the login page */
+export type AuthScreen = 'idle' | 'loading' | 'magic-link-sent' | 'error';
+
 export interface AuthState {
   isAuthenticated: boolean;
   userType: UserType | null;
@@ -1024,6 +1047,12 @@ export interface AuthState {
   isAdminMode?: boolean;
   adminProfile?: AdminProfile;
   impersonatedRole?: UserType;
+
+  // Supabase Auth fields
+  supabaseUserId?: string | null;
+  supabaseProfile?: SupabaseProfile | null;
+  authProvider?: AuthProvider | null;
+  isSessionLoading?: boolean;
 }
 
 // =====================================================

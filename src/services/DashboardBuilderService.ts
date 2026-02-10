@@ -1,9 +1,12 @@
 /**
  * DashboardBuilderService
  * Manages custom dashboard CRUD operations and widget data fetching
+ * Dual-layer: Supabase when configured + user authenticated via Supabase Auth,
+ * otherwise falls back to localStorage.
  */
 
-import { supabase } from '../lib/supabase';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { useAuthStore } from '../hooks/useAuthStore';
 import type {
   CustomDashboard,
   DashboardWidget,
@@ -21,6 +24,57 @@ import type {
 } from '../types';
 
 // =====================================================
+// LOCAL STORAGE HELPERS
+// =====================================================
+
+const LS_DASHBOARDS_KEY = 'get-on-dashboards';
+const LS_WIDGETS_KEY = 'get-on-dashboard-widgets';
+
+function generateId(): string {
+  return crypto.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+}
+
+/** Use Supabase only when configured AND user is authenticated via Supabase Auth */
+function shouldUseSupabase(): boolean {
+  if (!isSupabaseConfigured()) return false;
+  const { supabaseUserId } = useAuthStore.getState();
+  return !!supabaseUserId;
+}
+
+function getLocalDashboards(): CustomDashboard[] {
+  try {
+    const raw = localStorage.getItem(LS_DASHBOARDS_KEY);
+    if (!raw) return [];
+    return JSON.parse(raw).map((d: Record<string, unknown>) => ({
+      ...d,
+      createdAt: new Date(d.createdAt as string),
+      updatedAt: new Date(d.updatedAt as string),
+      layout: (d.layout as DashboardWidget[]) || [],
+    }));
+  } catch { return []; }
+}
+
+function saveLocalDashboards(dashboards: CustomDashboard[]): void {
+  localStorage.setItem(LS_DASHBOARDS_KEY, JSON.stringify(dashboards));
+}
+
+function getLocalWidgets(): DashboardWidget[] {
+  try {
+    const raw = localStorage.getItem(LS_WIDGETS_KEY);
+    if (!raw) return [];
+    return JSON.parse(raw).map((w: Record<string, unknown>) => ({
+      ...w,
+      createdAt: new Date(w.createdAt as string),
+      updatedAt: new Date(w.updatedAt as string),
+    }));
+  } catch { return []; }
+}
+
+function saveLocalWidgets(widgets: DashboardWidget[]): void {
+  localStorage.setItem(LS_WIDGETS_KEY, JSON.stringify(widgets));
+}
+
+// =====================================================
 // DASHBOARD CRUD OPERATIONS
 // =====================================================
 
@@ -33,79 +87,117 @@ export async function createDashboard(
   description?: string,
   templateId?: DashboardTemplateId
 ): Promise<CustomDashboard> {
-  const { data, error } = await supabase
-    .from('custom_dashboards')
-    .insert({
-      user_id: userId,
-      name,
-      description,
-      template_id: templateId,
-      is_default: false,
-      layout: [],
-    })
-    .select()
-    .single();
+  if (shouldUseSupabase()) {
+    const { data, error } = await supabase
+      .from('custom_dashboards')
+      .insert({
+        user_id: userId,
+        name,
+        description,
+        template_id: templateId,
+        is_default: false,
+        layout: [],
+      })
+      .select()
+      .single();
 
-  if (error) {
-    console.error('[DashboardBuilder] Failed to create dashboard:', error);
-    throw error;
+    if (error) {
+      console.error('[DashboardBuilder] Failed to create dashboard:', error);
+      throw error;
+    }
+
+    return mapDashboardFromDb(data);
   }
 
-  return mapDashboardFromDb(data);
+  // localStorage fallback
+  const now = new Date();
+  const dashboard: CustomDashboard = {
+    id: generateId(),
+    userId,
+    name,
+    description,
+    isDefault: false,
+    templateId,
+    layout: [],
+    createdAt: now,
+    updatedAt: now,
+  };
+  const dashboards = getLocalDashboards();
+  dashboards.unshift(dashboard);
+  saveLocalDashboards(dashboards);
+  return dashboard;
 }
 
 /**
  * Get all dashboards for a user (owned + shared)
  */
 export async function getDashboards(userId: string): Promise<CustomDashboard[]> {
-  // Get owned dashboards
-  const { data: owned, error: ownedError } = await supabase
-    .from('custom_dashboards')
-    .select('*, dashboard_widgets(*)')
-    .eq('user_id', userId)
-    .order('created_at', { ascending: false });
+  if (shouldUseSupabase()) {
+    // Get owned dashboards
+    const { data: owned, error: ownedError } = await supabase
+      .from('custom_dashboards')
+      .select('*, dashboard_widgets(*)')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
 
-  if (ownedError) {
-    console.error('[DashboardBuilder] Failed to fetch owned dashboards:', ownedError);
-    throw ownedError;
+    if (ownedError) {
+      console.error('[DashboardBuilder] Failed to fetch owned dashboards:', ownedError);
+      throw ownedError;
+    }
+
+    // Get shared dashboards
+    const { data: shared, error: sharedError } = await supabase
+      .from('dashboard_permissions')
+      .select('dashboard_id, custom_dashboards(*, dashboard_widgets(*))')
+      .eq('user_id', userId);
+
+    if (sharedError) {
+      console.error('[DashboardBuilder] Failed to fetch shared dashboards:', sharedError);
+      // Continue with owned dashboards only
+    }
+
+    const ownedDashboards = (owned || []).map(mapDashboardFromDb);
+    const sharedDashboards = (shared || [])
+      .filter(s => s.custom_dashboards)
+      .map(s => mapDashboardFromDb(s.custom_dashboards as unknown as Record<string, unknown>));
+
+    return [...ownedDashboards, ...sharedDashboards];
   }
 
-  // Get shared dashboards
-  const { data: shared, error: sharedError } = await supabase
-    .from('dashboard_permissions')
-    .select('dashboard_id, custom_dashboards(*, dashboard_widgets(*))')
-    .eq('user_id', userId);
-
-  if (sharedError) {
-    console.error('[DashboardBuilder] Failed to fetch shared dashboards:', sharedError);
-    // Continue with owned dashboards only
-  }
-
-  const ownedDashboards = (owned || []).map(mapDashboardFromDb);
-  const sharedDashboards = (shared || [])
-    .filter(s => s.custom_dashboards)
-    .map(s => mapDashboardFromDb(s.custom_dashboards as unknown as Record<string, unknown>));
-
-  return [...ownedDashboards, ...sharedDashboards];
+  // localStorage fallback
+  const dashboards = getLocalDashboards().filter(d => d.userId === userId);
+  const widgets = getLocalWidgets();
+  return dashboards.map(d => ({
+    ...d,
+    layout: widgets.filter(w => w.dashboardId === d.id),
+  }));
 }
 
 /**
  * Get a single dashboard by ID
  */
 export async function getDashboard(dashboardId: string): Promise<CustomDashboard | null> {
-  const { data, error } = await supabase
-    .from('custom_dashboards')
-    .select('*, dashboard_widgets(*)')
-    .eq('id', dashboardId)
-    .single();
+  if (shouldUseSupabase()) {
+    const { data, error } = await supabase
+      .from('custom_dashboards')
+      .select('*, dashboard_widgets(*)')
+      .eq('id', dashboardId)
+      .single();
 
-  if (error) {
-    if (error.code === 'PGRST116') return null; // Not found
-    console.error('[DashboardBuilder] Failed to fetch dashboard:', error);
-    throw error;
+    if (error) {
+      if (error.code === 'PGRST116') return null; // Not found
+      console.error('[DashboardBuilder] Failed to fetch dashboard:', error);
+      throw error;
+    }
+
+    return mapDashboardFromDb(data);
   }
 
-  return mapDashboardFromDb(data);
+  // localStorage fallback
+  const dashboard = getLocalDashboards().find(d => d.id === dashboardId);
+  if (!dashboard) return null;
+  const widgets = getLocalWidgets().filter(w => w.dashboardId === dashboardId);
+  return { ...dashboard, layout: widgets };
 }
 
 /**
@@ -115,38 +207,56 @@ export async function updateDashboard(
   dashboardId: string,
   updates: Partial<Pick<CustomDashboard, 'name' | 'description' | 'isDefault'>>
 ): Promise<CustomDashboard> {
-  const { data, error } = await supabase
-    .from('custom_dashboards')
-    .update({
-      name: updates.name,
-      description: updates.description,
-      is_default: updates.isDefault,
-    })
-    .eq('id', dashboardId)
-    .select('*, dashboard_widgets(*)')
-    .single();
+  if (shouldUseSupabase()) {
+    const { data, error } = await supabase
+      .from('custom_dashboards')
+      .update({
+        name: updates.name,
+        description: updates.description,
+        is_default: updates.isDefault,
+      })
+      .eq('id', dashboardId)
+      .select('*, dashboard_widgets(*)')
+      .single();
 
-  if (error) {
-    console.error('[DashboardBuilder] Failed to update dashboard:', error);
-    throw error;
+    if (error) {
+      console.error('[DashboardBuilder] Failed to update dashboard:', error);
+      throw error;
+    }
+
+    return mapDashboardFromDb(data);
   }
 
-  return mapDashboardFromDb(data);
+  // localStorage fallback
+  const dashboards = getLocalDashboards();
+  const idx = dashboards.findIndex(d => d.id === dashboardId);
+  if (idx === -1) throw new Error('Dashboard not found');
+  dashboards[idx] = { ...dashboards[idx], ...updates, updatedAt: new Date() };
+  saveLocalDashboards(dashboards);
+  const widgets = getLocalWidgets().filter(w => w.dashboardId === dashboardId);
+  return { ...dashboards[idx], layout: widgets };
 }
 
 /**
  * Delete a dashboard
  */
 export async function deleteDashboard(dashboardId: string): Promise<void> {
-  const { error } = await supabase
-    .from('custom_dashboards')
-    .delete()
-    .eq('id', dashboardId);
+  if (shouldUseSupabase()) {
+    const { error } = await supabase
+      .from('custom_dashboards')
+      .delete()
+      .eq('id', dashboardId);
 
-  if (error) {
-    console.error('[DashboardBuilder] Failed to delete dashboard:', error);
-    throw error;
+    if (error) {
+      console.error('[DashboardBuilder] Failed to delete dashboard:', error);
+      throw error;
+    }
+    return;
   }
+
+  // localStorage fallback
+  saveLocalDashboards(getLocalDashboards().filter(d => d.id !== dashboardId));
+  saveLocalWidgets(getLocalWidgets().filter(w => w.dashboardId !== dashboardId));
 }
 
 // =====================================================
@@ -163,24 +273,43 @@ export async function addWidget(
   config: WidgetConfig,
   position: WidgetPosition
 ): Promise<DashboardWidget> {
-  const { data, error } = await supabase
-    .from('dashboard_widgets')
-    .insert({
-      dashboard_id: dashboardId,
-      widget_type: widgetType,
-      title,
-      config,
-      position,
-    })
-    .select()
-    .single();
+  if (shouldUseSupabase()) {
+    const { data, error } = await supabase
+      .from('dashboard_widgets')
+      .insert({
+        dashboard_id: dashboardId,
+        widget_type: widgetType,
+        title,
+        config,
+        position,
+      })
+      .select()
+      .single();
 
-  if (error) {
-    console.error('[DashboardBuilder] Failed to add widget:', error);
-    throw error;
+    if (error) {
+      console.error('[DashboardBuilder] Failed to add widget:', error);
+      throw error;
+    }
+
+    return mapWidgetFromDb(data);
   }
 
-  return mapWidgetFromDb(data);
+  // localStorage fallback
+  const now = new Date();
+  const widget: DashboardWidget = {
+    id: generateId(),
+    dashboardId,
+    widgetType,
+    title,
+    config,
+    position,
+    createdAt: now,
+    updatedAt: now,
+  };
+  const widgets = getLocalWidgets();
+  widgets.push(widget);
+  saveLocalWidgets(widgets);
+  return widget;
 }
 
 /**
@@ -190,38 +319,54 @@ export async function updateWidget(
   widgetId: string,
   updates: Partial<Pick<DashboardWidget, 'title' | 'config' | 'position'>>
 ): Promise<DashboardWidget> {
-  const { data, error } = await supabase
-    .from('dashboard_widgets')
-    .update({
-      title: updates.title,
-      config: updates.config,
-      position: updates.position,
-    })
-    .eq('id', widgetId)
-    .select()
-    .single();
+  if (shouldUseSupabase()) {
+    const { data, error } = await supabase
+      .from('dashboard_widgets')
+      .update({
+        title: updates.title,
+        config: updates.config,
+        position: updates.position,
+      })
+      .eq('id', widgetId)
+      .select()
+      .single();
 
-  if (error) {
-    console.error('[DashboardBuilder] Failed to update widget:', error);
-    throw error;
+    if (error) {
+      console.error('[DashboardBuilder] Failed to update widget:', error);
+      throw error;
+    }
+
+    return mapWidgetFromDb(data);
   }
 
-  return mapWidgetFromDb(data);
+  // localStorage fallback
+  const widgets = getLocalWidgets();
+  const idx = widgets.findIndex(w => w.id === widgetId);
+  if (idx === -1) throw new Error('Widget not found');
+  widgets[idx] = { ...widgets[idx], ...updates, updatedAt: new Date() };
+  saveLocalWidgets(widgets);
+  return widgets[idx];
 }
 
 /**
  * Remove a widget from a dashboard
  */
 export async function removeWidget(widgetId: string): Promise<void> {
-  const { error } = await supabase
-    .from('dashboard_widgets')
-    .delete()
-    .eq('id', widgetId);
+  if (shouldUseSupabase()) {
+    const { error } = await supabase
+      .from('dashboard_widgets')
+      .delete()
+      .eq('id', widgetId);
 
-  if (error) {
-    console.error('[DashboardBuilder] Failed to remove widget:', error);
-    throw error;
+    if (error) {
+      console.error('[DashboardBuilder] Failed to remove widget:', error);
+      throw error;
+    }
+    return;
   }
+
+  // localStorage fallback
+  saveLocalWidgets(getLocalWidgets().filter(w => w.id !== widgetId));
 }
 
 /**
@@ -230,21 +375,34 @@ export async function removeWidget(widgetId: string): Promise<void> {
 export async function updateWidgetPositions(
   updates: { id: string; position: WidgetPosition }[]
 ): Promise<void> {
-  // Supabase doesn't support bulk update, so we use Promise.all
-  const promises = updates.map(({ id, position }) =>
-    supabase
-      .from('dashboard_widgets')
-      .update({ position })
-      .eq('id', id)
-  );
+  if (shouldUseSupabase()) {
+    // Supabase doesn't support bulk update, so we use Promise.all
+    const promises = updates.map(({ id, position }) =>
+      supabase
+        .from('dashboard_widgets')
+        .update({ position })
+        .eq('id', id)
+    );
 
-  const results = await Promise.all(promises);
-  const errors = results.filter(r => r.error);
+    const results = await Promise.all(promises);
+    const errors = results.filter(r => r.error);
 
-  if (errors.length > 0) {
-    console.error('[DashboardBuilder] Some widget positions failed to update:', errors);
-    throw errors[0].error;
+    if (errors.length > 0) {
+      console.error('[DashboardBuilder] Some widget positions failed to update:', errors);
+      throw errors[0].error;
+    }
+    return;
   }
+
+  // localStorage fallback
+  const widgets = getLocalWidgets();
+  for (const { id, position } of updates) {
+    const idx = widgets.findIndex(w => w.id === id);
+    if (idx !== -1) {
+      widgets[idx] = { ...widgets[idx], position, updatedAt: new Date() };
+    }
+  }
+  saveLocalWidgets(widgets);
 }
 
 // =====================================================
@@ -260,6 +418,10 @@ export async function shareDashboard(
   permission: DashboardPermission,
   sharedBy: string
 ): Promise<DashboardShare> {
+  if (!shouldUseSupabase()) {
+    throw new Error('Dashboard sharing requires Supabase authentication');
+  }
+
   const { data, error } = await supabase
     .from('dashboard_permissions')
     .insert({
@@ -290,6 +452,10 @@ export async function shareDashboard(
  * Remove dashboard share
  */
 export async function unshareDashboard(dashboardId: string, userId: string): Promise<void> {
+  if (!shouldUseSupabase()) {
+    throw new Error('Dashboard sharing requires Supabase authentication');
+  }
+
   const { error } = await supabase
     .from('dashboard_permissions')
     .delete()

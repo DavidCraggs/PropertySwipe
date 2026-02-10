@@ -97,25 +97,35 @@ export const ANIMATION_DURATION = {
   FAST: 150,
   NORMAL: 300,
   SLOW: 500,
-  SWIPE: 400,
+  SWIPE: 380,
 } as const;
 
 /**
  * Swipe thresholds (in pixels)
  */
 export const SWIPE_THRESHOLD = {
-  HORIZONTAL: 150,
+  HORIZONTAL: 100,
   VERTICAL: 100,
   VELOCITY: 0.5,
 } as const;
 
 /**
- * Card stack configuration
+ * Swipe exit animation constants (Concept C)
+ */
+export const SWIPE_EXIT = {
+  DISTANCE: 550,
+  ROTATION: 20,
+  DURATION: 0.38,
+} as const;
+
+/**
+ * Card stack configuration (Concept C)
  */
 export const CARD_STACK_CONFIG = {
   VISIBLE_CARDS: 3,
-  SCALE_FACTOR: 0.05,
+  SCALE_FACTOR: 0.04,
   Y_OFFSET: 10,
+  OPACITY_FACTOR: 0.28,
   PRELOAD_COUNT: 5,
 } as const;
 

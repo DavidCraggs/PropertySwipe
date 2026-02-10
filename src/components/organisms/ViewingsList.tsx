@@ -3,6 +3,7 @@ import { Calendar, Clock, MapPin, User, CheckCircle, AlertCircle, MessageSquare,
 import { useAuthStore } from '../../hooks/useAuthStore';
 import { useAppStore } from '../../hooks/useAppStore';
 import { useToastStore } from './toastUtils';
+import { heading, card, modalOverlay, modalContent } from '../../utils/conceptCStyles';
 import type { Match } from '../../types';
 
 interface ViewingsListProps {
@@ -248,7 +249,7 @@ export function ViewingsList({ refetchTrigger = 0, onViewingConfirmed }: Viewing
       {/* Upcoming Viewings */}
       <section>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold text-neutral-900 flex items-center gap-2">
+          <h2 className="flex items-center gap-2" style={heading(22, 1)}>
             <Calendar className="w-5 h-5 text-primary-600" />
             Upcoming Viewings
           </h2>
@@ -260,10 +261,10 @@ export function ViewingsList({ refetchTrigger = 0, onViewingConfirmed }: Viewing
         </div>
 
         {upcomingViewings.length === 0 ? (
-          <div className="bg-white rounded-xl border-2 border-neutral-200 p-8 text-center">
-            <Calendar className="w-12 h-12 mx-auto text-neutral-300 mb-3" />
-            <h3 className="font-semibold text-neutral-700 mb-1">No upcoming viewings</h3>
-            <p className="text-sm text-neutral-500">
+          <div className="p-8 text-center" style={{ ...card, padding: 32 }}>
+            <Calendar className="w-12 h-12 mx-auto mb-3" style={{ color: 'var(--color-sub)' }} />
+            <h3 className="font-semibold mb-1" style={{ color: 'var(--color-text)' }}>No upcoming viewings</h3>
+            <p className="text-sm" style={{ color: 'var(--color-sub)' }}>
               {isRenter
                 ? 'Schedule viewings with landlords to see them here'
                 : 'Confirmed viewings with renters will appear here'}
@@ -282,7 +283,7 @@ export function ViewingsList({ refetchTrigger = 0, onViewingConfirmed }: Viewing
       {pendingRequests.length > 0 && (
         <section>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-neutral-900 flex items-center gap-2">
+            <h2 className="flex items-center gap-2" style={heading(22, 1)}>
               <Clock className="w-5 h-5 text-secondary-600" />
               Pending Requests
             </h2>
@@ -307,8 +308,8 @@ export function ViewingsList({ refetchTrigger = 0, onViewingConfirmed }: Viewing
       {/* Past Viewings */}
       {pastViewings.length > 0 && (
         <section>
-          <h2 className="text-xl font-bold text-neutral-900 mb-4 flex items-center gap-2">
-            <CheckCircle className="w-5 h-5 text-neutral-600" />
+          <h2 className="mb-4 flex items-center gap-2" style={heading(22, 1)}>
+            <CheckCircle className="w-5 h-5" style={{ color: 'var(--color-sub)' }} />
             Past Viewings
           </h2>
 
@@ -323,22 +324,24 @@ export function ViewingsList({ refetchTrigger = 0, onViewingConfirmed }: Viewing
       {/* Confirm Viewing Modal */}
       {showConfirmModal && confirmingMatch && (
         <div
-          className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4"
+          className="p-4"
+          style={{ ...modalOverlay, zIndex: 60 }}
           onClick={() => setShowConfirmModal(false)}
         >
           <div
-            className="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl"
+            className="w-full max-w-md p-6"
+            style={modalContent}
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="text-xl font-bold text-neutral-900 mb-2">Confirm Viewing</h3>
-            <p className="text-sm text-neutral-600 mb-6">
+            <h3 className="mb-2" style={heading(22, 1)}>Confirm Viewing</h3>
+            <p className="text-sm mb-6" style={{ color: 'var(--color-sub)' }}>
               {confirmingMatch.property.address.street}
             </p>
 
             <div className="space-y-4">
               {/* Date Picker */}
               <div>
-                <label className="block text-sm font-medium text-neutral-700 mb-2">
+                <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-sub)' }}>
                   Date
                 </label>
                 <input
@@ -346,26 +349,28 @@ export function ViewingsList({ refetchTrigger = 0, onViewingConfirmed }: Viewing
                   value={viewingDate}
                   onChange={(e) => setViewingDate(e.target.value)}
                   min={new Date().toISOString().split('T')[0]}
-                  className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent text-neutral-900"
+                  className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  style={{ borderColor: 'var(--color-line)', color: 'var(--color-text)', background: 'var(--color-card)' }}
                 />
               </div>
 
               {/* Time Picker */}
               <div>
-                <label className="block text-sm font-medium text-neutral-700 mb-2">
+                <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-sub)' }}>
                   Time
                 </label>
                 <input
                   type="time"
                   value={viewingTime}
                   onChange={(e) => setViewingTime(e.target.value)}
-                  className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent text-neutral-900"
+                  className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  style={{ borderColor: 'var(--color-line)', color: 'var(--color-text)', background: 'var(--color-card)' }}
                 />
               </div>
 
               {/* Quick Time Buttons */}
               <div>
-                <label className="block text-sm font-medium text-neutral-700 mb-2">
+                <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-sub)' }}>
                   Quick Select
                 </label>
                 <div className="grid grid-cols-4 gap-2">
@@ -377,8 +382,9 @@ export function ViewingsList({ refetchTrigger = 0, onViewingConfirmed }: Viewing
                       className={`py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
                         viewingTime === time
                           ? 'bg-primary-500 text-white'
-                          : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
+                          : ''
                       }`}
+                      style={viewingTime !== time ? { background: 'var(--color-line)', color: 'var(--color-sub)' } : undefined}
                     >
                       {time}
                     </button>
@@ -410,7 +416,8 @@ export function ViewingsList({ refetchTrigger = 0, onViewingConfirmed }: Viewing
                     setShowConfirmModal(false);
                     setConfirmingMatch(null);
                   }}
-                  className="flex-1 py-3 text-neutral-600 hover:text-neutral-800 hover:bg-neutral-100 rounded-lg transition-colors text-sm font-medium"
+                  className="flex-1 py-3 rounded-lg transition-colors text-sm font-medium"
+                  style={{ color: 'var(--color-sub)' }}
                 >
                   Cancel
                 </button>
@@ -446,10 +453,10 @@ function UpcomingViewingCard({ match, isRenter }: ViewingCardProps) {
   const timeUntil = getTimeUntilString(viewingDate);
 
   return (
-    <div className="bg-white rounded-xl border-2 border-success-200 p-5 hover:shadow-md transition-shadow">
+    <div className="p-5" style={{ ...card, borderColor: 'var(--color-line)', padding: 20 }}>
       <div className="flex gap-4">
         {/* Property Image */}
-        <div className="w-24 h-24 rounded-lg overflow-hidden flex-shrink-0 bg-neutral-200">
+        <div className="w-24 h-24 rounded-lg overflow-hidden flex-shrink-0" style={{ background: 'var(--color-line)' }}>
           {match.property.images?.[0] && (
             <img
               src={match.property.images[0]}
@@ -461,10 +468,10 @@ function UpcomingViewingCard({ match, isRenter }: ViewingCardProps) {
 
         <div className="flex-1 min-w-0">
           {/* Property Info */}
-          <h3 className="font-semibold text-neutral-900 mb-1 truncate">
+          <h3 className="font-semibold mb-1 truncate" style={{ color: 'var(--color-text)' }}>
             {match.property.address.street}
           </h3>
-          <p className="text-sm text-neutral-600 mb-3 flex items-center gap-1">
+          <p className="text-sm mb-3 flex items-center gap-1" style={{ color: 'var(--color-sub)' }}>
             <MapPin className="w-4 h-4" />
             {match.property.address.city}, {match.property.address.postcode}
           </p>
@@ -493,12 +500,12 @@ function UpcomingViewingCard({ match, isRenter }: ViewingCardProps) {
           </div>
 
           {/* Countdown */}
-          <p className="text-xs text-neutral-600 mb-2">
+          <p className="text-xs mb-2" style={{ color: 'var(--color-sub)' }}>
             {daysUntil === 0 ? '🔥 Today' : daysUntil === 1 ? '📅 Tomorrow' : `⏰ in ${timeUntil}`}
           </p>
 
           {/* Contact Info */}
-          <div className="flex items-center gap-2 text-sm text-neutral-700">
+          <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--color-sub)' }}>
             <User className="w-4 h-4" />
             <span>
               {isRenter ? `Landlord: ${match.landlordName}` : `Renter: ${match.renterName}`}
@@ -511,7 +518,7 @@ function UpcomingViewingCard({ match, isRenter }: ViewingCardProps) {
           <button className="px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white text-sm font-medium rounded-lg transition-colors">
             Details
           </button>
-          <button className="px-4 py-2 bg-neutral-100 hover:bg-neutral-200 text-neutral-700 text-sm font-medium rounded-lg transition-colors flex items-center gap-1">
+          <button className="px-4 py-2 text-sm font-medium rounded-lg transition-colors flex items-center gap-1" style={{ background: 'var(--color-line)', color: 'var(--color-sub)' }}>
             <MessageSquare className="w-4 h-4" />
             Chat
           </button>
@@ -526,7 +533,7 @@ function PendingViewingCard({ match, isRenter, onSuggestTime }: PendingViewingCa
   if (!preference) return null;
 
   return (
-    <div className="bg-white rounded-xl border-2 border-secondary-200 p-5">
+    <div className="p-5" style={{ ...card, padding: 20 }}>
       <div className="flex gap-4">
         {/* Property Image */}
         <div className="w-20 h-20 rounded-lg overflow-hidden flex-shrink-0">
@@ -541,10 +548,10 @@ function PendingViewingCard({ match, isRenter, onSuggestTime }: PendingViewingCa
 
         <div className="flex-1 min-w-0">
           {/* Property Info */}
-          <h3 className="font-semibold text-neutral-900 mb-1 truncate">
+          <h3 className="font-semibold mb-1 truncate" style={{ color: 'var(--color-text)' }}>
             {match.property.address.street}
           </h3>
-          <p className="text-sm text-neutral-600 mb-2">£{match.property.rentPcm.toLocaleString()} pcm</p>
+          <p className="text-sm mb-2" style={{ color: 'var(--color-sub)' }}>£{match.property.rentPcm.toLocaleString()} pcm</p>
 
           {/* Status */}
           <div className="flex items-center gap-2 mb-2">
@@ -558,8 +565,8 @@ function PendingViewingCard({ match, isRenter, onSuggestTime }: PendingViewingCa
 
           {/* Preferences */}
           {preference.flexibility && (
-            <div className="text-xs text-neutral-600">
-              Flexibility: <span className="font-medium text-neutral-900">{preference.flexibility}</span>
+            <div className="text-xs" style={{ color: 'var(--color-sub)' }}>
+              Flexibility: <span className="font-medium" style={{ color: 'var(--color-text)' }}>{preference.flexibility}</span>
               {(preference.preferredTimes ?? []).length > 0 && (
                 <span className="ml-2">
                   ({(preference.preferredTimes ?? []).length} time{(preference.preferredTimes ?? []).length > 1 ? 's' : ''})
@@ -590,7 +597,7 @@ function PastViewingCard({ match, isRenter }: ViewingCardProps) {
   if (!viewingDate) return null;
 
   return (
-    <div className="bg-neutral-50 rounded-xl border border-neutral-200 p-5 opacity-75">
+    <div className="p-5 opacity-75" style={{ ...card, padding: 20 }}>
       <div className="flex gap-4">
         {/* Property Image */}
         <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 grayscale">
@@ -602,18 +609,18 @@ function PastViewingCard({ match, isRenter }: ViewingCardProps) {
         </div>
 
         <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-neutral-700 mb-1 truncate">
+          <h3 className="font-semibold mb-1 truncate" style={{ color: 'var(--color-sub)' }}>
             {match.property.address.street}
           </h3>
-          <p className="text-sm text-neutral-500 mb-2">
+          <p className="text-sm mb-2" style={{ color: 'var(--color-sub)' }}>
             Viewed on {viewingDate.toLocaleDateString('en-GB')}
           </p>
-          <p className="text-xs text-neutral-500">
+          <p className="text-xs" style={{ color: 'var(--color-sub)' }}>
             {isRenter ? `Landlord: ${match.landlordName}` : `Renter: ${match.renterName}`}
           </p>
         </div>
 
-        <button className="px-3 py-1.5 bg-neutral-200 hover:bg-neutral-300 text-neutral-700 text-xs font-medium rounded-lg transition-colors h-fit">
+        <button className="px-3 py-1.5 text-xs font-medium rounded-lg transition-colors h-fit" style={{ background: 'var(--color-line)', color: 'var(--color-sub)' }}>
           View Chat
         </button>
       </div>

@@ -11,6 +11,7 @@ import { useAuthStore } from '../hooks/useAuthStore';
 import { useAppStore } from '../hooks';
 import { extractPostcode, comparePostcodes, isValidPropertyListingUrl, validatePassword, hashPassword } from '../utils/validation';
 import { useToastStore } from '../components/organisms/toastUtils';
+import { pageShell, heading, card } from '../utils/conceptCStyles';
 
 interface LandlordOnboardingProps {
   onComplete: () => void;
@@ -465,7 +466,7 @@ export function LandlordOnboarding({ onComplete, onLogin }: LandlordOnboardingPr
         />
 
         <div>
-          <label className="block text-sm font-medium text-neutral-700 mb-3">
+          <label className="block text-sm font-medium mb-3" style={{ color: 'var(--color-sub)' }}>
             Do you accept pets? <span className="text-error-500">*</span>
           </label>
           <RadioCardGroup
@@ -495,7 +496,7 @@ export function LandlordOnboarding({ onComplete, onLogin }: LandlordOnboardingPr
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-neutral-700 mb-3">
+          <label className="block text-sm font-medium mb-3" style={{ color: 'var(--color-sub)' }}>
             Furnishing provided <span className="text-error-500">*</span>
           </label>
           <RadioCardGroup
@@ -537,12 +538,12 @@ export function LandlordOnboarding({ onComplete, onLogin }: LandlordOnboardingPr
       onBack={handleBack}
     >
       <div className="space-y-6">
-        <div className="p-4 bg-primary-50 border-2 border-primary-300 rounded-xl">
+        <div className="p-4 rounded-xl" style={{ background: 'var(--color-card)', border: '2px solid var(--color-teal)' }}>
           <div className="flex items-start gap-3">
-            <Shield className="w-6 h-6 text-primary-600 flex-shrink-0 mt-0.5" />
+            <Shield className="w-6 h-6 flex-shrink-0 mt-0.5" style={{ color: 'var(--color-teal)' }} />
             <div>
-              <h4 className="font-semibold text-primary-900 mb-1">RRA 2025 Requirements</h4>
-              <p className="text-sm text-primary-800">
+              <h4 className="font-semibold mb-1" style={{ color: 'var(--color-text)' }}>RRA 2025 Requirements</h4>
+              <p className="text-sm" style={{ color: 'var(--color-sub)' }}>
                 Under the Renters' Rights Act 2025, all landlords must be registered with the PRS Database and be members of an approved Ombudsman scheme.
               </p>
             </div>
@@ -562,7 +563,7 @@ export function LandlordOnboarding({ onComplete, onLogin }: LandlordOnboardingPr
         />
 
         <div>
-          <label className="block text-sm font-medium text-neutral-700 mb-3">
+          <label className="block text-sm font-medium mb-3" style={{ color: 'var(--color-sub)' }}>
             Ombudsman Scheme Membership <span className="text-error-500">*</span>
           </label>
           <RadioCardGroup
@@ -595,16 +596,16 @@ export function LandlordOnboarding({ onComplete, onLogin }: LandlordOnboardingPr
         </div>
 
         <div className="space-y-3">
-          <label className="block text-sm font-medium text-neutral-700 mb-2">
+          <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-sub)' }}>
             Property Certifications <span className="text-error-500">*</span>
           </label>
 
           <label
-            className={`flex items-start gap-3 p-4 border-2 rounded-xl cursor-pointer transition-all ${
-              formData.hasValidEPC
-                ? 'border-success-500 bg-success-50'
-                : 'border-neutral-200 hover:border-neutral-300'
-            }`}
+            className="flex items-start gap-3 p-4 border-2 rounded-xl cursor-pointer transition-all"
+            style={{
+              borderColor: formData.hasValidEPC ? 'var(--color-teal)' : 'var(--color-line)',
+              background: formData.hasValidEPC ? 'var(--color-card)' : 'transparent',
+            }}
           >
             <input
               type="checkbox"
@@ -613,17 +614,17 @@ export function LandlordOnboarding({ onComplete, onLogin }: LandlordOnboardingPr
               className="w-5 h-5 mt-0.5"
             />
             <div>
-              <span className="font-medium text-neutral-900 block">Valid EPC (Energy Performance Certificate)</span>
-              <span className="text-sm text-neutral-600">Must be rated E or above</span>
+              <span className="font-medium block" style={{ color: 'var(--color-text)' }}>Valid EPC (Energy Performance Certificate)</span>
+              <span className="text-sm" style={{ color: 'var(--color-sub)' }}>Must be rated E or above</span>
             </div>
           </label>
 
           <label
-            className={`flex items-start gap-3 p-4 border-2 rounded-xl cursor-pointer transition-all ${
-              formData.hasValidGasSafety
-                ? 'border-success-500 bg-success-50'
-                : 'border-neutral-200 hover:border-neutral-300'
-            }`}
+            className="flex items-start gap-3 p-4 border-2 rounded-xl cursor-pointer transition-all"
+            style={{
+              borderColor: formData.hasValidGasSafety ? 'var(--color-teal)' : 'var(--color-line)',
+              background: formData.hasValidGasSafety ? 'var(--color-card)' : 'transparent',
+            }}
           >
             <input
               type="checkbox"
@@ -632,17 +633,17 @@ export function LandlordOnboarding({ onComplete, onLogin }: LandlordOnboardingPr
               className="w-5 h-5 mt-0.5"
             />
             <div>
-              <span className="font-medium text-neutral-900 block">Valid Gas Safety Certificate</span>
-              <span className="text-sm text-neutral-600">Renewed annually (if applicable)</span>
+              <span className="font-medium block" style={{ color: 'var(--color-text)' }}>Valid Gas Safety Certificate</span>
+              <span className="text-sm" style={{ color: 'var(--color-sub)' }}>Renewed annually (if applicable)</span>
             </div>
           </label>
 
           <label
-            className={`flex items-start gap-3 p-4 border-2 rounded-xl cursor-pointer transition-all ${
-              formData.hasValidEICR
-                ? 'border-success-500 bg-success-50'
-                : 'border-neutral-200 hover:border-neutral-300'
-            }`}
+            className="flex items-start gap-3 p-4 border-2 rounded-xl cursor-pointer transition-all"
+            style={{
+              borderColor: formData.hasValidEICR ? 'var(--color-teal)' : 'var(--color-line)',
+              background: formData.hasValidEICR ? 'var(--color-card)' : 'transparent',
+            }}
           >
             <input
               type="checkbox"
@@ -651,8 +652,8 @@ export function LandlordOnboarding({ onComplete, onLogin }: LandlordOnboardingPr
               className="w-5 h-5 mt-0.5"
             />
             <div>
-              <span className="font-medium text-neutral-900 block">Valid EICR (Electrical Installation Condition Report)</span>
-              <span className="text-sm text-neutral-600">Renewed every 5 years</span>
+              <span className="font-medium block" style={{ color: 'var(--color-text)' }}>Valid EICR (Electrical Installation Condition Report)</span>
+              <span className="text-sm" style={{ color: 'var(--color-sub)' }}>Renewed every 5 years</span>
             </div>
           </label>
 
@@ -663,11 +664,11 @@ export function LandlordOnboarding({ onComplete, onLogin }: LandlordOnboardingPr
           )}
         </div>
 
-        <div className="p-4 bg-amber-50 border border-amber-300 rounded-xl">
+        <div className="p-4 rounded-xl" style={{ background: 'var(--color-card)', border: '1.5px solid var(--color-line)' }}>
           <div className="flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-            <p className="text-sm text-amber-900">
-              <strong>Important:</strong> Non-compliance with RRA 2025 requirements can result in fines of up to £30,000 and property licensing suspension.
+            <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: 'var(--color-teal)' }} />
+            <p className="text-sm" style={{ color: 'var(--color-sub)' }}>
+              <strong style={{ color: 'var(--color-text)' }}>Important:</strong> Non-compliance with RRA 2025 requirements can result in fines of up to £30,000 and property licensing suspension.
             </p>
           </div>
         </div>
@@ -696,16 +697,16 @@ export function LandlordOnboarding({ onComplete, onLogin }: LandlordOnboardingPr
       />
 
       <div className="mt-6 space-y-3">
-        <div className="flex items-start gap-3 text-sm text-neutral-600">
-          <Check className="w-5 h-5 text-success-500 flex-shrink-0 mt-0.5" />
+        <div className="flex items-start gap-3 text-sm" style={{ color: 'var(--color-sub)' }}>
+          <Check className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: 'var(--color-teal)' }} />
           <span>Tenants can view full property details and photos</span>
         </div>
-        <div className="flex items-start gap-3 text-sm text-neutral-600">
-          <Check className="w-5 h-5 text-success-500 flex-shrink-0 mt-0.5" />
+        <div className="flex items-start gap-3 text-sm" style={{ color: 'var(--color-sub)' }}>
+          <Check className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: 'var(--color-teal)' }} />
           <span>Helps build trust with verified listings</span>
         </div>
-        <div className="flex items-start gap-3 text-sm text-neutral-600">
-          <Check className="w-5 h-5 text-success-500 flex-shrink-0 mt-0.5" />
+        <div className="flex items-start gap-3 text-sm" style={{ color: 'var(--color-sub)' }}>
+          <Check className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: 'var(--color-teal)' }} />
           <span>You can always add or update this later</span>
         </div>
       </div>
@@ -782,10 +783,10 @@ export function LandlordOnboarding({ onComplete, onLogin }: LandlordOnboardingPr
           />
         )}
 
-        <div className="mt-6 p-4 bg-neutral-50 rounded-xl border border-neutral-200">
+        <div className="mt-6 p-4 rounded-xl" style={{ background: 'var(--color-card)', border: '1.5px solid var(--color-line)' }}>
           <label className="flex items-start gap-3 cursor-pointer">
             <input type="checkbox" className="mt-1" required />
-            <span className="text-sm text-neutral-600">
+            <span className="text-sm" style={{ color: 'var(--color-sub)' }}>
               I confirm that all information provided is accurate and that I comply with the Renters' Rights Act 2025. I agree to the terms of service and privacy policy.
             </span>
           </label>
@@ -795,7 +796,7 @@ export function LandlordOnboarding({ onComplete, onLogin }: LandlordOnboardingPr
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-neutral-50 to-white p-6">
+    <div className="p-6" style={{ ...pageShell, paddingBottom: 96 }}>
       {/* Login Button - Only on Step 1 */}
       {currentStep === 0 && <LoginButton onLogin={onLogin} />}
 
@@ -814,12 +815,13 @@ interface ReviewCardProps {
 
 function ReviewCard({ title, items, onEdit }: ReviewCardProps) {
   return (
-    <div className="bg-white rounded-xl border-2 border-neutral-200 p-5">
+    <div className="rounded-xl p-5" style={card}>
       <div className="flex items-center justify-between mb-4">
-        <h3 className="font-semibold text-lg text-neutral-900">{title}</h3>
+        <h3 style={heading(20, 1.5)}>{title}</h3>
         <button
           onClick={onEdit}
-          className="text-sm text-primary-600 hover:text-primary-700 font-medium"
+          className="text-sm font-medium"
+          style={{ color: 'var(--color-teal)' }}
         >
           Edit
         </button>
@@ -827,8 +829,8 @@ function ReviewCard({ title, items, onEdit }: ReviewCardProps) {
       <div className="space-y-2">
         {items.map((item) => (
           <div key={item.label} className="flex justify-between text-sm">
-            <span className="text-neutral-600">{item.label}:</span>
-            <span className="text-neutral-900 font-medium break-all">{item.value}</span>
+            <span style={{ color: 'var(--color-sub)' }}>{item.label}:</span>
+            <span className="font-medium break-all" style={{ color: 'var(--color-text)' }}>{item.value}</span>
           </div>
         ))}
       </div>

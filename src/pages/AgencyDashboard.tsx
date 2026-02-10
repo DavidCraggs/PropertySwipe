@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Building2, Users, AlertTriangle, CheckCircle2, Clock, TrendingUp, Home, MessageSquare, Settings, Edit, Shield, LayoutDashboard } from 'lucide-react';
+import { Building2, Users, AlertTriangle, CheckCircle2, Clock, TrendingUp, Home, MessageSquare, Settings, Edit, Shield, LayoutDashboard, Menu } from 'lucide-react';
+import { AnimatePresence } from 'framer-motion';
 import { useAuthStore } from '../hooks/useAuthStore';
+import { useIsMobile } from '../hooks/useMediaQuery';
+import { SlideDrawer } from '../components/organisms/SlideDrawer';
 import type { AgencyProfile, Issue, Property, Match } from '../types';
 import { AgencyLandlordManager } from '../components/organisms/AgencyLandlordManager';
 import { PropertyDetailsModal } from '../components/organisms/PropertyDetailsModal';
@@ -26,6 +29,8 @@ export function AgencyDashboard({ onNavigateToDashboardBuilder }: AgencyDashboar
   const { matches } = useAppStore();
   const toast = useToast();
   const [activeTab, setActiveTab] = useState<'overview' | 'landlords' | 'properties' | 'tenancies' | 'issues'>('overview');
+  const [isNavDrawerOpen, setIsNavDrawerOpen] = useState(false);
+  const isMobile = useIsMobile();
   const [properties, setProperties] = useState<Property[]>([]);
   const [allIssues, setAllIssues] = useState<Issue[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -67,11 +72,11 @@ export function AgencyDashboard({ onNavigateToDashboardBuilder }: AgencyDashboar
   // Type guard - must be after hooks
   if (userType !== 'estate_agent' && userType !== 'management_agency') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-success-50 flex items-center justify-center p-4">
+      <div className="min-h-screen flex items-center justify-center p-4" style={{ background: 'var(--color-bg)', color: 'var(--color-text)' }}>
         <div className="text-center">
-          <Building2 className="mx-auto text-neutral-400 mb-4" size={64} />
-          <h2 className="text-2xl font-bold text-neutral-900 mb-2">Access Denied</h2>
-          <p className="text-neutral-600">This page is only accessible to agencies.</p>
+          <Building2 className="mx-auto mb-4" size={64} style={{ color: 'var(--color-sub)' }} />
+          <h2 className="mb-2" style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 32, letterSpacing: 3, color: 'var(--color-text)', margin: 0, marginBottom: 8 }}>Access Denied</h2>
+          <p style={{ color: 'var(--color-sub)' }}>This page is only accessible to agencies.</p>
         </div>
       </div>
     );
@@ -163,30 +168,60 @@ export function AgencyDashboard({ onNavigateToDashboardBuilder }: AgencyDashboar
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-success-50 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--color-bg)', color: 'var(--color-text)' }}>
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
-          <p className="text-neutral-600">Loading agency dashboard...</p>
+          <div className="animate-spin rounded-full h-12 w-12 mx-auto mb-4" style={{ borderBottom: '2px solid var(--color-teal)' }}></div>
+          <p style={{ color: 'var(--color-sub)' }}>Loading agency dashboard...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-success-50 pb-24 overflow-x-hidden">
+    <div className="min-h-screen overflow-x-hidden" style={{ background: 'var(--color-bg)', color: 'var(--color-text)', paddingBottom: 96 }}>
       {/* Header */}
-      <header className="bg-white border-b border-neutral-200 px-3 sm:px-4 py-4 sm:py-6">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-neutral-900">{agencyProfile.companyName}</h1>
-            <p className="text-neutral-600 mt-1">
+      <header
+        className="px-3 sm:px-4 py-4 sm:py-6"
+        style={{
+          background: 'var(--color-card)',
+          borderBottom: '1px solid var(--color-line)',
+          ...(isMobile ? { position: 'sticky' as const, top: 0, zIndex: 10 } : {}),
+        }}
+      >
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
+          {/* Mobile hamburger */}
+          {isMobile && (
+            <button
+              onClick={() => setIsNavDrawerOpen(true)}
+              aria-label="Open navigation menu"
+              style={{
+                background: 'transparent',
+                border: '1.5px solid var(--color-line)',
+                borderRadius: 12,
+                width: 44,
+                height: 44,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                color: 'var(--color-text)',
+                flexShrink: 0,
+              }}
+            >
+              <Menu size={20} />
+            </button>
+          )}
+          <div className="min-w-0">
+            <h1 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 32, letterSpacing: 3, color: 'var(--color-text)', margin: 0 }}>{agencyProfile.companyName}</h1>
+            <p className="truncate" style={{ fontFamily: "'Libre Franklin', sans-serif", fontSize: 13, fontWeight: 600, color: 'var(--color-sub)', marginTop: 4 }}>
               {agencyProfile.agencyType === 'estate_agent' ? 'Estate Agent' : 'Management Agency'} Dashboard
             </p>
           </div>
           {onNavigateToDashboardBuilder && (
             <button
               onClick={onNavigateToDashboardBuilder}
-              className="flex items-center gap-2 px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-xl font-medium transition-colors"
+              className="flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-colors"
+              style={{ background: 'var(--color-teal)', color: '#fff', flexShrink: 0 }}
             >
               <LayoutDashboard size={20} />
               <span className="hidden sm:inline">Custom Dashboard</span>
@@ -195,36 +230,99 @@ export function AgencyDashboard({ onNavigateToDashboardBuilder }: AgencyDashboar
         </div>
       </header>
 
-      {/* Tab Navigation */}
-      <div className="bg-white border-b border-neutral-200 sticky top-0 z-10 overflow-hidden">
-        <div className="max-w-7xl mx-auto px-3 sm:px-4">
-          <div className="flex gap-2 sm:gap-6 overflow-x-auto scrollbar-hide pb-px">
-            {[
-              { id: 'overview', label: 'Overview' },
-              { id: 'landlords', label: 'Landlords' },
-              { id: 'properties', label: 'Properties' },
-              { id: 'tenancies', label: 'Tenancies' },
-              { id: 'issues', label: 'Issues', badge: openIssues.length },
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as typeof activeTab)}
-                className={`py-3 sm:py-4 px-2 shrink-0 whitespace-nowrap text-sm sm:text-base border-b-2 font-medium transition-colors ${activeTab === tab.id
-                  ? 'border-primary-600 text-primary-600'
-                  : 'border-transparent text-neutral-600 hover:text-neutral-900'
-                  }`}
-              >
-                {tab.label}
-                {tab.badge !== undefined && tab.badge > 0 && (
-                  <span className="ml-2 px-2 py-0.5 bg-danger-500 text-white text-xs rounded-full">
-                    {tab.badge}
-                  </span>
-                )}
-              </button>
-            ))}
+      {/* Tab Navigation — desktop only */}
+      {!isMobile && (
+        <div className="sticky top-0 z-10 overflow-hidden" style={{ background: 'var(--color-card)', borderBottom: '1px solid var(--color-line)' }}>
+          <div className="max-w-7xl mx-auto px-3 sm:px-4">
+            <div className="flex gap-2 sm:gap-6 overflow-x-auto scrollbar-hide pb-px">
+              {[
+                { id: 'overview', label: 'Overview' },
+                { id: 'landlords', label: 'Landlords' },
+                { id: 'properties', label: 'Properties' },
+                { id: 'tenancies', label: 'Tenancies' },
+                { id: 'issues', label: 'Issues', badge: openIssues.length },
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id as typeof activeTab)}
+                  className="py-3 sm:py-4 px-2 shrink-0 whitespace-nowrap text-sm sm:text-base border-b-2 font-medium transition-colors"
+                  style={activeTab === tab.id
+                    ? { borderColor: 'var(--color-teal)', color: 'var(--color-teal)' }
+                    : { borderColor: 'transparent', color: 'var(--color-sub)' }
+                  }
+                >
+                  {tab.label}
+                  {tab.badge !== undefined && tab.badge > 0 && (
+                    <span className="ml-2 px-2 py-0.5 bg-danger-500 text-white text-xs rounded-full">
+                      {tab.badge}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
-      </div>
+      )}
+
+      {/* Mobile navigation drawer */}
+      <AnimatePresence>
+        {isMobile && isNavDrawerOpen && (
+          <SlideDrawer
+            isOpen={isNavDrawerOpen}
+            onClose={() => setIsNavDrawerOpen(false)}
+            title="Navigation"
+          >
+            <nav style={{ display: 'flex', flexDirection: 'column', gap: 4, padding: '8px 0' }}>
+              {[
+                { id: 'overview', label: 'Overview' },
+                { id: 'landlords', label: 'Landlords' },
+                { id: 'properties', label: 'Properties' },
+                { id: 'tenancies', label: 'Tenancies' },
+                { id: 'issues', label: 'Issues', badge: openIssues.length },
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => {
+                    setActiveTab(tab.id as typeof activeTab);
+                    setIsNavDrawerOpen(false);
+                    window.scrollTo(0, 0);
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '14px 16px',
+                    borderRadius: 12,
+                    fontFamily: "'Libre Franklin', sans-serif",
+                    fontSize: 14,
+                    fontWeight: activeTab === tab.id ? 700 : 500,
+                    color: activeTab === tab.id ? 'var(--color-teal)' : 'var(--color-text)',
+                    background: activeTab === tab.id ? 'rgba(13,148,136,0.08)' : 'transparent',
+                    border: 'none',
+                    cursor: 'pointer',
+                    width: '100%',
+                    textAlign: 'left',
+                  }}
+                >
+                  <span>{tab.label}</span>
+                  {tab.badge !== undefined && tab.badge > 0 && (
+                    <span style={{
+                      background: '#ef4444',
+                      color: '#fff',
+                      fontSize: 11,
+                      fontWeight: 700,
+                      padding: '2px 8px',
+                      borderRadius: 999,
+                    }}>
+                      {tab.badge}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </nav>
+          </SlideDrawer>
+        )}
+      </AnimatePresence>
 
       <main className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-8">
         {activeTab === 'overview' && (
@@ -246,15 +344,16 @@ export function AgencyDashboard({ onNavigateToDashboardBuilder }: AgencyDashboar
             />
 
             {/* Recent Issues Summary */}
-            <div className="bg-white rounded-2xl shadow-sm p-6">
+            <div className="rounded-2xl p-6" style={{ background: 'var(--color-card)', border: '1.5px solid var(--color-line)' }}>
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-bold text-neutral-900 flex items-center gap-2">
+                <h3 className="flex items-center gap-2" style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 22, letterSpacing: 2, color: 'var(--color-text)' }}>
                   <AlertTriangle size={24} className="text-warning-600" />
                   Recent Issues
                 </h3>
                 <button
                   onClick={() => setActiveTab('issues')}
-                  className="text-primary-600 hover:text-primary-700 font-medium text-sm"
+                  className="font-medium text-sm"
+                  style={{ color: 'var(--color-teal)' }}
                 >
                   View All →
                 </button>
@@ -273,9 +372,9 @@ export function AgencyDashboard({ onNavigateToDashboardBuilder }: AgencyDashboar
         )}
 
         {activeTab === 'properties' && (
-          <div className="bg-white rounded-2xl shadow-sm p-6">
-            <h3 className="text-xl font-bold text-neutral-900 mb-6 flex items-center gap-2">
-              <Home size={24} className="text-primary-600" />
+          <div className="rounded-2xl p-6" style={{ background: 'var(--color-card)', border: '1.5px solid var(--color-line)' }}>
+            <h3 className="mb-6 flex items-center gap-2" style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 22, letterSpacing: 2, color: 'var(--color-text)' }}>
+              <Home size={24} style={{ color: 'var(--color-teal)' }} />
               Managed Properties
             </h3>
             <AgencyPropertiesTable
@@ -287,8 +386,8 @@ export function AgencyDashboard({ onNavigateToDashboardBuilder }: AgencyDashboar
         )}
 
         {activeTab === 'tenancies' && (
-          <div className="bg-white rounded-2xl shadow-sm p-6">
-            <h3 className="text-xl font-bold text-neutral-900 mb-6 flex items-center gap-2">
+          <div className="rounded-2xl p-6" style={{ background: 'var(--color-card)', border: '1.5px solid var(--color-line)' }}>
+            <h3 className="mb-6 flex items-center gap-2" style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 22, letterSpacing: 2, color: 'var(--color-text)' }}>
               <Users size={24} className="text-success-600" />
               Active Tenancies
             </h3>
@@ -297,8 +396,8 @@ export function AgencyDashboard({ onNavigateToDashboardBuilder }: AgencyDashboar
         )}
 
         {activeTab === 'issues' && (
-          <div className="bg-white rounded-2xl shadow-sm p-6">
-            <h3 className="text-xl font-bold text-neutral-900 mb-6 flex items-center gap-2">
+          <div className="rounded-2xl p-6" style={{ background: 'var(--color-card)', border: '1.5px solid var(--color-line)' }}>
+            <h3 className="mb-6 flex items-center gap-2" style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 22, letterSpacing: 2, color: 'var(--color-text)' }}>
               <AlertTriangle size={24} className="text-warning-600" />
               All Issues
             </h3>
@@ -344,7 +443,7 @@ export function AgencyDashboard({ onNavigateToDashboardBuilder }: AgencyDashboar
       {editingProperty && (
         <div className="fixed inset-0 bg-black/50 z-50 overflow-y-auto">
           <div className="min-h-screen flex items-center justify-center p-4 py-8">
-            <div className="bg-white rounded-2xl w-full max-w-3xl shadow-2xl">
+            <div className="rounded-2xl w-full max-w-3xl shadow-2xl" style={{ background: 'var(--color-card)' }}>
               <PropertyForm
                 mode="edit"
                 initialData={editingProperty}
@@ -383,8 +482,10 @@ function AgencyStatsCards({ stats }: AgencyStatsCardsProps) {
       label: 'Properties',
       value: stats.totalProperties,
       color: 'primary',
-      bgColor: 'bg-primary-100',
-      textColor: 'text-primary-600',
+      bgColor: '',
+      textColor: '',
+      bgStyle: { background: 'rgba(13,148,136,0.06)' } as React.CSSProperties,
+      textStyle: { color: 'var(--color-teal)' } as React.CSSProperties,
     },
     {
       icon: Users,
@@ -415,14 +516,14 @@ function AgencyStatsCards({ stats }: AgencyStatsCardsProps) {
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6">
       {cards.map((card, index) => (
-        <div key={index} className="bg-white rounded-xl sm:rounded-2xl shadow-sm p-3 sm:p-6">
+        <div key={index} className="rounded-xl sm:rounded-2xl p-3 sm:p-6" style={{ background: 'var(--color-card)', border: '1.5px solid var(--color-line)' }}>
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4">
-            <div className={`w-10 h-10 sm:w-12 sm:h-12 ${card.bgColor} rounded-lg flex items-center justify-center shrink-0`}>
-              <card.icon className={`w-5 h-5 sm:w-6 sm:h-6 ${card.textColor}`} />
+            <div className={`w-10 h-10 sm:w-12 sm:h-12 ${card.bgColor} rounded-lg flex items-center justify-center shrink-0`} style={card.bgStyle}>
+              <card.icon className={`w-5 h-5 sm:w-6 sm:h-6 ${card.textColor}`} style={card.textStyle} />
             </div>
             <div>
-              <div className="text-2xl sm:text-3xl font-bold text-neutral-900">{card.value}</div>
-              <div className="text-xs sm:text-sm text-neutral-600">{card.label}</div>
+              <div className="text-2xl sm:text-3xl font-bold" style={{ color: 'var(--color-text)' }}>{card.value}</div>
+              <div className="text-xs sm:text-sm" style={{ color: 'var(--color-sub)' }}>{card.label}</div>
             </div>
           </div>
         </div>
@@ -458,9 +559,9 @@ function SLAPerformanceSection({ complianceRate, averageResponseTime, slaConfig,
   const colors = getComplianceColor(complianceRate);
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm p-6">
-      <h3 className="text-xl font-bold text-neutral-900 mb-6 flex items-center gap-2">
-        <TrendingUp size={24} className="text-primary-600" />
+    <div className="rounded-2xl p-6" style={{ background: 'var(--color-card)', border: '1.5px solid var(--color-line)' }}>
+      <h3 className="mb-6 flex items-center gap-2" style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 22, letterSpacing: 2, color: 'var(--color-text)' }}>
+        <TrendingUp size={24} style={{ color: 'var(--color-teal)' }} />
         SLA Performance
       </h3>
 
@@ -470,11 +571,11 @@ function SLAPerformanceSection({ complianceRate, averageResponseTime, slaConfig,
           <div className="flex items-center gap-3 mb-3">
             <CheckCircle2 className={`${colors.text}`} size={32} />
             <div>
-              <div className="text-4xl font-bold text-neutral-900">{complianceRate.toFixed(1)}%</div>
+              <div className="text-4xl font-bold" style={{ color: 'var(--color-text)' }}>{complianceRate.toFixed(1)}%</div>
               <div className={`text-sm font-medium ${colors.text}`}>SLA Compliance Rate</div>
             </div>
           </div>
-          <p className="text-sm text-neutral-600">
+          <p className="text-sm" style={{ color: 'var(--color-sub)' }}>
             {complianceRate >= 80
               ? 'Excellent! You are meeting your SLA commitments.'
               : complianceRate >= 60
@@ -484,15 +585,15 @@ function SLAPerformanceSection({ complianceRate, averageResponseTime, slaConfig,
         </div>
 
         {/* Average Response Time Card */}
-        <div className="bg-neutral-50 border-2 border-neutral-200 rounded-xl p-6">
+        <div className="border-2 rounded-xl p-6" style={{ background: 'var(--color-bg)', borderColor: 'var(--color-line)' }}>
           <div className="flex items-center gap-3 mb-3">
-            <Clock className="text-neutral-600" size={32} />
+            <Clock size={32} style={{ color: 'var(--color-sub)' }} />
             <div>
-              <div className="text-4xl font-bold text-neutral-900">{averageResponseTime.toFixed(1)}h</div>
-              <div className="text-sm font-medium text-neutral-600">Average Response Time</div>
+              <div className="text-4xl font-bold" style={{ color: 'var(--color-text)' }}>{averageResponseTime.toFixed(1)}h</div>
+              <div className="text-sm font-medium" style={{ color: 'var(--color-sub)' }}>Average Response Time</div>
             </div>
           </div>
-          <p className="text-sm text-neutral-600">
+          <p className="text-sm" style={{ color: 'var(--color-sub)' }}>
             Across all issue types and priorities
           </p>
         </div>
@@ -502,19 +603,19 @@ function SLAPerformanceSection({ complianceRate, averageResponseTime, slaConfig,
       <div className="mt-4 sm:mt-6 grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4">
         <div className="text-center p-2 sm:p-4 bg-danger-50 rounded-lg">
           <div className="text-lg sm:text-2xl font-bold text-danger-700">{slaConfig.emergencyResponseHours}h</div>
-          <div className="text-[10px] sm:text-xs text-neutral-600 mt-1">Emergency SLA</div>
+          <div className="text-[10px] sm:text-xs mt-1" style={{ color: 'var(--color-sub)' }}>Emergency SLA</div>
         </div>
         <div className="text-center p-2 sm:p-4 bg-warning-50 rounded-lg">
           <div className="text-lg sm:text-2xl font-bold text-warning-700">{slaConfig.urgentResponseHours}h</div>
-          <div className="text-[10px] sm:text-xs text-neutral-600 mt-1">Urgent SLA</div>
+          <div className="text-[10px] sm:text-xs mt-1" style={{ color: 'var(--color-sub)' }}>Urgent SLA</div>
         </div>
         <div className="text-center p-2 sm:p-4 bg-success-50 rounded-lg">
           <div className="text-lg sm:text-2xl font-bold text-success-700">{slaConfig.routineResponseHours}h</div>
-          <div className="text-[10px] sm:text-xs text-neutral-600 mt-1">Routine SLA</div>
+          <div className="text-[10px] sm:text-xs mt-1" style={{ color: 'var(--color-sub)' }}>Routine SLA</div>
         </div>
-        <div className="text-center p-2 sm:p-4 bg-neutral-50 rounded-lg">
-          <div className="text-lg sm:text-2xl font-bold text-neutral-700">{slaConfig.maintenanceResponseDays}d</div>
-          <div className="text-[10px] sm:text-xs text-neutral-600 mt-1">Maintenance SLA</div>
+        <div className="text-center p-2 sm:p-4 rounded-lg" style={{ background: 'var(--color-bg)' }}>
+          <div className="text-lg sm:text-2xl font-bold" style={{ color: 'var(--color-text)' }}>{slaConfig.maintenanceResponseDays}d</div>
+          <div className="text-[10px] sm:text-xs mt-1" style={{ color: 'var(--color-sub)' }}>Maintenance SLA</div>
         </div>
       </div>
 
@@ -523,7 +624,8 @@ function SLAPerformanceSection({ complianceRate, averageResponseTime, slaConfig,
         <div className="mt-4 flex justify-end">
           <button
             onClick={onEditSLA}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-primary-600 hover:text-primary-700 hover:bg-primary-50 rounded-lg transition-colors"
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors"
+            style={{ color: 'var(--color-teal)' }}
           >
             <Settings size={16} />
             Edit SLA Configuration
@@ -548,9 +650,9 @@ function AgencyPropertiesTable({ properties, onViewDetails, onEditProperty }: Ag
   if (properties.length === 0) {
     return (
       <div className="text-center py-12">
-        <Home size={48} className="mx-auto text-neutral-400 mb-4" />
-        <h4 className="text-lg font-semibold text-neutral-700 mb-2">No Properties Yet</h4>
-        <p className="text-neutral-500">Properties will appear here when landlords link them to your agency</p>
+        <Home size={48} className="mx-auto mb-4" style={{ color: 'var(--color-sub)' }} />
+        <h4 className="text-lg font-semibold mb-2" style={{ color: 'var(--color-text)' }}>No Properties Yet</h4>
+        <p style={{ color: 'var(--color-sub)' }}>Properties will appear here when landlords link them to your agency</p>
       </div>
     );
   }
@@ -558,50 +660,51 @@ function AgencyPropertiesTable({ properties, onViewDetails, onEditProperty }: Ag
   return (
     <div className="overflow-x-auto -mx-3 sm:mx-0 px-3 sm:px-0">
       <table className="w-full min-w-[600px]">
-        <thead className="bg-neutral-50 border-b-2 border-neutral-200">
+        <thead style={{ background: 'var(--color-bg)', borderBottom: '2px solid var(--color-line)' }}>
           <tr>
-            <th className="text-left py-3 px-4 text-sm font-semibold text-neutral-700">Address</th>
-            <th className="text-left py-3 px-4 text-sm font-semibold text-neutral-700">Type</th>
-            <th className="text-left py-3 px-4 text-sm font-semibold text-neutral-700">Rent</th>
-            <th className="text-left py-3 px-4 text-sm font-semibold text-neutral-700">Status</th>
-            <th className="text-left py-3 px-4 text-sm font-semibold text-neutral-700">Management</th>
-            <th className="text-left py-3 px-4 text-sm font-semibold text-neutral-700">Actions</th>
+            <th className="text-left py-3 px-4 text-sm font-semibold" style={{ color: 'var(--color-text)' }}>Address</th>
+            <th className="text-left py-3 px-4 text-sm font-semibold" style={{ color: 'var(--color-text)' }}>Type</th>
+            <th className="text-left py-3 px-4 text-sm font-semibold" style={{ color: 'var(--color-text)' }}>Rent</th>
+            <th className="text-left py-3 px-4 text-sm font-semibold" style={{ color: 'var(--color-text)' }}>Status</th>
+            <th className="text-left py-3 px-4 text-sm font-semibold" style={{ color: 'var(--color-text)' }}>Management</th>
+            <th className="text-left py-3 px-4 text-sm font-semibold" style={{ color: 'var(--color-text)' }}>Actions</th>
           </tr>
         </thead>
         <tbody>
           {properties.map((property) => (
-            <tr key={property.id} className="border-b border-neutral-200 hover:bg-neutral-50">
+            <tr key={property.id} style={{ borderBottom: '1px solid var(--color-line)' }}>
               <td className="py-3 px-4">
-                <div className="font-medium text-neutral-900">{property.address.street}</div>
-                <div className="text-sm text-neutral-600">{property.address.city}, {property.address.postcode}</div>
+                <div className="font-medium" style={{ color: 'var(--color-text)' }}>{property.address.street}</div>
+                <div className="text-sm" style={{ color: 'var(--color-sub)' }}>{property.address.city}, {property.address.postcode}</div>
               </td>
-              <td className="py-3 px-4 text-sm text-neutral-700">{property.propertyType}</td>
-              <td className="py-3 px-4 text-sm font-medium text-neutral-900">
+              <td className="py-3 px-4 text-sm" style={{ color: 'var(--color-text)' }}>{property.propertyType}</td>
+              <td className="py-3 px-4 text-sm font-medium" style={{ color: 'var(--color-text)' }}>
                 £{property.rentPcm.toLocaleString()}/mo
               </td>
               <td className="py-3 px-4">
                 <span className={`px-2 py-1 text-xs font-medium rounded-full ${property.isAvailable
                   ? 'bg-success-100 text-success-700'
-                  : 'bg-neutral-100 text-neutral-700'
-                  }`}>
+                  : ''
+                  }`} style={!property.isAvailable ? { background: 'var(--color-bg)', color: 'var(--color-text)' } : undefined}>
                   {property.isAvailable ? 'Available' : 'Occupied'}
                 </span>
               </td>
               <td className="py-3 px-4">
                 {property.isFullyManagedByAgency ? (
-                  <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full bg-primary-100 text-primary-700">
+                  <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full" style={{ background: 'rgba(13,148,136,0.06)', color: 'var(--color-teal)' }}>
                     <Shield size={12} />
                     Full Management
                   </span>
                 ) : (
-                  <span className="text-xs text-neutral-500">Standard</span>
+                  <span className="text-xs" style={{ color: 'var(--color-sub)' }}>Standard</span>
                 )}
               </td>
               <td className="py-3 px-4">
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => onViewDetails?.(property)}
-                    className="text-primary-600 hover:text-primary-700 text-sm font-medium"
+                    className="text-sm font-medium"
+                    style={{ color: 'var(--color-teal)' }}
                   >
                     View
                   </button>
@@ -635,9 +738,9 @@ function AgencyTenanciesTable({ tenancies, onViewDetails }: AgencyTenanciesTable
   if (tenancies.length === 0) {
     return (
       <div className="text-center py-12">
-        <Users size={48} className="mx-auto text-neutral-400 mb-4" />
-        <h4 className="text-lg font-semibold text-neutral-700 mb-2">No Active Tenancies</h4>
-        <p className="text-neutral-500">Active tenancies will appear here</p>
+        <Users size={48} className="mx-auto mb-4" style={{ color: 'var(--color-sub)' }} />
+        <h4 className="text-lg font-semibold mb-2" style={{ color: 'var(--color-text)' }}>No Active Tenancies</h4>
+        <p style={{ color: 'var(--color-sub)' }}>Active tenancies will appear here</p>
       </div>
     );
   }
@@ -645,31 +748,31 @@ function AgencyTenanciesTable({ tenancies, onViewDetails }: AgencyTenanciesTable
   return (
     <div className="overflow-x-auto -mx-3 sm:mx-0 px-3 sm:px-0">
       <table className="w-full min-w-[600px]">
-        <thead className="bg-neutral-50 border-b-2 border-neutral-200">
+        <thead style={{ background: 'var(--color-bg)', borderBottom: '2px solid var(--color-line)' }}>
           <tr>
-            <th className="text-left py-3 px-4 text-sm font-semibold text-neutral-700">Tenant</th>
-            <th className="text-left py-3 px-4 text-sm font-semibold text-neutral-700">Property</th>
-            <th className="text-left py-3 px-4 text-sm font-semibold text-neutral-700">Move In</th>
-            <th className="text-left py-3 px-4 text-sm font-semibold text-neutral-700">Rent</th>
-            <th className="text-left py-3 px-4 text-sm font-semibold text-neutral-700">Issues</th>
-            <th className="text-left py-3 px-4 text-sm font-semibold text-neutral-700">Actions</th>
+            <th className="text-left py-3 px-4 text-sm font-semibold" style={{ color: 'var(--color-text)' }}>Tenant</th>
+            <th className="text-left py-3 px-4 text-sm font-semibold" style={{ color: 'var(--color-text)' }}>Property</th>
+            <th className="text-left py-3 px-4 text-sm font-semibold" style={{ color: 'var(--color-text)' }}>Move In</th>
+            <th className="text-left py-3 px-4 text-sm font-semibold" style={{ color: 'var(--color-text)' }}>Rent</th>
+            <th className="text-left py-3 px-4 text-sm font-semibold" style={{ color: 'var(--color-text)' }}>Issues</th>
+            <th className="text-left py-3 px-4 text-sm font-semibold" style={{ color: 'var(--color-text)' }}>Actions</th>
           </tr>
         </thead>
         <tbody>
           {tenancies.map((tenancy) => (
-            <tr key={tenancy.id} className="border-b border-neutral-200 hover:bg-neutral-50">
+            <tr key={tenancy.id} style={{ borderBottom: '1px solid var(--color-line)' }}>
               <td className="py-3 px-4">
-                <div className="font-medium text-neutral-900">{tenancy.renterName}</div>
+                <div className="font-medium" style={{ color: 'var(--color-text)' }}>{tenancy.renterName}</div>
               </td>
-              <td className="py-3 px-4 text-sm text-neutral-700">
+              <td className="py-3 px-4 text-sm" style={{ color: 'var(--color-text)' }}>
                 {tenancy.property?.address.street || 'Property address'}
               </td>
-              <td className="py-3 px-4 text-sm text-neutral-600">
+              <td className="py-3 px-4 text-sm" style={{ color: 'var(--color-sub)' }}>
                 {tenancy.tenancyStartDate
                   ? new Date(tenancy.tenancyStartDate).toLocaleDateString()
                   : 'N/A'}
               </td>
-              <td className="py-3 px-4 text-sm font-medium text-neutral-900">
+              <td className="py-3 px-4 text-sm font-medium" style={{ color: 'var(--color-text)' }}>
                 £{tenancy.property?.rentPcm?.toLocaleString() || '0'}/mo
               </td>
               <td className="py-3 px-4">
@@ -686,7 +789,8 @@ function AgencyTenanciesTable({ tenancies, onViewDetails }: AgencyTenanciesTable
               <td className="py-3 px-4">
                 <button
                   onClick={() => onViewDetails?.(tenancy)}
-                  className="text-primary-600 hover:text-primary-700 text-sm font-medium"
+                  className="text-sm font-medium"
+                  style={{ color: 'var(--color-teal)' }}
                 >
                   View Details
                 </button>
@@ -715,9 +819,9 @@ function AgencyIssuesDashboard({ issues, limit, onViewIssue }: AgencyIssuesDashb
   if (issues.length === 0) {
     return (
       <div className="text-center py-12">
-        <CheckCircle2 size={48} className="mx-auto text-neutral-400 mb-4" />
-        <h4 className="text-lg font-semibold text-neutral-700 mb-2">No Issues</h4>
-        <p className="text-neutral-500">All clear! No issues have been reported yet.</p>
+        <CheckCircle2 size={48} className="mx-auto mb-4" style={{ color: 'var(--color-sub)' }} />
+        <h4 className="text-lg font-semibold mb-2" style={{ color: 'var(--color-text)' }}>No Issues</h4>
+        <p style={{ color: 'var(--color-sub)' }}>All clear! No issues have been reported yet.</p>
       </div>
     );
   }
@@ -750,13 +854,13 @@ function AgencyIssueRow({ issue, onViewDetails }: AgencyIssueRowProps) {
 
   const statusIcons: Record<IssueStatus, React.ReactNode> = {
     open: <Clock size={16} className="text-warning-600" />,
-    acknowledged: <MessageSquare size={16} className="text-primary-600" />,
-    in_progress: <TrendingUp size={16} className="text-primary-600" />,
+    acknowledged: <MessageSquare size={16} style={{ color: 'var(--color-teal)' }} />,
+    in_progress: <TrendingUp size={16} style={{ color: 'var(--color-teal)' }} />,
     awaiting_parts: <Clock size={16} className="text-warning-600" />,
     awaiting_access: <Clock size={16} className="text-warning-600" />,
-    scheduled: <Clock size={16} className="text-primary-600" />,
+    scheduled: <Clock size={16} style={{ color: 'var(--color-teal)' }} />,
     resolved: <CheckCircle2 size={16} className="text-success-600" />,
-    closed: <CheckCircle2 size={16} className="text-neutral-600" />,
+    closed: <CheckCircle2 size={16} style={{ color: 'var(--color-sub)' }} />,
   };
 
   const colors = priorityColors[issue.priority];
@@ -773,7 +877,7 @@ function AgencyIssueRow({ issue, onViewDetails }: AgencyIssueRowProps) {
             <span className={`px-2 py-1 ${colors.bg} ${colors.text} text-xs font-bold rounded uppercase`}>
               {issue.priority}
             </span>
-            <span className="px-2 py-1 bg-neutral-100 text-neutral-700 text-xs font-medium rounded">
+            <span className="px-2 py-1 text-xs font-medium rounded" style={{ background: 'var(--color-bg)', color: 'var(--color-text)' }}>
               {issue.category}
             </span>
             {isOverdue && (
@@ -782,28 +886,29 @@ function AgencyIssueRow({ issue, onViewDetails }: AgencyIssueRowProps) {
               </span>
             )}
           </div>
-          <h4 className="font-semibold text-neutral-900 mb-1">{issue.subject}</h4>
-          <p className="text-sm text-neutral-600 line-clamp-2">{issue.description}</p>
+          <h4 className="font-semibold mb-1" style={{ color: 'var(--color-text)' }}>{issue.subject}</h4>
+          <p className="text-sm line-clamp-2" style={{ color: 'var(--color-sub)' }}>{issue.description}</p>
         </div>
         <div className="ml-4 text-right">
-          <div className="flex items-center gap-2 text-sm text-neutral-600 mb-1">
+          <div className="flex items-center gap-2 text-sm mb-1" style={{ color: 'var(--color-sub)' }}>
             {statusIcons[issue.status]}
             <span className="capitalize">{issue.status.replace('_', ' ')}</span>
           </div>
-          <div className="text-xs text-neutral-500">
+          <div className="text-xs" style={{ color: 'var(--color-sub)' }}>
             Raised {issue.raisedAt ? new Date(issue.raisedAt).toLocaleDateString() : 'N/A'}
           </div>
         </div>
       </div>
 
       {/* SLA Deadline */}
-      <div className="flex items-center justify-between pt-3 border-t border-neutral-200">
-        <div className="text-xs text-neutral-600">
+      <div className="flex items-center justify-between pt-3" style={{ borderTop: '1px solid var(--color-line)' }}>
+        <div className="text-xs" style={{ color: 'var(--color-sub)' }}>
           SLA Deadline: {issue.slaDeadline ? new Date(issue.slaDeadline).toLocaleString() : 'N/A'}
         </div>
         <button
           onClick={onViewDetails}
-          className="text-primary-600 hover:text-primary-700 text-sm font-medium"
+          className="text-sm font-medium"
+          style={{ color: 'var(--color-teal)' }}
         >
           View Details →
         </button>

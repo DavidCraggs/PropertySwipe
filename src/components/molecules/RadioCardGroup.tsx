@@ -21,8 +21,7 @@ interface RadioCardGroupProps {
 }
 
 /**
- * Large, tappable radio button cards for touch-friendly selection
- * Supports icons, descriptions, and flexible layouts
+ * Concept C radio cards — teal selection, CSS var colors, Libre Franklin text
  */
 export function RadioCardGroup({
   options,
@@ -61,14 +60,11 @@ export function RadioCardGroup({
             />
 
             <div
-              className={`
-                relative ${padding} rounded-2xl border-2 transition-all duration-200
-                ${
-                  isSelected
-                    ? 'border-primary-500 bg-primary-50 shadow-md'
-                    : 'border-neutral-200 bg-white hover:border-neutral-300 hover:shadow-sm'
-                }
-              `}
+              className={`relative ${padding} rounded-2xl transition-all duration-200`}
+              style={{
+                background: isSelected ? 'rgba(13,148,136,0.06)' : 'var(--color-card)',
+                border: `1.5px solid ${isSelected ? 'var(--color-teal)' : 'var(--color-line)'}`,
+              }}
             >
               {/* Selection Checkmark */}
               {isSelected && (
@@ -76,7 +72,8 @@ export function RadioCardGroup({
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                  className="absolute top-3 right-3 w-6 h-6 rounded-full bg-primary-500 flex items-center justify-center"
+                  className="absolute top-3 right-3 w-6 h-6 rounded-full flex items-center justify-center"
+                  style={{ background: 'var(--color-teal)' }}
                 >
                   <Check className="w-4 h-4 text-white" strokeWidth={3} />
                 </motion.div>
@@ -86,10 +83,8 @@ export function RadioCardGroup({
                 {/* Icon */}
                 {Icon && (
                   <div
-                    className={`
-                      ${iconSize} flex-shrink-0 flex items-center justify-center rounded-xl
-                      ${isSelected ? 'text-primary-600' : 'text-neutral-400'}
-                    `}
+                    className={`${iconSize} flex-shrink-0 flex items-center justify-center rounded-xl`}
+                    style={{ color: isSelected ? 'var(--color-teal)' : 'var(--color-sub)' }}
                   >
                     <Icon className="w-full h-full" />
                   </div>
@@ -99,23 +94,27 @@ export function RadioCardGroup({
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
                     <span
-                      className={`
-                        font-semibold text-base md:text-lg
-                        ${isSelected ? 'text-primary-900' : 'text-neutral-900'}
-                      `}
+                      style={{
+                        fontFamily: "'Libre Franklin', sans-serif",
+                        fontSize: 15,
+                        fontWeight: 700,
+                        color: isSelected ? 'var(--color-teal)' : 'var(--color-text)',
+                      }}
                     >
                       {option.label}
                     </span>
                     {option.badge && (
                       <span
-                        className={`
-                          px-2 py-0.5 text-xs font-medium rounded-full
-                          ${
-                            isSelected
-                              ? 'bg-primary-200 text-primary-800'
-                              : 'bg-neutral-200 text-neutral-700'
-                          }
-                        `}
+                        style={{
+                          fontFamily: "'Libre Franklin', sans-serif",
+                          fontSize: 10,
+                          fontWeight: 700,
+                          letterSpacing: 1,
+                          padding: '2px 8px',
+                          borderRadius: 99,
+                          background: isSelected ? 'rgba(13,148,136,0.15)' : 'var(--color-line)',
+                          color: isSelected ? 'var(--color-teal)' : 'var(--color-sub)',
+                        }}
                       >
                         {option.badge}
                       </span>
@@ -125,10 +124,13 @@ export function RadioCardGroup({
                   {option.description && (
                     <p
                       id={`${option.value}-desc`}
-                      className={`
-                        text-sm
-                        ${isSelected ? 'text-primary-700' : 'text-neutral-600'}
-                      `}
+                      style={{
+                        fontFamily: "'Libre Franklin', sans-serif",
+                        fontSize: 13,
+                        fontWeight: 500,
+                        color: 'var(--color-sub)',
+                        margin: 0,
+                      }}
                     >
                       {option.description}
                     </p>
@@ -158,7 +160,7 @@ interface RadioListProps {
 }
 
 /**
- * Compact radio list for simpler selections
+ * Concept C compact radio list — teal dot, CSS var colors
  */
 export function RadioList({ options, value, onChange, name }: RadioListProps) {
   return (
@@ -169,14 +171,11 @@ export function RadioList({ options, value, onChange, name }: RadioListProps) {
         return (
           <label
             key={option.value}
-            className={`
-              flex items-start gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all
-              ${
-                isSelected
-                  ? 'border-primary-500 bg-primary-50'
-                  : 'border-neutral-200 hover:border-neutral-300 bg-white'
-              }
-            `}
+            className="flex items-start gap-3 p-4 rounded-xl cursor-pointer transition-all"
+            style={{
+              background: isSelected ? 'rgba(13,148,136,0.06)' : 'var(--color-card)',
+              border: `1.5px solid ${isSelected ? 'var(--color-teal)' : 'var(--color-line)'}`,
+            }}
           >
             <input
               type="radio"
@@ -188,20 +187,35 @@ export function RadioList({ options, value, onChange, name }: RadioListProps) {
             />
 
             <div
-              className={`
-                flex-shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center mt-0.5
-                ${isSelected ? 'border-primary-500' : 'border-neutral-300'}
-              `}
+              className="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center mt-0.5"
+              style={{ border: `2px solid ${isSelected ? 'var(--color-teal)' : 'var(--color-line)'}` }}
             >
-              {isSelected && <div className="w-3 h-3 rounded-full bg-primary-500" />}
+              {isSelected && (
+                <div className="w-3 h-3 rounded-full" style={{ background: 'var(--color-teal)' }} />
+              )}
             </div>
 
             <div className="flex-1">
-              <div className={`font-medium ${isSelected ? 'text-primary-900' : 'text-neutral-900'}`}>
+              <div
+                style={{
+                  fontFamily: "'Libre Franklin', sans-serif",
+                  fontSize: 14,
+                  fontWeight: 600,
+                  color: isSelected ? 'var(--color-teal)' : 'var(--color-text)',
+                }}
+              >
                 {option.label}
               </div>
               {option.description && (
-                <div className={`text-sm mt-1 ${isSelected ? 'text-primary-700' : 'text-neutral-600'}`}>
+                <div
+                  style={{
+                    fontFamily: "'Libre Franklin', sans-serif",
+                    fontSize: 13,
+                    fontWeight: 500,
+                    color: 'var(--color-sub)',
+                    marginTop: 2,
+                  }}
+                >
                   {option.description}
                 </div>
               )}

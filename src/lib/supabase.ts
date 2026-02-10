@@ -29,12 +29,6 @@ const getEnvVar = (key: string): string => {
 const supabaseUrl = getEnvVar('VITE_SUPABASE_URL');
 const supabaseAnonKey = getEnvVar('VITE_SUPABASE_ANON_KEY');
 
-console.log('[Supabase] Configuration check:', {
-  hasUrl: !!supabaseUrl,
-  hasKey: !!supabaseAnonKey,
-  urlPreview: supabaseUrl ? `${supabaseUrl.substring(0, 30)}...` : 'missing',
-});
-
 if (!supabaseUrl || !supabaseAnonKey) {
   console.warn(
     '⚠️  Supabase credentials not found. Running in localStorage mode.\n' +
@@ -50,6 +44,8 @@ export const supabase = (supabaseUrl && supabaseAnonKey)
     auth: {
       persistSession: true,
       autoRefreshToken: true,
+      detectSessionInUrl: true,
+      flowType: 'pkce',
     },
   })
   : createClient('https://placeholder.supabase.co', 'placeholder-key');
@@ -126,3 +122,21 @@ export const deleteImage = async (url: string): Promise<void> => {
     await supabase.storage.from('property-images').remove([path]);
   }
 };
+
+/**
+ * Get the auth redirect URL for OAuth/magic link callbacks
+ */
+export const getAuthRedirectUrl = (): string => {
+  const envUrl = getEnvVar('VITE_AUTH_REDIRECT_URL');
+  if (envUrl) return envUrl;
+  if (typeof window !== 'undefined') return `${window.location.origin}/auth/callback`;
+  return 'http://localhost:5173/auth/callback';
+};
+
+/**
+ * Get the current auth session (null if not signed in)
+ */
+export async function getCurrentSession() {
+  const { data: { session } } = await supabase.auth.getSession();
+  return session;
+}

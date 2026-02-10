@@ -1,6 +1,7 @@
 import { Bed, Bath, AlertTriangle, MessageSquare, Edit, ChevronRight } from 'lucide-react';
 import type { PropertyWithDetails } from '../../types';
 import { PropertyImage } from '../atoms/PropertyImage';
+import { card } from '../../utils/conceptCStyles';
 
 interface PropertyListItemProps {
   property: PropertyWithDetails;
@@ -9,8 +10,7 @@ interface PropertyListItemProps {
 }
 
 /**
- * Full-width list row for property display
- * Shows property details, tenant status, and action badges
+ * Concept C list row — card surface, CSS var text colors
  */
 export function PropertyListItem({
   property,
@@ -40,7 +40,8 @@ export function PropertyListItem({
 
   return (
     <div
-      className="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-shadow cursor-pointer group border border-neutral-100"
+      className="overflow-hidden cursor-pointer group"
+      style={{ ...card, borderRadius: 12, transition: 'box-shadow 0.2s' }}
       onClick={() => onSelect?.(property)}
     >
       <div className="flex items-center p-4 gap-4">
@@ -55,13 +56,19 @@ export function PropertyListItem({
 
         {/* Property Details */}
         <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-neutral-900 truncate">
+          <h3
+            className="truncate"
+            style={{ fontFamily: "'Libre Franklin', sans-serif", fontSize: 14, fontWeight: 700, color: 'var(--color-text)' }}
+          >
             {property.address.street}
           </h3>
-          <p className="text-sm text-neutral-500 truncate">
+          <p
+            className="truncate"
+            style={{ fontFamily: "'Libre Franklin', sans-serif", fontSize: 12, fontWeight: 500, color: 'var(--color-sub)', marginTop: 2 }}
+          >
             {property.address.city}, {property.address.postcode}
           </p>
-          <div className="flex items-center gap-3 mt-1.5 text-sm text-neutral-600">
+          <div className="flex items-center gap-3 mt-1.5" style={{ fontSize: 13, color: 'var(--color-sub)' }}>
             <span className="flex items-center gap-1">
               <Bed className="h-4 w-4" />
               {property.bedrooms}
@@ -70,9 +77,9 @@ export function PropertyListItem({
               <Bath className="h-4 w-4" />
               {property.bathrooms}
             </span>
-            <span className="text-neutral-400">|</span>
-            <span className="font-medium text-primary-600">
-              {formatCurrency(property.rentPcm)}/mo
+            <span style={{ color: 'var(--color-line)' }}>|</span>
+            <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 18, letterSpacing: 1, color: 'var(--color-teal)' }}>
+              {formatCurrency(property.rentPcm)}<span style={{ fontFamily: "'Libre Franklin', sans-serif", fontSize: 9, fontWeight: 700, letterSpacing: 1, marginLeft: 2 }}>PCM</span>
             </span>
           </div>
         </div>
@@ -85,7 +92,7 @@ export function PropertyListItem({
             {statusLabels[property.occupancyStatus]}
           </span>
           {property.currentTenant && (
-            <span className="text-sm text-neutral-600 truncate max-w-[120px]">
+            <span style={{ fontFamily: "'Libre Franklin', sans-serif", fontSize: 12, color: 'var(--color-sub)' }} className="truncate max-w-[120px]">
               {property.currentTenant.name}
             </span>
           )}
@@ -100,7 +107,7 @@ export function PropertyListItem({
             </span>
           )}
           {property.unreadMessagesCount > 0 && (
-            <span className="flex items-center gap-1 px-2 py-1 bg-primary-100 text-primary-700 rounded-lg text-xs font-medium">
+            <span className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium" style={{ background: 'rgba(13,148,136,0.1)', color: 'var(--color-teal)' }}>
               <MessageSquare className="h-3.5 w-3.5" />
               {property.unreadMessagesCount}
             </span>
@@ -115,13 +122,14 @@ export function PropertyListItem({
                 e.stopPropagation();
                 onEdit(property);
               }}
-              className="p-2 rounded-lg hover:bg-neutral-100 text-neutral-500 hover:text-neutral-700 transition-colors"
+              className="p-2 rounded-lg transition-colors"
+              style={{ color: 'var(--color-sub)' }}
               aria-label="Edit property"
             >
               <Edit className="h-4 w-4" />
             </button>
           )}
-          <ChevronRight className="h-5 w-5 text-neutral-400 group-hover:text-neutral-600 transition-colors" />
+          <ChevronRight className="h-5 w-5" style={{ color: 'var(--color-sub)' }} />
         </div>
       </div>
     </div>

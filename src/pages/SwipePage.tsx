@@ -1,44 +1,65 @@
 import { useState, useEffect, useRef } from 'react';
+import { motion } from 'framer-motion';
 import { CardStack, SwipeControls, PropertyDetailsModal } from '../components';
 import { ViewingTimeModal } from '../components/organisms/ViewingTimeModal';
+import { ThemeToggle } from '../components/atoms/ThemeToggle';
 import { useAppStore, usePropertyDeck } from '../hooks';
+import { useAuthStore } from '../hooks/useAuthStore';
 import { useToastStore } from '../components/organisms/toastUtils';
 import type { Property, Match } from '../types';
 
-export const SwipePage: React.FC = () => {
+/**
+ * SwipePage — Concept C layout
+ * Full viewport, 520px max-width, flex column:
+ * header → card stack → action buttons → bottom nav
+ * No background orbs, no stats grid, no progress bar
+ */
+interface SwipePageProps {
+  onNavigateToProfile?: () => void;
+}
+
+export const SwipePage: React.FC<SwipePageProps> = ({ onNavigateToProfile }) => {
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newMatch, setNewMatch] = useState<Match | null>(null);
   const [showViewingModal, setShowViewingModal] = useState(false);
+  const [loaded, setLoaded] = useState(false);
 
-  // BUGFIX #7: Track which matches we've already shown the viewing modal for
   const processedMatchIds = useRef<Set<string>>(new Set());
 
-  const { unseenProperties, handleLike, handleDislike, progress } = usePropertyDeck();
-  const { getStats, matches, setViewingPreference } = useAppStore();
+  const {
+    unseenProperties,
+    handleLike,
+    handleDislike,
+    handleSuperLike,
+    handleUndo,
+    canUndo,
+  } = usePropertyDeck();
+  const { matches, setViewingPreference } = useAppStore();
+  const { currentUser } = useAuthStore();
   const { addToast } = useToastStore();
-  const stats = getStats();
 
-  // Watch for new matches (BUGFIX #7: Prevent duplicate modal opens)
+  // Stagger entrance on mount
+  useEffect(() => {
+    setTimeout(() => setLoaded(true), 80);
+  }, []);
+
+  // Watch for new matches
   useEffect(() => {
     if (matches.length > 0) {
       const latestMatch = matches[0];
 
-      // Skip if we've already processed this match
-      if (processedMatchIds.current.has(latestMatch.id)) {
-        return;
-      }
+      if (processedMatchIds.current.has(latestMatch.id)) return;
 
-      // Check if this is a brand new match (less than 5 seconds old)
       const matchAge = Date.now() - new Date(latestMatch.timestamp).getTime();
       if (matchAge < 5000 && !latestMatch.viewingPreference) {
-        // Mark as processed BEFORE showing modal to prevent race conditions
         processedMatchIds.current.add(latestMatch.id);
 
         setNewMatch(latestMatch);
-        setShowViewingModal(true);
+        setTimeout(() => {
+          setShowViewingModal(true);
+        }, 800);
 
-        // Show match toast
         addToast({
           type: 'match',
           title: "It's a match!",
@@ -55,7 +76,7 @@ export const SwipePage: React.FC = () => {
   };
 
   const handleStackEmpty = () => {
-    console.log('No more properties! You viewed all available properties.');
+    console.log('No more properties.');
   };
 
   const handleModalLike = () => {
@@ -65,84 +86,146 @@ export const SwipePage: React.FC = () => {
     }
   };
 
+  // Swipe callbacks that trigger Concept C toasts
+  const onLikeWithToast = (property: Property) => {
+    handleLike(property);
+    addToast({ type: 'shortlist', message: '♥ SHORTLISTED', duration: 700 });
+  };
+
+  const onDislikeWithToast = (property: Property) => {
+    handleDislike(property);
+    addToast({ type: 'pass', message: '✕ PASSED', duration: 700 });
+  };
+
+  // Get user initial for avatar
+  const userInitial = (() => {
+    if (!currentUser) return 'U';
+    if ('names' in currentUser && currentUser.names) return currentUser.names.charAt(0).toUpperCase();
+    if ('name' in currentUser && currentUser.name) return currentUser.name.charAt(0).toUpperCase();
+    if ('companyName' in currentUser && currentUser.companyName) return currentUser.companyName.charAt(0).toUpperCase();
+    return 'U';
+  })();
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-success-50 pb-24">
-      {/* Header */}
-      <header className="max-w-md mx-auto px-4 py-6">
-        <h1 className="text-4xl font-bold text-center bg-gradient-to-r from-primary-600 to-success-600 bg-clip-text text-transparent mb-2">
-          Let Right
-        </h1>
-        <p className="text-center text-neutral-600">Swipe right to like, left to pass</p>
-        {matches.length > 0 && (
-          <div className="mt-2 text-center">
-            <span className="inline-flex items-center gap-2 bg-success-100 text-success-700 px-3 py-1 rounded-full text-sm font-medium">
-              <span className="w-2 h-2 bg-success-500 rounded-full animate-pulse" />
-              {matches.length} New {matches.length === 1 ? 'Match' : 'Matches'}!
-            </span>
-          </div>
-        )}
-      </header>
-
-      {/* Main Content */}
-      <main className="max-w-md mx-auto px-4">
-        {/* Card Stack Container */}
-        <div className="relative w-full aspect-[3/4] mb-8">
-          <CardStack
-            properties={unseenProperties}
-            onLike={handleLike}
-            onDislike={handleDislike}
-            onInfoClick={handleInfoClick}
-            onStackEmpty={handleStackEmpty}
-          />
+    <div
+      style={{
+        fontFamily: "'Bebas Neue', sans-serif",
+        background: 'var(--color-bg)',
+        color: 'var(--color-text)',
+        height: '100vh',
+        maxWidth: 520,
+        margin: '0 auto',
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+        position: 'relative',
+        paddingBottom: 68,
+        transition: 'background 0.5s, color 0.5s',
+      }}
+    >
+      {/* Header — stagger entrance: 0.05s */}
+      <motion.header
+        style={{
+          padding: '14px 20px 6px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          zIndex: 20,
+        }}
+        initial={{ opacity: 0, y: 14 }}
+        animate={loaded ? { opacity: 1, y: 0 } : {}}
+        transition={{ duration: 0.4, ease: 'easeOut', delay: 0.05 }}
+      >
+        <div>
+          <h1 style={{ margin: 0, fontSize: 28, letterSpacing: 4, lineHeight: 1 }}>
+            <span style={{ color: 'var(--color-teal)' }}>LET</span>RIGHT
+          </h1>
+          <p
+            style={{
+              fontFamily: "'Libre Franklin', sans-serif",
+              fontSize: 9,
+              fontWeight: 800,
+              letterSpacing: 3,
+              color: 'var(--color-sub)',
+              margin: '2px 0 0',
+            }}
+          >
+            &ldquo;SWIPE RIGHT. LET RIGHT.&rdquo;
+          </p>
         </div>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <ThemeToggle />
+          <button
+            onClick={onNavigateToProfile}
+            aria-label="Go to profile"
+            style={{
+              width: 34,
+              height: 34,
+              borderRadius: 8,
+              background: 'var(--color-teal)',
+              border: 'none',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#fff',
+              fontFamily: "'Libre Franklin', sans-serif",
+              fontSize: 14,
+              fontWeight: 900,
+            }}
+          >
+            {userInitial}
+          </button>
+        </div>
+      </motion.header>
 
-        {/* Swipe Controls */}
+      {/* Card Stack — stagger entrance: 0.15s */}
+      <motion.div
+        style={{
+          flex: 1,
+          position: 'relative',
+          padding: '10px 14px 0',
+        }}
+        initial={{ opacity: 0 }}
+        animate={loaded ? { opacity: 1 } : {}}
+        transition={{ duration: 0.5, ease: 'easeOut', delay: 0.15 }}
+      >
+        <CardStack
+          properties={unseenProperties}
+          onLike={onLikeWithToast}
+          onDislike={onDislikeWithToast}
+          onInfoClick={handleInfoClick}
+          onStackEmpty={handleStackEmpty}
+        />
+      </motion.div>
+
+      {/* Action Buttons — stagger entrance: 0.25s */}
+      <motion.div
+        initial={{ opacity: 0, y: 14 }}
+        animate={loaded ? { opacity: 1, y: 0 } : {}}
+        transition={{ duration: 0.4, ease: 'easeOut', delay: 0.25 }}
+      >
         <SwipeControls
           onLike={() => {
-            console.log('Like button clicked');
+            if (unseenProperties.length > 0) {
+              onLikeWithToast(unseenProperties[0]);
+            }
           }}
           onDislike={() => {
-            console.log('Dislike button clicked');
+            if (unseenProperties.length > 0) {
+              onDislikeWithToast(unseenProperties[0]);
+            }
           }}
-          className="mb-6"
+          onUndo={handleUndo}
+          onSuperLike={() => {
+            if (unseenProperties.length > 0) {
+              handleSuperLike(unseenProperties[0]);
+              addToast({ type: 'shortlist', message: '★ SUPER LIKED', duration: 700 });
+            }
+          }}
+          canUndo={canUndo}
         />
-
-        {/* Stats */}
-        <div className="grid grid-cols-4 gap-4 text-sm text-neutral-600 mb-6">
-          <div className="text-center p-3 bg-white rounded-xl shadow-sm">
-            <div className="text-2xl font-bold text-success-600">{stats.propertiesLiked}</div>
-            <div className="text-xs mt-1">Liked</div>
-          </div>
-          <div className="text-center p-3 bg-white rounded-xl shadow-sm">
-            <div className="text-2xl font-bold text-danger-600">{stats.propertiesPassed}</div>
-            <div className="text-xs mt-1">Passed</div>
-          </div>
-          <div className="text-center p-3 bg-white rounded-xl shadow-sm">
-            <div className="text-2xl font-bold text-primary-600">{progress.remaining}</div>
-            <div className="text-xs mt-1">Remaining</div>
-          </div>
-          <div className="text-center p-3 bg-white rounded-xl shadow-sm">
-            <div className="text-2xl font-bold text-purple-600">{matches.length}</div>
-            <div className="text-xs mt-1">Matches</div>
-          </div>
-        </div>
-
-        {/* Progress Bar */}
-        {progress.percentage > 0 && (
-          <div>
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-xs text-neutral-600">Progress</span>
-              <span className="text-xs font-medium text-neutral-900">{progress.percentage}%</span>
-            </div>
-            <div className="w-full h-2 bg-neutral-200 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-gradient-to-r from-primary-500 to-success-500 transition-all duration-300"
-                style={{ width: `${progress.percentage}%` }}
-              />
-            </div>
-          </div>
-        )}
-      </main>
+      </motion.div>
 
       {/* Property Details Modal */}
       <PropertyDetailsModal

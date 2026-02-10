@@ -1,12 +1,16 @@
-import { useMemo } from 'react';
+import { useMemo, useState, useCallback } from 'react';
 import { useAppStore } from './useAppStore';
 import { useAuthStore } from './useAuthStore';
 import type { Property, RenterProfile } from '../types';
 
+interface SwipeHistoryEntry {
+  property: Property;
+  action: 'like' | 'dislike' | 'super-like';
+}
+
 /**
  * Custom hook for managing the rental property deck
- * Handles card filtering, preloading, and swipe state
- * Compatible with rental platform (renters swiping on rental properties)
+ * Handles card filtering, preloading, swipe state, undo, and super-like
  */
 export const usePropertyDeck = () => {
   const {
@@ -19,63 +23,81 @@ export const usePropertyDeck = () => {
   } = useAppStore();
 
   const { currentUser, userType } = useAuthStore();
+  const [swipeHistory, setSwipeHistory] = useState<SwipeHistoryEntry[]>([]);
+  const [superLikedProperties, setSuperLikedProperties] = useState<string[]>([]);
 
   // Get properties that haven't been swiped yet
   const unseenProperties = useMemo(() => {
-    // Get renter's current property ID if they have an active tenancy
     const currentPropertyId =
       userType === 'renter' && (currentUser as RenterProfile)?.status === 'current'
         ? (currentUser as RenterProfile).currentPropertyId
         : undefined;
 
-    console.log('[usePropertyDeck] userType:', userType);
-    console.log('[usePropertyDeck] currentUser:', currentUser);
-    console.log('[usePropertyDeck] currentPropertyId:', currentPropertyId);
-    console.log('[usePropertyDeck] Available properties:', availableProperties.length);
-
-    const filtered = availableProperties.filter(
+    return availableProperties.filter(
       (property) =>
         !likedProperties.includes(property.id) &&
         !passedProperties.includes(property.id) &&
-        property.id !== currentPropertyId // Exclude renter's current property
+        property.id !== currentPropertyId
     );
-
-    console.log('[usePropertyDeck] Unseen properties after filtering:', filtered.length);
-
-    return filtered;
   }, [availableProperties, likedProperties, passedProperties, currentUser, userType]);
 
-  // Get current property
   const currentProperty = unseenProperties[0] || null;
-
-  // Get visible properties for the stack (current + next 2)
   const visibleProperties = unseenProperties.slice(0, 3);
-
-  // Check if deck is empty
   const isEmpty = unseenProperties.length === 0;
-
-  // Check if we're running low on properties
   const isRunningLow = unseenProperties.length <= 5;
 
-  // Get progress
   const progress = {
     viewed: likedProperties.length + passedProperties.length,
     remaining: unseenProperties.length,
     total: availableProperties.length,
-    percentage: Math.round(
-      ((likedProperties.length + passedProperties.length) / availableProperties.length) * 100
-    ),
+    percentage: availableProperties.length > 0
+      ? Math.round(((likedProperties.length + passedProperties.length) / availableProperties.length) * 100)
+      : 0,
   };
 
-  // Handle like
-  const handleLike = (property: Property) => {
+  const handleLike = useCallback((property: Property) => {
+    setSwipeHistory((prev) => [...prev, { property, action: 'like' }]);
     likeProperty(property.id);
-  };
+  }, [likeProperty]);
 
-  // Handle dislike
-  const handleDislike = (property: Property) => {
+  const handleDislike = useCallback((property: Property) => {
+    setSwipeHistory((prev) => [...prev, { property, action: 'dislike' }]);
     dislikeProperty(property.id);
-  };
+  }, [dislikeProperty]);
+
+  const handleSuperLike = useCallback((property: Property) => {
+    setSwipeHistory((prev) => [...prev, { property, action: 'super-like' }]);
+    setSuperLikedProperties((prev) => [...prev, property.id]);
+    likeProperty(property.id);
+  }, [likeProperty]);
+
+  const handleUndo = useCallback(() => {
+    if (swipeHistory.length === 0) return null;
+
+    const lastEntry = swipeHistory[swipeHistory.length - 1];
+    setSwipeHistory((prev) => prev.slice(0, -1));
+
+    // Remove from the appropriate store array
+    const store = useAppStore.getState();
+    if (lastEntry.action === 'like' || lastEntry.action === 'super-like') {
+      useAppStore.setState({
+        likedProperties: store.likedProperties.filter((id) => id !== lastEntry.property.id),
+        currentPropertyIndex: Math.max(0, store.currentPropertyIndex - 1),
+      });
+      if (lastEntry.action === 'super-like') {
+        setSuperLikedProperties((prev) => prev.filter((id) => id !== lastEntry.property.id));
+      }
+    } else {
+      useAppStore.setState({
+        passedProperties: store.passedProperties.filter((id) => id !== lastEntry.property.id),
+        currentPropertyIndex: Math.max(0, store.currentPropertyIndex - 1),
+      });
+    }
+
+    return lastEntry.property;
+  }, [swipeHistory]);
+
+  const canUndo = swipeHistory.length > 0;
 
   // Preload next batch if running low
   if (isRunningLow && !isEmpty) {
@@ -91,5 +113,9 @@ export const usePropertyDeck = () => {
     progress,
     handleLike,
     handleDislike,
+    handleSuperLike,
+    handleUndo,
+    canUndo,
+    superLikedProperties,
   };
 };

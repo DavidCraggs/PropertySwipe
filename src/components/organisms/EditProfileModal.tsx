@@ -5,6 +5,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { X, Save, Loader2 } from 'lucide-react';
 import { Button } from '../atoms/Button';
+import { heading } from '../../utils/conceptCStyles';
 import { ConfirmationModal } from '../molecules/ConfirmationModal';
 import { RenterProfileForm } from './edit-profile/RenterProfileForm';
 import { LandlordProfileForm } from './edit-profile/LandlordProfileForm';
@@ -129,26 +130,29 @@ export function EditProfileModal({ isOpen, onClose }: EditProfileModalProps) {
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/50 z-40 transition-opacity"
+        className="fixed inset-0 z-40 transition-opacity"
+        style={{ background: 'rgba(0,0,0,0.5)' }}
         onClick={handleClose}
         aria-hidden="true"
       />
 
       {/* Slide-out panel */}
       <div
-        className="fixed inset-y-0 right-0 z-50 w-full max-w-lg bg-white shadow-2xl transform transition-transform duration-300 ease-in-out overflow-hidden flex flex-col"
+        className="fixed inset-y-0 right-0 z-50 w-full max-w-lg transform transition-transform duration-300 ease-in-out overflow-hidden flex flex-col"
+        style={{ background: 'var(--color-card)', border: '1.5px solid var(--color-line)', borderRadius: 20 }}
         role="dialog"
         aria-modal="true"
         aria-labelledby="edit-profile-title"
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-200 bg-white">
-          <h2 id="edit-profile-title" className="text-xl font-bold text-neutral-900">
+        <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid var(--color-line)', background: 'var(--color-card)' }}>
+          <h2 id="edit-profile-title" style={heading(22, 1)}>
             {getTitle()}
           </h2>
           <button
             onClick={handleClose}
-            className="p-2 text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100 rounded-lg transition-colors"
+            className="p-2 rounded-lg transition-colors"
+            style={{ color: 'var(--color-sub)' }}
             aria-label="Close"
           >
             <X size={24} />
@@ -178,7 +182,7 @@ export function EditProfileModal({ isOpen, onClose }: EditProfileModalProps) {
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-neutral-200 bg-neutral-50">
+        <div className="flex items-center justify-end gap-3 px-6 py-4" style={{ borderTop: '1px solid var(--color-line)', background: 'var(--color-card)' }}>
           <Button
             variant="ghost"
             onClick={handleClose}

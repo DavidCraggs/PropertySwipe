@@ -9,7 +9,12 @@ import {
   Building2,
   User,
 } from 'lucide-react';
+import { AnimatePresence } from 'framer-motion';
 import { useAuthStore } from '../hooks/useAuthStore';
+import { useIsMobile } from '../hooks/useMediaQuery';
+import { SlideDrawer } from '../components/organisms/SlideDrawer';
+import { Button } from '../components/atoms/Button';
+import { pageShell, pageHeader, card, heading, subText } from '../utils/conceptCStyles';
 import { getAllProperties, getAllMatches, getLandlordProfile, getPropertyCosts, getIssuesForProperty } from '../lib/storage';
 import type {
   AgencyProfile,
@@ -47,6 +52,8 @@ export function AgencyPropertiesPage() {
   const [filter, setFilter] = useState<FilterOption>('all');
   const [sortBy, setSortBy] = useState<SortOption>('landlord');
   const [selectedProperty, setSelectedProperty] = useState<PropertyWithLandlord | null>(null);
+  const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
+  const isMobile = useIsMobile();
 
   // Load properties on mount
   useEffect(() => {
@@ -222,24 +229,24 @@ export function AgencyPropertiesPage() {
 
   if (loading) {
     return (
-      <div className="flex h-[calc(100vh-5rem)] items-center justify-center bg-neutral-50">
+      <div className="flex h-[calc(100vh-5rem)] items-center justify-center" style={pageShell}>
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-neutral-600">Loading portfolio...</p>
+          <p style={{ color: 'var(--color-sub)' }}>Loading portfolio...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-[calc(100vh-5rem)] bg-neutral-50 pb-24">
+    <div className="min-h-[calc(100vh-5rem)] pb-24" style={{ ...pageShell, paddingBottom: 96 }}>
       {/* Header */}
-      <div className="bg-white border-b border-neutral-200 sticky top-0 z-10">
+      <div className="sticky top-0 z-10" style={{ ...pageHeader }}>
         <div className="px-4 py-4">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h1 className="text-2xl font-bold text-neutral-900">Portfolio</h1>
-              <p className="text-sm text-neutral-500">
+              <h1 style={heading(32)}>Portfolio</h1>
+              <p style={{ ...subText(14), marginTop: 4 }}>
                 {properties.length} {properties.length === 1 ? 'property' : 'properties'} • {stats.landlordCount} {stats.landlordCount === 1 ? 'landlord' : 'landlords'}
               </p>
             </div>
@@ -254,42 +261,42 @@ export function AgencyPropertiesPage() {
       {/* Stats Row */}
       <div className="px-4 py-4 overflow-x-auto">
         <div className="flex gap-3 min-w-max">
-          <div className="bg-white rounded-xl px-4 py-3 shadow-sm border border-neutral-100 min-w-[100px]">
-            <div className="flex items-center gap-2 text-neutral-500 text-xs mb-1">
+          <div className="rounded-xl px-4 py-3 min-w-[100px]" style={{ ...card }}>
+            <div className="flex items-center gap-2 text-xs mb-1" style={{ color: 'var(--color-sub)' }}>
               <Home className="h-3.5 w-3.5" />
               Total
             </div>
-            <div className="text-xl font-bold text-neutral-900">{stats.total}</div>
+            <div className="text-xl font-bold" style={{ color: 'var(--color-text)' }}>{stats.total}</div>
           </div>
-          <div className="bg-white rounded-xl px-4 py-3 shadow-sm border border-neutral-100 min-w-[100px]">
-            <div className="flex items-center gap-2 text-neutral-500 text-xs mb-1">
+          <div className="rounded-xl px-4 py-3 min-w-[100px]" style={{ ...card }}>
+            <div className="flex items-center gap-2 text-xs mb-1" style={{ color: 'var(--color-sub)' }}>
               <User className="h-3.5 w-3.5" />
               Landlords
             </div>
-            <div className="text-xl font-bold text-neutral-900">{stats.landlordCount}</div>
+            <div className="text-xl font-bold" style={{ color: 'var(--color-text)' }}>{stats.landlordCount}</div>
           </div>
-          <div className="bg-white rounded-xl px-4 py-3 shadow-sm border border-neutral-100 min-w-[100px]">
-            <div className="flex items-center gap-2 text-neutral-500 text-xs mb-1">
+          <div className="rounded-xl px-4 py-3 min-w-[100px]" style={{ ...card }}>
+            <div className="flex items-center gap-2 text-xs mb-1" style={{ color: 'var(--color-sub)' }}>
               <Users className="h-3.5 w-3.5" />
               Occupied
             </div>
             <div className="text-xl font-bold text-success-600">
-              {stats.occupied} <span className="text-sm font-normal text-neutral-500">({stats.occupancyRate}%)</span>
+              {stats.occupied} <span className="text-sm font-normal" style={{ color: 'var(--color-sub)' }}>({stats.occupancyRate}%)</span>
             </div>
           </div>
-          <div className="bg-white rounded-xl px-4 py-3 shadow-sm border border-neutral-100 min-w-[120px]">
-            <div className="flex items-center gap-2 text-neutral-500 text-xs mb-1">
+          <div className="rounded-xl px-4 py-3 min-w-[120px]" style={{ ...card }}>
+            <div className="flex items-center gap-2 text-xs mb-1" style={{ color: 'var(--color-sub)' }}>
               <PoundSterling className="h-3.5 w-3.5" />
               Income
             </div>
-            <div className="text-xl font-bold text-neutral-900">{formatCurrency(stats.totalIncome)}</div>
+            <div className="text-xl font-bold" style={{ color: 'var(--color-text)' }}>{formatCurrency(stats.totalIncome)}</div>
           </div>
-          <div className="bg-white rounded-xl px-4 py-3 shadow-sm border border-neutral-100 min-w-[100px]">
-            <div className="flex items-center gap-2 text-neutral-500 text-xs mb-1">
+          <div className="rounded-xl px-4 py-3 min-w-[100px]" style={{ ...card }}>
+            <div className="flex items-center gap-2 text-xs mb-1" style={{ color: 'var(--color-sub)' }}>
               <AlertTriangle className="h-3.5 w-3.5" />
               Issues
             </div>
-            <div className={`text-xl font-bold ${stats.totalIssues > 0 ? 'text-warning-600' : 'text-neutral-900'}`}>
+            <div className={`text-xl font-bold ${stats.totalIssues > 0 ? 'text-warning-600' : ''}`} style={{ color: stats.totalIssues > 0 ? undefined : 'var(--color-text)' }}>
               {stats.totalIssues}
             </div>
           </div>
@@ -297,44 +304,157 @@ export function AgencyPropertiesPage() {
       </div>
 
       {/* Filter & Sort */}
-      <div className="px-4 pb-4 flex flex-wrap gap-3">
-        <div className="flex items-center gap-2">
-          <Filter className="h-4 w-4 text-neutral-500" />
-          <select
-            value={filter}
-            onChange={(e) => setFilter(e.target.value as FilterOption)}
-            className="px-3 py-1.5 bg-white border border-neutral-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-          >
-            <option value="all">All Properties</option>
-            <option value="occupied">Occupied</option>
-            <option value="vacant">Vacant</option>
-            <option value="ending_soon">Ending Soon</option>
-          </select>
+      {!isMobile ? (
+        <div className="px-4 pb-4 flex flex-wrap gap-3">
+          <div className="flex items-center gap-2">
+            <Filter className="h-4 w-4" style={{ color: 'var(--color-sub)' }} />
+            <select
+              value={filter}
+              onChange={(e) => setFilter(e.target.value as FilterOption)}
+              className="px-3 py-1.5 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+              style={{ background: 'var(--color-card)', border: '1.5px solid var(--color-line)', color: 'var(--color-text)' }}
+            >
+              <option value="all">All Properties</option>
+              <option value="occupied">Occupied</option>
+              <option value="vacant">Vacant</option>
+              <option value="ending_soon">Ending Soon</option>
+            </select>
+          </div>
+          <div className="flex items-center gap-2">
+            <SortAsc className="h-4 w-4" style={{ color: 'var(--color-sub)' }} />
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as SortOption)}
+              className="px-3 py-1.5 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+              style={{ background: 'var(--color-card)', border: '1.5px solid var(--color-line)', color: 'var(--color-text)' }}
+            >
+              <option value="landlord">Sort by Landlord</option>
+              <option value="name">Sort by Name</option>
+              <option value="rent">Sort by Rent</option>
+              <option value="occupancy">Sort by Occupancy</option>
+            </select>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <SortAsc className="h-4 w-4 text-neutral-500" />
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as SortOption)}
-            className="px-3 py-1.5 bg-white border border-neutral-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+      ) : (
+        <div className="px-4 pb-4">
+          <button
+            onClick={() => setIsFilterDrawerOpen(true)}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
+              padding: '10px 18px',
+              borderRadius: 999,
+              border: '1.5px solid var(--color-line)',
+              background: 'var(--color-card)',
+              color: 'var(--color-text)',
+              fontFamily: "'Libre Franklin', sans-serif",
+              fontSize: 13,
+              fontWeight: 600,
+              cursor: 'pointer',
+            }}
           >
-            <option value="landlord">Sort by Landlord</option>
-            <option value="name">Sort by Name</option>
-            <option value="rent">Sort by Rent</option>
-            <option value="occupancy">Sort by Occupancy</option>
-          </select>
+            <Filter className="h-4 w-4" style={{ color: 'var(--color-teal)' }} />
+            Filter & Sort
+            {filter !== 'all' && (
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--color-teal)' }} />
+            )}
+          </button>
         </div>
-      </div>
+      )}
+
+      {/* Mobile filter drawer */}
+      <AnimatePresence>
+        {isMobile && isFilterDrawerOpen && (
+          <SlideDrawer
+            isOpen={isFilterDrawerOpen}
+            onClose={() => setIsFilterDrawerOpen(false)}
+            title="Filter & Sort"
+          >
+            <div style={{ padding: '8px 0' }}>
+              <p style={{ fontFamily: "'Libre Franklin', sans-serif", fontSize: 10, fontWeight: 800, letterSpacing: 2, textTransform: 'uppercase', color: 'var(--color-sub)', marginBottom: 12 }}>
+                Filter
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {([
+                  { value: 'all', label: 'All Properties' },
+                  { value: 'occupied', label: 'Occupied' },
+                  { value: 'vacant', label: 'Vacant' },
+                  { value: 'ending_soon', label: 'Ending Soon' },
+                ] as const).map((opt) => (
+                  <button
+                    key={opt.value}
+                    onClick={() => setFilter(opt.value)}
+                    style={{
+                      padding: '12px 16px',
+                      borderRadius: 12,
+                      border: 'none',
+                      textAlign: 'left' as const,
+                      cursor: 'pointer',
+                      fontFamily: "'Libre Franklin', sans-serif",
+                      fontSize: 14,
+                      fontWeight: filter === opt.value ? 700 : 500,
+                      color: filter === opt.value ? 'var(--color-teal)' : 'var(--color-text)',
+                      background: filter === opt.value ? 'rgba(13,148,136,0.08)' : 'transparent',
+                    }}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+
+              <div style={{ height: 1.5, background: 'var(--color-line)', margin: '20px 0' }} />
+
+              <p style={{ fontFamily: "'Libre Franklin', sans-serif", fontSize: 10, fontWeight: 800, letterSpacing: 2, textTransform: 'uppercase', color: 'var(--color-sub)', marginBottom: 12 }}>
+                Sort by
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {([
+                  { value: 'landlord', label: 'Landlord' },
+                  { value: 'name', label: 'Name' },
+                  { value: 'rent', label: 'Rent' },
+                  { value: 'occupancy', label: 'Occupancy' },
+                ] as const).map((opt) => (
+                  <button
+                    key={opt.value}
+                    onClick={() => setSortBy(opt.value)}
+                    style={{
+                      padding: '12px 16px',
+                      borderRadius: 12,
+                      border: 'none',
+                      textAlign: 'left' as const,
+                      cursor: 'pointer',
+                      fontFamily: "'Libre Franklin', sans-serif",
+                      fontSize: 14,
+                      fontWeight: sortBy === opt.value ? 700 : 500,
+                      color: sortBy === opt.value ? 'var(--color-teal)' : 'var(--color-text)',
+                      background: sortBy === opt.value ? 'rgba(13,148,136,0.08)' : 'transparent',
+                    }}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+
+              <div style={{ marginTop: 32 }}>
+                <Button variant="primary" onClick={() => setIsFilterDrawerOpen(false)} className="w-full">
+                  Apply
+                </Button>
+              </div>
+            </div>
+          </SlideDrawer>
+        )}
+      </AnimatePresence>
 
       {/* Properties Content */}
       <div className="px-4">
         {filteredProperties.length === 0 ? (
-          <div className="bg-white rounded-2xl p-8 text-center shadow-sm border border-neutral-100">
-            <Building2 className="h-12 w-12 text-neutral-300 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-neutral-900 mb-2">
+          <div className="rounded-2xl p-8 text-center" style={{ ...card, padding: 24 }}>
+            <Building2 className="h-12 w-12 mx-auto mb-4" style={{ color: 'var(--color-sub)' }} />
+            <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--color-text)' }}>
               {properties.length === 0 ? 'No Properties Yet' : 'No Properties Match Filter'}
             </h3>
-            <p className="text-neutral-500 mb-4">
+            <p className="mb-4" style={{ color: 'var(--color-sub)' }}>
               {properties.length === 0
                 ? 'Properties assigned to your agency will appear here'
                 : 'Try adjusting your filter to see more properties'}

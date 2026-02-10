@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-type ToastType = 'success' | 'error' | 'danger' | 'info' | 'match' | 'warning';
+type ToastType = 'success' | 'error' | 'danger' | 'info' | 'match' | 'warning' | 'shortlist' | 'pass';
 
 export interface Toast {
   id: string;
@@ -56,5 +56,7 @@ export const useToast = () => {
     error: (message: string, duration?: number) => addToast({ type: 'error', message, duration }),
     info: (message: string, duration?: number) => addToast({ type: 'info', message, duration }),
     match: (message: string, duration?: number) => addToast({ type: 'match', message, duration: duration || 5000 }),
+    shortlist: (duration?: number) => addToast({ type: 'shortlist', message: '♥ SHORTLISTED', duration: duration || 650 }),
+    pass: (duration?: number) => addToast({ type: 'pass', message: '✕ PASSED', duration: duration || 650 }),
   };
 };

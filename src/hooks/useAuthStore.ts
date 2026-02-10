@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import type { Session } from '@supabase/supabase-js';
 import type {
   AuthState,
   LandlordProfile,
@@ -8,6 +9,7 @@ import type {
   AdminSession,
   UserType,
   RenterStatus,
+  AuthProvider,
 } from '../types';
 import {
   saveLandlordProfile,
@@ -24,6 +26,14 @@ interface AuthStore extends AuthState {
   setOnboardingStep: (step: number) => void;
   completeOnboarding: () => void;
   getSessionData: () => AuthState;
+
+  // Supabase Auth methods
+  signInWithGoogle: () => Promise<void>;
+  signInWithApple: () => Promise<void>;
+  sendMagicLink: (email: string) => Promise<{ success: boolean; error?: string }>;
+  handleSupabaseSession: (session: Session | null) => Promise<void>;
+  setSessionLoading: (loading: boolean) => void;
+  signOut: () => Promise<void>;
 
   // Admin methods
   loginAsAdmin: (email: string, password: string) => Promise<boolean>;
@@ -48,6 +58,10 @@ export const useAuthStore = create<AuthStore>()(
       userType: null,
       currentUser: null,
       onboardingStep: 0,
+      supabaseUserId: null,
+      supabaseProfile: null,
+      authProvider: null,
+      isSessionLoading: false,
 
       // Login action - stores user data and sets authenticated state
       login: async (userType, profile) => {
@@ -225,6 +239,9 @@ export const useAuthStore = create<AuthStore>()(
           isAdminMode: false,
           adminProfile: undefined,
           impersonatedRole: undefined,
+          supabaseUserId: null,
+          supabaseProfile: null,
+          authProvider: null,
         });
 
         console.log('[Auth] Logged out successfully');
@@ -287,6 +304,185 @@ export const useAuthStore = create<AuthStore>()(
       getSessionData: () => {
         const { isAuthenticated, userType, currentUser, onboardingStep } = get();
         return { isAuthenticated, userType, currentUser, onboardingStep };
+      },
+
+      // =====================================================
+      // SUPABASE AUTH METHODS
+      // =====================================================
+
+      setSessionLoading: (loading: boolean) => {
+        set({ isSessionLoading: loading });
+      },
+
+      signInWithGoogle: async () => {
+        const { supabase } = await import('../lib/supabase');
+        const { getAuthRedirectUrl } = await import('../lib/supabase');
+        const { error } = await supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: { redirectTo: getAuthRedirectUrl() },
+        });
+        if (error) {
+          console.error('[Auth] Google sign-in error:', error);
+          throw error;
+        }
+      },
+
+      signInWithApple: async () => {
+        const { supabase } = await import('../lib/supabase');
+        const { getAuthRedirectUrl } = await import('../lib/supabase');
+        const { error } = await supabase.auth.signInWithOAuth({
+          provider: 'apple',
+          options: { redirectTo: getAuthRedirectUrl() },
+        });
+        if (error) {
+          console.error('[Auth] Apple sign-in error:', error);
+          throw error;
+        }
+      },
+
+      sendMagicLink: async (email: string) => {
+        try {
+          const { supabase } = await import('../lib/supabase');
+          const { getAuthRedirectUrl } = await import('../lib/supabase');
+          const { error } = await supabase.auth.signInWithOtp({
+            email,
+            options: { emailRedirectTo: getAuthRedirectUrl() },
+          });
+          if (error) {
+            console.error('[Auth] Magic link error:', error);
+            const { getAuthErrorMessage } = await import('../utils/authErrors');
+            return { success: false, error: getAuthErrorMessage(error) };
+          }
+          return { success: true };
+        } catch (err) {
+          console.error('[Auth] Magic link exception:', err);
+          return { success: false, error: 'Failed to send magic link. Please try again.' };
+        }
+      },
+
+      handleSupabaseSession: async (session: Session | null) => {
+        if (!session) {
+          // Only clear Supabase-specific state if we were authenticated via Supabase
+          const state = get();
+          if (state.supabaseUserId) {
+            set({
+              isAuthenticated: false,
+              userType: null,
+              currentUser: null,
+              onboardingStep: 0,
+              supabaseUserId: null,
+              supabaseProfile: null,
+              authProvider: null,
+            });
+          }
+          return;
+        }
+
+        const userId = session.user.id;
+        const state = get();
+
+        // Skip redundant updates for the same user (e.g. TOKEN_REFRESHED)
+        if (state.supabaseUserId === userId && state.isAuthenticated) {
+          return;
+        }
+
+        try {
+          const { getProfileWithRetry } = await import('../lib/profiles');
+          const { touchSignIn } = await import('../lib/profiles');
+          const { getLandlordProfile, getRenterProfile, getAgencyProfile } = await import('../lib/storage');
+
+          const profile = await getProfileWithRetry(userId);
+          if (!profile) {
+            console.error('[Auth] No profile found for user:', userId);
+            set({
+              isAuthenticated: true,
+              supabaseUserId: userId,
+              supabaseProfile: null,
+              authProvider: (session.user.app_metadata?.provider as AuthProvider) || 'email',
+              userType: null,
+              currentUser: null,
+            });
+            return;
+          }
+
+          // Update last sign-in
+          touchSignIn(userId).catch(() => {});
+
+          const authProvider = profile.auth_provider || 'email';
+
+          // Case 1: No role selected yet
+          if (!profile.role) {
+            set({
+              isAuthenticated: true,
+              supabaseUserId: userId,
+              supabaseProfile: profile,
+              authProvider,
+              userType: null,
+              currentUser: null,
+            });
+            return;
+          }
+
+          // Case 2: Role selected but onboarding not complete
+          if (!profile.onboarding_complete) {
+            set({
+              isAuthenticated: true,
+              supabaseUserId: userId,
+              supabaseProfile: profile,
+              authProvider,
+              userType: profile.role,
+              currentUser: null,
+              onboardingStep: 1,
+            });
+            return;
+          }
+
+          // Case 3: Fully onboarded — fetch the role-specific profile
+          let domainProfile: LandlordProfile | RenterProfile | AgencyProfile | null = null;
+
+          if (profile.role === 'landlord' && profile.landlord_profile_id) {
+            domainProfile = await getLandlordProfile(profile.landlord_profile_id);
+          } else if (profile.role === 'renter' && profile.renter_profile_id) {
+            domainProfile = await getRenterProfile(profile.renter_profile_id);
+          } else if (
+            (profile.role === 'estate_agent' || profile.role === 'management_agency') &&
+            profile.agency_profile_id
+          ) {
+            domainProfile = await getAgencyProfile(profile.agency_profile_id);
+          }
+
+          set({
+            isAuthenticated: true,
+            supabaseUserId: userId,
+            supabaseProfile: profile,
+            authProvider,
+            userType: profile.role,
+            currentUser: domainProfile,
+            onboardingStep: 0,
+          });
+        } catch (error) {
+          console.error('[Auth] handleSupabaseSession error:', error);
+          // Still mark as authenticated so routing can proceed
+          set({
+            isAuthenticated: true,
+            supabaseUserId: userId,
+            supabaseProfile: null,
+            authProvider: (session.user.app_metadata?.provider as AuthProvider) || 'email',
+            userType: null,
+            currentUser: null,
+          });
+        }
+      },
+
+      signOut: async () => {
+        try {
+          const { supabase } = await import('../lib/supabase');
+          await supabase.auth.signOut();
+        } catch (error) {
+          console.error('[Auth] Supabase sign out error:', error);
+        }
+        // Clear all state (reuse existing logout logic)
+        get().logout();
       },
 
       // =====================================================
@@ -460,6 +656,22 @@ export const useAuthStore = create<AuthStore>()(
     }),
     {
       name: STORAGE_KEY,
+      partialize: (state) => {
+        // Exclude transient state from localStorage persistence
+        const { isSessionLoading, ...persisted } = state;
+        void isSessionLoading;
+        return persisted;
+      },
+      merge: (persistedState, currentState) => ({
+        ...currentState,
+        ...(persistedState as Partial<AuthStore>),
+        // Always reset transient state on rehydration
+        isSessionLoading: false,
+        // Ensure new fields have stable defaults even from old persisted data
+        supabaseUserId: (persistedState as Partial<AuthStore>)?.supabaseUserId ?? null,
+        supabaseProfile: (persistedState as Partial<AuthStore>)?.supabaseProfile ?? null,
+        authProvider: (persistedState as Partial<AuthStore>)?.authProvider ?? null,
+      }),
     }
   )
 );

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { MessageSquare, Send, ChevronLeft, ChevronDown, ChevronRight, Home, ArrowLeft } from 'lucide-react';
 import { useAuthStore } from '../hooks';
 import { Button } from '../components/atoms/Button';
+import { pageHeader, card, heading, subText } from '../utils/conceptCStyles';
 import {
   getLandlordConversationsGrouped,
   sendPropertyMessage,
@@ -164,20 +165,21 @@ export const LandlordMessagesPage: React.FC<LandlordMessagesPageProps> = ({ onBa
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-[calc(100vh-5rem)] bg-gradient-to-br from-primary-50 via-white to-neutral-50">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600" />
+      <div className="flex items-center justify-center h-[calc(100vh-5rem)]" style={{ background: 'var(--color-bg)' }}>
+        <div className="animate-spin rounded-full h-8 w-8" style={{ borderBottom: '2px solid var(--color-teal)' }} />
       </div>
     );
   }
 
   if (agencyGroups.length === 0) {
     return (
-      <div className="flex flex-col h-[calc(100vh-5rem)] bg-gradient-to-br from-primary-50 via-white to-neutral-50">
+      <div className="flex flex-col h-[calc(100vh-5rem)]" style={{ background: 'var(--color-bg)' }}>
         {onBack && (
-          <div className="p-4 border-b border-neutral-200 bg-white/80 backdrop-blur-sm">
+          <div className="p-4" style={{ ...pageHeader }}>
             <button
               onClick={onBack}
-              className="flex items-center gap-2 text-neutral-600 hover:text-neutral-900 transition-colors"
+              className="flex items-center gap-2 transition-colors"
+              style={{ color: 'var(--color-sub)' }}
             >
               <ArrowLeft size={20} />
               <span>Back to Dashboard</span>
@@ -185,12 +187,12 @@ export const LandlordMessagesPage: React.FC<LandlordMessagesPageProps> = ({ onBa
           </div>
         )}
         <div className="flex-1 flex flex-col items-center justify-center p-8">
-          <div className="bg-white rounded-2xl shadow-sm p-8 text-center max-w-md">
-            <div className="w-16 h-16 rounded-full bg-primary-50 flex items-center justify-center mx-auto mb-4">
-              <MessageSquare size={32} className="text-primary-400" />
+          <div className="rounded-2xl p-8 text-center max-w-md" style={{ ...card, padding: 32 }}>
+            <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4" style={{ background: 'var(--color-bg)' }}>
+              <MessageSquare size={32} style={{ color: 'var(--color-teal)' }} />
             </div>
-            <h2 className="text-xl font-bold text-neutral-900 mb-2">No Agencies Connected</h2>
-            <p className="text-neutral-500">
+            <h2 className="mb-2" style={heading(20)}>No Agencies Connected</h2>
+            <p style={{ color: 'var(--color-sub)' }}>
               When you link your properties with an agency, you'll be able to message them here.
             </p>
           </div>
@@ -205,20 +207,20 @@ export const LandlordMessagesPage: React.FC<LandlordMessagesPageProps> = ({ onBa
   return (
     <div className="flex h-[calc(100vh-5rem)]">
       {/* Agency List with Property Groups - Hidden on mobile when conversation is selected */}
-      <div className={`${showConversation ? 'hidden md:flex' : 'flex'} flex-col w-full md:w-96 bg-gradient-to-br from-primary-50 via-white to-neutral-50 border-r border-neutral-200`}>
-        <div className="p-4 border-b border-neutral-200 bg-white/80 backdrop-blur-sm">
+      <div className={`${showConversation ? 'hidden md:flex' : 'flex'} flex-col w-full md:w-96`} style={{ background: 'var(--color-bg)', borderRight: '1px solid var(--color-line)' }}>
+        <div className="p-4" style={{ ...pageHeader }}>
           <div className="flex items-center gap-3">
             {onBack && (
               <button
                 onClick={onBack}
-                className="p-2 -ml-2 rounded-lg hover:bg-neutral-100 transition-colors"
+                className="p-2 -ml-2 rounded-lg transition-colors"
               >
-                <ArrowLeft size={20} className="text-neutral-600" />
+                <ArrowLeft size={20} style={{ color: 'var(--color-sub)' }} />
               </button>
             )}
             <div>
-              <h1 className="text-lg font-bold text-neutral-900">Agency Messages</h1>
-              <p className="text-sm text-neutral-500">
+              <h1 style={heading(18)}>Agency Messages</h1>
+              <p style={{ ...subText(14), marginTop: 4 }}>
                 {agencyGroups.length} {agencyGroups.length === 1 ? 'agency' : 'agencies'}
               </p>
             </div>
@@ -234,39 +236,39 @@ export const LandlordMessagesPage: React.FC<LandlordMessagesPageProps> = ({ onBa
             ];
 
             return (
-              <div key={group.agency.id} className="border-b border-neutral-100">
+              <div key={group.agency.id} style={{ borderBottom: '1px solid var(--color-line)' }}>
                 {/* Agency Header */}
                 <button
                   onClick={() => toggleAgencyExpanded(group.agency.id)}
-                  className={`w-full p-4 flex items-start gap-3 transition-all text-left hover:bg-white/80`}
+                  className="w-full p-4 flex items-start gap-3 transition-all text-left"
                 >
-                  <div className="w-12 h-12 rounded-full bg-secondary-100 flex items-center justify-center flex-shrink-0">
-                    <span className="text-secondary-700 font-semibold">
+                  <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: 'var(--color-teal)', opacity: 0.15 }}>
+                    <span className="font-semibold" style={{ color: 'var(--color-teal)', opacity: 1 }}>
                       {getInitials(group.agency.companyName)}
                     </span>
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2">
-                      <span className="font-medium text-neutral-900 truncate">
+                      <span className="font-medium truncate" style={{ color: 'var(--color-text)' }}>
                         {group.agency.companyName}
                       </span>
                       <div className="flex items-center gap-2">
                         {group.totalUnreadCount > 0 && (
-                          <div className="w-5 h-5 rounded-full bg-danger-500 text-white text-xs flex items-center justify-center flex-shrink-0">
+                          <div className="w-5 h-5 rounded-full text-white text-xs flex items-center justify-center flex-shrink-0" style={{ background: 'var(--color-teal)' }}>
                             {group.totalUnreadCount > 9 ? '9+' : group.totalUnreadCount}
                           </div>
                         )}
                         {isExpanded ? (
-                          <ChevronDown size={18} className="text-neutral-400" />
+                          <ChevronDown size={18} style={{ color: 'var(--color-sub)' }} />
                         ) : (
-                          <ChevronRight size={18} className="text-neutral-400" />
+                          <ChevronRight size={18} style={{ color: 'var(--color-sub)' }} />
                         )}
                       </div>
                     </div>
-                    <p className="text-sm text-neutral-500 truncate">
+                    <p className="text-sm truncate" style={{ color: 'var(--color-sub)' }}>
                       {lastMessage ? lastMessage.content : 'No messages yet'}
                     </p>
-                    <p className="text-xs text-neutral-400 mt-0.5">
+                    <p className="text-xs mt-0.5" style={{ color: 'var(--color-sub)' }}>
                       Managing {group.properties.length} {group.properties.length === 1 ? 'property' : 'properties'}
                     </p>
                   </div>
@@ -274,7 +276,7 @@ export const LandlordMessagesPage: React.FC<LandlordMessagesPageProps> = ({ onBa
 
                 {/* Property Conversations (Expandable) */}
                 {isExpanded && (
-                  <div className="bg-neutral-50/50 border-t border-neutral-100">
+                  <div style={{ background: 'var(--color-bg)', borderTop: '1px solid var(--color-line)' }}>
                     {group.propertyConversations.map((propConvo) => {
                       const isSelected = selectedAgencyId === group.agency.id &&
                         selectedPropertyId === propConvo.propertyId;
@@ -287,43 +289,44 @@ export const LandlordMessagesPage: React.FC<LandlordMessagesPageProps> = ({ onBa
                         <button
                           key={propConvo.propertyId ?? 'general'}
                           onClick={() => handleSelectProperty(group.agency.id, propConvo.propertyId)}
-                          className={`w-full pl-8 pr-4 py-3 flex items-start gap-3 text-left transition-colors ${isSelected
-                            ? 'bg-secondary-50 border-l-3 border-secondary-500'
-                            : 'hover:bg-white/80 border-l-3 border-transparent'
-                            }`}
+                          className="w-full pl-8 pr-4 py-3 flex items-start gap-3 text-left transition-colors"
+                          style={{
+                            background: isSelected ? 'var(--color-card)' : 'transparent',
+                            borderLeft: isSelected ? '3px solid var(--color-teal)' : '3px solid transparent',
+                          }}
                         >
-                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${isGeneral ? 'bg-neutral-100' : 'bg-secondary-50'
-                            }`}>
+                          <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+                            style={{ background: isGeneral ? 'var(--color-bg)' : 'var(--color-card)' }}>
                             {isGeneral ? (
-                              <MessageSquare size={16} className="text-neutral-500" />
+                              <MessageSquare size={16} style={{ color: 'var(--color-sub)' }} />
                             ) : (
-                              <Home size={16} className="text-secondary-600" />
+                              <Home size={16} style={{ color: 'var(--color-teal)' }} />
                             )}
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between gap-2">
-                              <span className={`text-sm truncate ${isSelected ? 'font-medium text-secondary-700' : 'text-neutral-700'
-                                }`}>
+                              <span className="text-sm truncate"
+                                style={{ fontWeight: isSelected ? 500 : 400, color: isSelected ? 'var(--color-teal)' : 'var(--color-text)' }}>
                                 {propConvo.propertyAddress || 'Unknown Property'}
                               </span>
                               {propConvo.lastMessageAt && (
-                                <span className="text-xs text-neutral-400 shrink-0">
+                                <span className="text-xs shrink-0" style={{ color: 'var(--color-sub)' }}>
                                   {formatRelativeTime(propConvo.lastMessageAt)}
                                 </span>
                               )}
                             </div>
                             {propLastMessage ? (
-                              <p className="text-xs text-neutral-500 truncate mt-0.5">
+                              <p className="text-xs truncate mt-0.5" style={{ color: 'var(--color-sub)' }}>
                                 {propLastMessage.content}
                               </p>
                             ) : (
-                              <p className="text-xs text-neutral-400 italic mt-0.5">
+                              <p className="text-xs italic mt-0.5" style={{ color: 'var(--color-sub)' }}>
                                 No messages yet
                               </p>
                             )}
                           </div>
                           {propConvo.unreadCount > 0 && (
-                            <div className="w-5 h-5 rounded-full bg-danger-500 text-white text-xs flex items-center justify-center shrink-0">
+                            <div className="w-5 h-5 rounded-full text-white text-xs flex items-center justify-center shrink-0" style={{ background: 'var(--color-teal)' }}>
                               {propConvo.unreadCount > 9 ? '9+' : propConvo.unreadCount}
                             </div>
                           )}
@@ -339,31 +342,31 @@ export const LandlordMessagesPage: React.FC<LandlordMessagesPageProps> = ({ onBa
       </div>
 
       {/* Conversation View */}
-      <div className={`${!showConversation ? 'hidden md:flex' : 'flex'} flex-col flex-1 bg-neutral-50`}>
+      <div className={`${!showConversation ? 'hidden md:flex' : 'flex'} flex-col flex-1`} style={{ background: 'var(--color-bg)' }}>
         {selectedAgencyGroup && selectedPropertyConvo ? (
           <>
             {/* Conversation Header */}
-            <div className="p-4 bg-gradient-to-r from-secondary-50 to-neutral-50 border-b border-neutral-200">
+            <div className="p-4" style={{ ...pageHeader }}>
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => {
                     setSelectedAgencyId(null);
                     setSelectedPropertyId(undefined);
                   }}
-                  className="md:hidden p-2 -ml-2 rounded-lg hover:bg-white/50 transition-colors"
+                  className="md:hidden p-2 -ml-2 rounded-lg transition-colors"
                 >
-                  <ChevronLeft size={20} className="text-neutral-600" />
+                  <ChevronLeft size={20} style={{ color: 'var(--color-sub)' }} />
                 </button>
-                <div className="w-12 h-12 rounded-full bg-secondary-100 flex items-center justify-center">
-                  <span className="text-secondary-700 font-semibold text-lg">
+                <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ background: 'var(--color-teal)', opacity: 0.15 }}>
+                  <span className="font-semibold text-lg" style={{ color: 'var(--color-teal)', opacity: 1 }}>
                     {getInitials(selectedAgencyGroup.agency.companyName)}
                   </span>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h2 className="font-semibold text-neutral-900">
+                  <h2 className="font-semibold" style={{ color: 'var(--color-text)' }}>
                     {selectedAgencyGroup.agency.companyName}
                   </h2>
-                  <p className="text-sm text-neutral-500 truncate">
+                  <p className="text-sm truncate" style={{ color: 'var(--color-sub)' }}>
                     {selectedPropertyConvo.propertyId === null
                       ? 'General Discussion'
                       : selectedPropertyConvo.propertyAddress}
@@ -376,12 +379,12 @@ export const LandlordMessagesPage: React.FC<LandlordMessagesPageProps> = ({ onBa
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
               {(!selectedPropertyConvo.conversation || selectedPropertyConvo.conversation.messages.length === 0) ? (
                 <div className="flex flex-col items-center justify-center flex-1 p-8">
-                  <div className="bg-white rounded-2xl shadow-sm p-8 text-center max-w-sm">
-                    <div className="w-14 h-14 rounded-full bg-secondary-50 flex items-center justify-center mx-auto mb-4">
-                      <MessageSquare size={28} className="text-secondary-400" />
+                  <div className="rounded-2xl p-8 text-center max-w-sm" style={{ ...card, padding: 32 }}>
+                    <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4" style={{ background: 'var(--color-bg)' }}>
+                      <MessageSquare size={28} style={{ color: 'var(--color-teal)' }} />
                     </div>
-                    <h3 className="text-lg font-semibold text-neutral-900 mb-2">No Messages Yet</h3>
-                    <p className="text-neutral-500 text-sm">
+                    <h3 className="mb-2" style={heading(18)}>No Messages Yet</h3>
+                    <p className="text-sm" style={{ color: 'var(--color-sub)' }}>
                       Start a conversation with {selectedAgencyGroup.agency.companyName}
                       {selectedPropertyConvo.propertyId !== null && ` about ${selectedPropertyConvo.propertyAddress}`}
                     </p>
@@ -396,16 +399,18 @@ export const LandlordMessagesPage: React.FC<LandlordMessagesPageProps> = ({ onBa
                       className={`flex ${isLandlord ? 'justify-end' : 'justify-start'}`}
                     >
                       <div
-                        className={`max-w-[80%] p-3 shadow-sm ${isLandlord
-                          ? 'bg-primary-600 text-white rounded-2xl rounded-br-none'
-                          : 'bg-white text-neutral-800 border border-neutral-200 rounded-2xl rounded-bl-none'
+                        className={`max-w-[80%] p-3 ${isLandlord
+                          ? 'rounded-2xl rounded-br-none'
+                          : 'rounded-2xl rounded-bl-none'
                           }`}
+                        style={isLandlord
+                          ? { background: 'var(--color-teal)', color: '#fff' }
+                          : { background: 'var(--color-card)', border: '1.5px solid var(--color-line)', color: 'var(--color-text)' }
+                        }
                       >
                         <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                        <p className={`text-xs mt-1 ${isLandlord
-                          ? 'text-primary-200 text-right'
-                          : 'text-neutral-400'
-                          }`}>
+                        <p className={`text-xs mt-1 ${isLandlord ? 'text-right' : ''}`}
+                          style={{ color: isLandlord ? 'rgba(255,255,255,0.7)' : 'var(--color-sub)' }}>
                           {formatRelativeTime(message.timestamp)}
                         </p>
                       </div>
@@ -417,7 +422,7 @@ export const LandlordMessagesPage: React.FC<LandlordMessagesPageProps> = ({ onBa
             </div>
 
             {/* Message Input */}
-            <div className="p-4 bg-white border-t border-neutral-200">
+            <div className="p-4" style={{ background: 'var(--color-card)', borderTop: '1px solid var(--color-line)' }}>
               <div className="flex items-center gap-3">
                 <input
                   type="text"
@@ -425,7 +430,8 @@ export const LandlordMessagesPage: React.FC<LandlordMessagesPageProps> = ({ onBa
                   onChange={(e) => setMessageText(e.target.value)}
                   onKeyDown={handleKeyPress}
                   placeholder="Type a message..."
-                  className="flex-1 px-4 py-3 border border-neutral-200 rounded-full focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent placeholder:text-neutral-400"
+                  className="flex-1 px-4 py-3 rounded-full focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+                  style={{ background: 'var(--color-card)', border: '1.5px solid var(--color-line)', color: 'var(--color-text)' }}
                   disabled={sending}
                 />
                 <Button
@@ -439,13 +445,13 @@ export const LandlordMessagesPage: React.FC<LandlordMessagesPageProps> = ({ onBa
             </div>
           </>
         ) : (
-          <div className="flex flex-col items-center justify-center flex-1 p-8 bg-gradient-to-br from-secondary-50 via-white to-neutral-50">
-            <div className="bg-white rounded-2xl shadow-sm p-8 text-center max-w-md">
-              <div className="w-16 h-16 rounded-full bg-secondary-50 flex items-center justify-center mx-auto mb-4">
-                <MessageSquare size={32} className="text-secondary-400" />
+          <div className="flex flex-col items-center justify-center flex-1 p-8" style={{ background: 'var(--color-bg)' }}>
+            <div className="rounded-2xl p-8 text-center max-w-md" style={{ ...card, padding: 32 }}>
+              <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4" style={{ background: 'var(--color-bg)' }}>
+                <MessageSquare size={32} style={{ color: 'var(--color-teal)' }} />
               </div>
-              <h2 className="text-xl font-bold text-neutral-900 mb-2">Select a Conversation</h2>
-              <p className="text-neutral-500">
+              <h2 className="mb-2" style={heading(20)}>Select a Conversation</h2>
+              <p style={{ color: 'var(--color-sub)' }}>
                 Choose an agency and property from the list to start messaging
               </p>
             </div>

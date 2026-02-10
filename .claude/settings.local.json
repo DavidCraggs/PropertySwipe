@@ -65,7 +65,8 @@
       "Bash(npx playwright:*)",
       "Bash(timeout 120 npx tsc:*)",
       "Bash(npx supabase:*)",
-      "Bash(dir:*)"
+      "Bash(dir:*)",
+      "Bash(npx vite build:*)"
     ],
     "deny": [],
     "ask": []

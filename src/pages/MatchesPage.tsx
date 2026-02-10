@@ -489,13 +489,13 @@ export const MatchesPage: React.FC = () => {
 
   if (matches.length === 0) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-success-50 flex items-center justify-center p-4">
+      <div className="min-h-screen flex items-center justify-center p-4" style={{ background: 'var(--color-bg)', color: 'var(--color-text)' }}>
         <div className="text-center max-w-md">
-          <div className="w-24 h-24 bg-neutral-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <Heart size={48} className="text-neutral-400" />
+          <div className="w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6" style={{ background: 'var(--color-line)' }}>
+            <Heart size={48} style={{ color: 'var(--color-sub)' }} />
           </div>
-          <h2 className="text-2xl font-bold text-neutral-900 mb-2">No Matches Yet</h2>
-          <p className="text-neutral-600 mb-6">
+          <h2 className="mb-2" style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 24, letterSpacing: 2, color: 'var(--color-text)' }}>No Matches Yet</h2>
+          <p className="mb-6" style={{ color: 'var(--color-sub)' }}>
             Keep swiping! When you like a property and the seller is interested, you'll see your
             matches here.
           </p>
@@ -510,12 +510,12 @@ export const MatchesPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-success-50 pb-24">
+    <div className="min-h-screen" style={{ background: 'var(--color-bg)', color: 'var(--color-text)', paddingBottom: 96 }}>
       {/* Header */}
-      <header className="bg-white border-b border-neutral-200 px-4 py-6">
+      <header style={{ background: 'var(--color-card)', borderBottom: '1px solid var(--color-line)', padding: '24px 16px' }}>
         <div className="max-w-4xl mx-auto">
-          <h1 className="text-3xl font-bold text-neutral-900">Matches & Viewings</h1>
-          <p className="text-neutral-600 mt-1">
+          <h1 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 32, letterSpacing: 3, color: 'var(--color-text)', margin: 0 }}>Matches & Viewings</h1>
+          <p style={{ fontFamily: "'Libre Franklin', sans-serif", fontSize: 13, fontWeight: 600, color: 'var(--color-sub)', marginTop: 4 }}>
             {matches.length} {matches.length === 1 ? 'match' : 'matches'}
           </p>
 
@@ -523,20 +523,22 @@ export const MatchesPage: React.FC = () => {
           <div className="flex gap-2 mt-4">
             <button
               onClick={() => setActiveTab('matches')}
-              className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-lg font-medium transition-all ${activeTab === 'matches'
-                ? 'bg-primary-500 text-white shadow-sm'
-                : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
-                }`}
+              className="flex-1 flex items-center justify-center gap-2 py-3 px-4 transition-all"
+              style={activeTab === 'matches'
+                ? { background: 'var(--color-teal)', color: '#fff', fontFamily: "'Libre Franklin', sans-serif", fontWeight: 700, border: 'none', borderRadius: 8 }
+                : { background: 'transparent', color: 'var(--color-sub)', fontFamily: "'Libre Franklin', sans-serif", fontWeight: 700, border: '1.5px solid var(--color-line)', borderRadius: 8 }
+              }
             >
               <Heart className="w-4 h-4" />
               Matches
             </button>
             <button
               onClick={() => setActiveTab('viewings')}
-              className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-lg font-medium transition-all ${activeTab === 'viewings'
-                ? 'bg-primary-500 text-white shadow-sm'
-                : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
-                }`}
+              className="flex-1 flex items-center justify-center gap-2 py-3 px-4 transition-all"
+              style={activeTab === 'viewings'
+                ? { background: 'var(--color-teal)', color: '#fff', fontFamily: "'Libre Franklin', sans-serif", fontWeight: 700, border: 'none', borderRadius: 8 }
+                : { background: 'transparent', color: 'var(--color-sub)', fontFamily: "'Libre Franklin', sans-serif", fontWeight: 700, border: '1.5px solid var(--color-line)', borderRadius: 8 }
+              }
             >
               <Calendar className="w-4 h-4" />
               Viewings
@@ -552,17 +554,17 @@ export const MatchesPage: React.FC = () => {
           if (pendingCount === 0) return null;
 
           return (
-            <div className="mb-6 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-4 shadow-sm">
+            <div className="mb-6 border border-amber-200 rounded-xl p-4" style={{ background: 'var(--color-card)', borderColor: 'var(--color-line)' }}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center">
                     <Users className="w-6 h-6 text-amber-600" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-neutral-900">
+                    <h3 className="font-semibold" style={{ color: 'var(--color-text)' }}>
                       {pendingCount} Interested Renter{pendingCount !== 1 ? 's' : ''} to Review
                     </h3>
-                    <p className="text-sm text-neutral-600">
+                    <p className="text-sm" style={{ color: 'var(--color-sub)' }}>
                       Renters have shown interest in your properties
                     </p>
                   </div>
@@ -595,11 +597,12 @@ export const MatchesPage: React.FC = () => {
               return (
                 <div
                   key={match.id}
-                  className="bg-white rounded-2xl shadow-sm overflow-hidden hover:shadow-md transition-shadow cursor-pointer group"
+                  className="rounded-2xl overflow-hidden transition-shadow cursor-pointer group"
+                  style={{ background: 'var(--color-card)', border: '1.5px solid var(--color-line)', borderRadius: 16 }}
                   onClick={() => setSelectedMatch(match.id)}
                 >
                   {/* Property Image */}
-                  <div className="relative h-48 bg-neutral-200">
+                  <div className="relative h-48" style={{ background: 'var(--color-line)' }}>
                     {match.property.images?.[0] && (
                       <img
                         src={match.property.images[0]}
@@ -633,10 +636,10 @@ export const MatchesPage: React.FC = () => {
 
                   {/* Property Info */}
                   <div className="p-4">
-                    <div className="text-2xl font-bold text-neutral-900 mb-1">
-                      £{match.property.rentPcm.toLocaleString()} <span className="text-lg font-medium text-neutral-600">pcm</span>
+                    <div className="text-2xl font-bold mb-1" style={{ color: 'var(--color-text)' }}>
+                      £{match.property.rentPcm.toLocaleString()} <span className="text-lg font-medium" style={{ color: 'var(--color-sub)' }}>pcm</span>
                     </div>
-                    <div className="flex items-start gap-2 text-neutral-600 mb-3">
+                    <div className="flex items-start gap-2 mb-3" style={{ color: 'var(--color-sub)' }}>
                       <MapPin size={16} className="flex-shrink-0 mt-0.5" />
                       <span className="text-sm">{match.property.address.street}</span>
                     </div>
@@ -673,14 +676,14 @@ export const MatchesPage: React.FC = () => {
 
                     {/* Last Message Preview */}
                     {lastMessage && (
-                      <div className="bg-neutral-50 rounded-lg p-3 mb-3">
-                        <p className="text-xs text-neutral-500 mb-1">
+                      <div className="rounded-lg p-3 mb-3" style={{ background: 'var(--color-bg)' }}>
+                        <p className="text-xs mb-1" style={{ color: 'var(--color-sub)' }}>
                           {lastMessage.senderType === 'landlord' ? 'Landlord' : 'You'}
                         </p>
-                        <p className="text-sm text-neutral-700 line-clamp-2">
+                        <p className="text-sm line-clamp-2" style={{ color: 'var(--color-text)' }}>
                           {lastMessage.content}
                         </p>
-                        <p className="text-xs text-neutral-400 mt-1">
+                        <p className="text-xs mt-1" style={{ color: 'var(--color-sub)' }}>
                           {formatRelativeTime(lastMessage.timestamp)}
                         </p>
                       </div>
@@ -743,7 +746,7 @@ export const MatchesPage: React.FC = () => {
 
                   {/* Match Info Footer */}
                   <div className="px-4 pb-4 text-center">
-                    <p className="text-xs text-neutral-500">
+                    <p className="text-xs" style={{ color: 'var(--color-sub)' }}>
                       Matched {formatRelativeTime(match.timestamp)}
                     </p>
                   </div>
@@ -758,9 +761,9 @@ export const MatchesPage: React.FC = () => {
 
         {/* Info Box - only show on matches tab */}
         {activeTab === 'matches' && (
-          <div className="mt-8 bg-primary-50 border border-primary-200 rounded-xl p-6">
-            <h3 className="font-bold text-neutral-900 mb-2">What happens next?</h3>
-            <ul className="space-y-2 text-sm text-neutral-700">
+          <div className="mt-8 border border-primary-200 rounded-xl p-6" style={{ background: 'var(--color-card)', borderColor: 'var(--color-line)' }}>
+            <h3 className="font-bold mb-2" style={{ color: 'var(--color-text)' }}>What happens next?</h3>
+            <ul className="space-y-2 text-sm" style={{ color: 'var(--color-text)' }}>
               <li>✅ Click on a match to start a conversation</li>
               <li>✅ Ask questions about the property</li>
               <li>✅ Arrange a viewing if you're interested</li>
@@ -791,24 +794,26 @@ export const MatchesPage: React.FC = () => {
             onClick={() => setSelectedMatch(null)}
           >
             <div
-              className="bg-white rounded-2xl w-full max-w-2xl h-[600px] flex flex-col shadow-2xl overflow-hidden"
+              className="rounded-2xl w-full max-w-2xl h-[600px] flex flex-col overflow-hidden"
+              style={{ background: 'var(--color-card)', border: '1.5px solid var(--color-line)', borderRadius: 20 }}
               onClick={(e) => e.stopPropagation()}
             >
               {/* Header */}
-              <div className="border-b border-neutral-200 bg-neutral-50">
+              <div style={{ borderBottom: '1px solid var(--color-line)', background: 'var(--color-bg)' }}>
                 <div className="p-4 flex justify-between items-center">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center text-primary-600 font-bold">
                       {recipientName.charAt(0)}
                     </div>
                     <div>
-                      <h3 className="font-bold text-neutral-900">{recipientName}</h3>
-                      <p className="text-xs text-neutral-500">{match.property.address.street}</p>
+                      <h3 className="font-bold" style={{ color: 'var(--color-text)' }}>{recipientName}</h3>
+                      <p className="text-xs" style={{ color: 'var(--color-sub)' }}>{match.property.address.street}</p>
                     </div>
                   </div>
                   <button
                     onClick={() => setSelectedMatch(null)}
-                    className="p-2 hover:bg-neutral-200 rounded-full transition-colors"
+                    className="p-2 rounded-full transition-colors"
+                    style={{ color: 'var(--color-sub)' }}
                   >
                     <span className="sr-only">Close</span>
                     ✕
@@ -826,20 +831,20 @@ export const MatchesPage: React.FC = () => {
               </div>
 
               {/* Messages Area */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-neutral-50">
+              <div className="flex-1 overflow-y-auto p-4 space-y-4" style={{ background: 'var(--color-bg)' }}>
                 {isLoadingConversations ? (
                   <div className="flex items-center justify-center h-full">
                     <div className="text-center">
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto mb-2"></div>
-                      <p className="text-sm text-neutral-600">Loading messages...</p>
+                      <p className="text-sm" style={{ color: 'var(--color-sub)' }}>Loading messages...</p>
                     </div>
                   </div>
                 ) : conversationMessages.length === 0 ? (
                   <div className="flex items-center justify-center h-full">
                     <div className="text-center">
-                      <MessageCircle size={48} className="mx-auto text-neutral-400 mb-4" />
-                      <p className="text-neutral-600">No messages yet</p>
-                      <p className="text-sm text-neutral-500 mt-1">Start the conversation!</p>
+                      <MessageCircle size={48} className="mx-auto mb-4" style={{ color: 'var(--color-sub)' }} />
+                      <p style={{ color: 'var(--color-sub)' }}>No messages yet</p>
+                      <p className="text-sm mt-1" style={{ color: 'var(--color-sub)' }}>Start the conversation!</p>
                     </div>
                   </div>
                 ) : (
@@ -850,12 +855,16 @@ export const MatchesPage: React.FC = () => {
                     >
                       <div
                         className={`max-w-[80%] p-3 rounded-2xl ${msg.senderType === (userType === 'renter' ? 'renter' : 'landlord')
-                          ? 'bg-primary-500 text-white rounded-tr-none'
-                          : 'bg-white border border-neutral-200 text-neutral-800 rounded-tl-none shadow-sm'
+                          ? 'rounded-tr-none'
+                          : 'rounded-tl-none'
                           }`}
+                        style={msg.senderType === (userType === 'renter' ? 'renter' : 'landlord')
+                          ? { background: 'var(--color-teal)', color: '#fff' }
+                          : { background: 'var(--color-card)', color: 'var(--color-text)', border: '1px solid var(--color-line)' }
+                        }
                       >
                         <p className="text-sm">{msg.content}</p>
-                        <p className={`text-[10px] mt-1 ${msg.senderType === (userType === 'renter' ? 'renter' : 'landlord') ? 'text-primary-100' : 'text-neutral-400'}`}>
+                        <p className="text-[10px] mt-1" style={{ color: msg.senderType === (userType === 'renter' ? 'renter' : 'landlord') ? 'rgba(255,255,255,0.6)' : 'var(--color-sub)' }}>
                           {formatRelativeTime(msg.timestamp)}
                         </p>
                       </div>
@@ -906,12 +915,12 @@ export const MatchesPage: React.FC = () => {
                 match.applicationStatus === 'offer_accepted' ||
                 match.applicationStatus === 'tenancy_signed' ||
                 match.tenancyStatus === 'active') && currentUser && (
-                <div className="border-t border-neutral-200 bg-neutral-50">
+                <div style={{ borderTop: '1px solid var(--color-line)', background: 'var(--color-bg)' }}>
                   <button
                     onClick={() => setAgreementsExpanded(!agreementsExpanded)}
-                    className="w-full p-3 flex items-center justify-between hover:bg-neutral-100 transition-colors"
+                    className="w-full p-3 flex items-center justify-between transition-colors"
                   >
-                    <h4 className="text-sm font-medium text-neutral-700">
+                    <h4 className="text-sm font-medium" style={{ color: 'var(--color-text)' }}>
                       📄 Agreements {agreementsExpanded ? '▼' : '▶'}
                     </h4>
                     {(userType === 'landlord' || userType === 'estate_agent' || userType === 'management_agency') && (
@@ -947,7 +956,7 @@ export const MatchesPage: React.FC = () => {
               )}
 
               {/* Action Bar */}
-              <div className="p-4 bg-white border-t border-neutral-200">
+              <div className="p-4" style={{ background: 'var(--color-card)', borderTop: '1px solid var(--color-line)' }}>
                 <div className="flex gap-2 mb-3 overflow-x-auto pb-2">
                   {/* Pet Request Button (RRA 2025) */}
                   {userType === 'renter' && match.petRequestStatus === 'none' && (
@@ -1083,7 +1092,8 @@ export const MatchesPage: React.FC = () => {
                     ref={messageInputRef}
                     type="text"
                     placeholder={`Message ${activeConversation === 'landlord' ? 'landlord' : 'agency'}...`}
-                    className="flex-1 border border-neutral-300 rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    className="flex-1 rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    style={{ border: '1.5px solid var(--color-line)', background: 'var(--color-bg)', color: 'var(--color-text)' }}
                     onKeyDown={handleMessageKeyDown}
                   />
                   <button
@@ -1121,17 +1131,18 @@ export const MatchesPage: React.FC = () => {
             onClick={() => setShowViewingModal(false)}
           >
             <div
-              className="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl"
+              className="rounded-2xl w-full max-w-md p-6"
+              style={{ background: 'var(--color-card)', border: '1.5px solid var(--color-line)', borderRadius: 20 }}
               onClick={(e) => e.stopPropagation()}
             >
-              <h3 className="text-xl font-bold text-neutral-900 mb-4">Request a Viewing</h3>
-              <p className="text-sm text-neutral-600 mb-4">
+              <h3 className="text-xl font-bold mb-4" style={{ color: 'var(--color-text)' }}>Request a Viewing</h3>
+              <p className="text-sm mb-4" style={{ color: 'var(--color-sub)' }}>
                 {match.property.address.street}
               </p>
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-2">
+                  <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-text)' }}>
                     When are you available?
                   </label>
                   <div className="grid grid-cols-3 gap-2">
@@ -1168,7 +1179,8 @@ export const MatchesPage: React.FC = () => {
                           message: 'The landlord will be notified of your request.',
                         });
                       }}
-                      className="py-3 px-4 bg-neutral-100 text-neutral-700 rounded-lg text-sm font-medium hover:bg-neutral-200 transition-colors"
+                      className="py-3 px-4 rounded-lg text-sm font-medium transition-colors"
+                      style={{ background: 'var(--color-bg)', color: 'var(--color-text)' }}
                     >
                       Flexible
                     </button>
@@ -1185,7 +1197,8 @@ export const MatchesPage: React.FC = () => {
                           message: 'The landlord will be notified of your request.',
                         });
                       }}
-                      className="py-3 px-4 bg-neutral-100 text-neutral-700 rounded-lg text-sm font-medium hover:bg-neutral-200 transition-colors"
+                      className="py-3 px-4 rounded-lg text-sm font-medium transition-colors"
+                      style={{ background: 'var(--color-bg)', color: 'var(--color-text)' }}
                     >
                       Weekends
                     </button>
@@ -1194,7 +1207,8 @@ export const MatchesPage: React.FC = () => {
 
                 <button
                   onClick={() => setShowViewingModal(false)}
-                  className="w-full py-2 text-neutral-600 hover:text-neutral-800 transition-colors text-sm"
+                  className="w-full py-2 transition-colors text-sm"
+                  style={{ color: 'var(--color-sub)' }}
                 >
                   Cancel
                 </button>
@@ -1247,18 +1261,19 @@ export const MatchesPage: React.FC = () => {
             onClick={() => setShowConfirmViewingModal(false)}
           >
             <div
-              className="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl"
+              className="rounded-2xl w-full max-w-md p-6"
+              style={{ background: 'var(--color-card)', border: '1.5px solid var(--color-line)', borderRadius: 20 }}
               onClick={(e) => e.stopPropagation()}
             >
-              <h3 className="text-xl font-bold text-neutral-900 mb-2">Confirm Viewing</h3>
-              <p className="text-sm text-neutral-600 mb-6">
+              <h3 className="text-xl font-bold mb-2" style={{ color: 'var(--color-text)' }}>Confirm Viewing</h3>
+              <p className="text-sm mb-6" style={{ color: 'var(--color-sub)' }}>
                 {match.property.address.street}
               </p>
 
               <div className="space-y-4">
                 {/* Date Picker */}
                 <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-2">
+                  <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-text)' }}>
                     Date
                   </label>
                   <input
@@ -1266,26 +1281,28 @@ export const MatchesPage: React.FC = () => {
                     value={viewingDate}
                     onChange={(e) => setViewingDate(e.target.value)}
                     min={new Date().toISOString().split('T')[0]}
-                    className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent text-neutral-900"
+                    className="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    style={{ border: '1.5px solid var(--color-line)', background: 'var(--color-bg)', color: 'var(--color-text)' }}
                   />
                 </div>
 
                 {/* Time Picker */}
                 <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-2">
+                  <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-text)' }}>
                     Time
                   </label>
                   <input
                     type="time"
                     value={viewingTime}
                     onChange={(e) => setViewingTime(e.target.value)}
-                    className="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent text-neutral-900"
+                    className="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    style={{ border: '1.5px solid var(--color-line)', background: 'var(--color-bg)', color: 'var(--color-text)' }}
                   />
                 </div>
 
                 {/* Quick Time Buttons */}
                 <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-2">
+                  <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-text)' }}>
                     Quick Select
                   </label>
                   <div className="grid grid-cols-4 gap-2">
@@ -1294,11 +1311,11 @@ export const MatchesPage: React.FC = () => {
                         key={time}
                         type="button"
                         onClick={() => setViewingTime(time)}
-                        className={`py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
-                          viewingTime === time
-                            ? 'bg-primary-500 text-white'
-                            : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
-                        }`}
+                        className="py-2 px-3 rounded-lg text-sm font-medium transition-colors"
+                        style={viewingTime === time
+                          ? { background: 'var(--color-teal)', color: '#fff' }
+                          : { background: 'var(--color-bg)', color: 'var(--color-text)' }
+                        }
                       >
                         {time}
                       </button>
@@ -1330,7 +1347,8 @@ export const MatchesPage: React.FC = () => {
                       setShowConfirmViewingModal(false);
                       setConfirmViewingMatchId(null);
                     }}
-                    className="flex-1 py-3 text-neutral-600 hover:text-neutral-800 hover:bg-neutral-100 rounded-lg transition-colors text-sm font-medium"
+                    className="flex-1 py-3 rounded-lg transition-colors text-sm font-medium"
+                    style={{ color: 'var(--color-sub)' }}
                   >
                     Cancel
                   </button>
@@ -1493,7 +1511,7 @@ export const MatchesPage: React.FC = () => {
         message={
           <div className="space-y-2">
             <p>Under the Renters' Rights Act 2025, landlords cannot unreasonably refuse pet requests.</p>
-            <p className="text-sm text-neutral-600">Please provide details about your pet(s) so the landlord can make an informed decision.</p>
+            <p className="text-sm" style={{ color: 'var(--color-sub)' }}>Please provide details about your pet(s) so the landlord can make an informed decision.</p>
           </div>
         }
         confirmText="Submit Request"

@@ -1,4 +1,4 @@
-import { forwardRef } from 'react';
+import { forwardRef, useState } from 'react';
 import type { InputHTMLAttributes, ReactNode } from 'react';
 import { AlertCircle } from 'lucide-react';
 
@@ -11,45 +11,58 @@ interface FormFieldProps extends InputHTMLAttributes<HTMLInputElement> {
 }
 
 /**
- * Reusable form input field with label, validation, and error display
- * Supports icons, helper text, and accessible error messages
+ * Concept C form input — Libre Franklin, CSS var borders, teal focus
  */
 export const FormField = forwardRef<HTMLInputElement, FormFieldProps>(
   ({ label, error, helperText, isRequired, icon, className = '', ...props }, ref) => {
     const hasError = !!error;
+    const [focused, setFocused] = useState(false);
 
     return (
       <div className="space-y-2">
         {/* Label */}
-        <label htmlFor={props.id} className="block text-sm font-medium text-neutral-700">
+        <label
+          htmlFor={props.id}
+          style={{
+            fontFamily: "'Libre Franklin', sans-serif",
+            fontSize: 11,
+            fontWeight: 700,
+            letterSpacing: 1.5,
+            textTransform: 'uppercase',
+            color: 'var(--color-sub)',
+            display: 'block',
+          }}
+        >
           {label}
-          {isRequired && <span className="text-danger-500 ml-1">*</span>}
+          {isRequired && <span style={{ color: '#ef4444', marginLeft: 4 }}>*</span>}
         </label>
 
         {/* Input Container */}
         <div className="relative">
           {icon && (
-            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400">
+            <div className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--color-sub)' }}>
               {icon}
             </div>
           )}
 
           <input
             ref={ref}
-            className={`
-              w-full px-4 py-3 ${icon ? 'pl-10' : ''}
-              bg-white border-2 rounded-xl
-              text-neutral-900 placeholder-neutral-400
-              transition-all duration-200
-              focus:outline-none focus:ring-4
-              disabled:bg-neutral-50 disabled:text-neutral-500 disabled:cursor-not-allowed
-              ${
-                hasError
-                  ? 'border-danger-500 focus:border-danger-500 focus:ring-danger-100'
-                  : 'border-neutral-200 focus:border-primary-500 focus:ring-primary-100'
-              }
-              ${className}
-            `}
+            className={`w-full ${icon ? 'pl-10' : ''} disabled:cursor-not-allowed ${className}`}
+            style={{
+              fontFamily: "'Libre Franklin', sans-serif",
+              fontSize: 14,
+              fontWeight: 500,
+              padding: '12px 16px',
+              background: 'var(--color-card)',
+              color: 'var(--color-text)',
+              border: `1.5px solid ${hasError ? '#ef4444' : focused ? 'var(--color-teal)' : 'var(--color-line)'}`,
+              borderRadius: 12,
+              outline: 'none',
+              transition: 'border-color 0.2s',
+              opacity: props.disabled ? 0.5 : 1,
+            }}
+            onFocus={(e) => { setFocused(true); props.onFocus?.(e); }}
+            onBlur={(e) => { setFocused(false); props.onBlur?.(e); }}
             aria-invalid={hasError}
             aria-describedby={
               error ? `${props.id}-error` : helperText ? `${props.id}-helper` : undefined
@@ -59,7 +72,7 @@ export const FormField = forwardRef<HTMLInputElement, FormFieldProps>(
 
           {/* Error Icon */}
           {hasError && (
-            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-danger-500">
+            <div className="absolute right-3 top-1/2 -translate-y-1/2" style={{ color: '#ef4444' }}>
               <AlertCircle className="w-5 h-5" />
             </div>
           )}
@@ -67,12 +80,20 @@ export const FormField = forwardRef<HTMLInputElement, FormFieldProps>(
 
         {/* Helper Text or Error Message */}
         {error ? (
-          <p id={`${props.id}-error`} className="text-sm text-danger-600 flex items-start gap-1" role="alert">
+          <p
+            id={`${props.id}-error`}
+            className="flex items-start gap-1"
+            style={{ fontFamily: "'Libre Franklin', sans-serif", fontSize: 12, fontWeight: 600, color: '#ef4444' }}
+            role="alert"
+          >
             <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
             <span>{error}</span>
           </p>
         ) : helperText ? (
-          <p id={`${props.id}-helper`} className="text-sm text-neutral-500">
+          <p
+            id={`${props.id}-helper`}
+            style={{ fontFamily: "'Libre Franklin', sans-serif", fontSize: 12, fontWeight: 500, color: 'var(--color-sub)' }}
+          >
             {helperText}
           </p>
         ) : null}
@@ -93,22 +114,34 @@ interface TextAreaFieldProps extends InputHTMLAttributes<HTMLTextAreaElement> {
 }
 
 /**
- * Textarea variant of FormField
+ * Concept C textarea — same design as FormField
  */
 export const TextAreaField = forwardRef<HTMLTextAreaElement, TextAreaFieldProps>(
   ({ label, error, helperText, isRequired, rows = 4, maxLength, className = '', ...props }, ref) => {
     const hasError = !!error;
+    const [focused, setFocused] = useState(false);
 
     return (
       <div className="space-y-2">
         {/* Label */}
         <div className="flex items-center justify-between">
-          <label htmlFor={props.id} className="block text-sm font-medium text-neutral-700">
+          <label
+            htmlFor={props.id}
+            style={{
+              fontFamily: "'Libre Franklin', sans-serif",
+              fontSize: 11,
+              fontWeight: 700,
+              letterSpacing: 1.5,
+              textTransform: 'uppercase',
+              color: 'var(--color-sub)',
+              display: 'block',
+            }}
+          >
             {label}
-            {isRequired && <span className="text-danger-500 ml-1">*</span>}
+            {isRequired && <span style={{ color: '#ef4444', marginLeft: 4 }}>*</span>}
           </label>
           {maxLength && (
-            <span className="text-xs text-neutral-500">
+            <span style={{ fontFamily: "'Libre Franklin', sans-serif", fontSize: 11, color: 'var(--color-sub)' }}>
               {(props.value as string)?.length || 0}/{maxLength}
             </span>
           )}
@@ -119,21 +152,22 @@ export const TextAreaField = forwardRef<HTMLTextAreaElement, TextAreaFieldProps>
           ref={ref}
           rows={rows}
           maxLength={maxLength}
-          className={`
-            w-full px-4 py-3
-            bg-white border-2 rounded-xl
-            text-neutral-900 placeholder-neutral-400
-            transition-all duration-200
-            focus:outline-none focus:ring-4
-            disabled:bg-neutral-50 disabled:text-neutral-500 disabled:cursor-not-allowed
-            resize-none
-            ${
-              hasError
-                ? 'border-danger-500 focus:border-danger-500 focus:ring-danger-100'
-                : 'border-neutral-200 focus:border-primary-500 focus:ring-primary-100'
-            }
-            ${className}
-          `}
+          className={`w-full resize-none disabled:cursor-not-allowed ${className}`}
+          style={{
+            fontFamily: "'Libre Franklin', sans-serif",
+            fontSize: 14,
+            fontWeight: 500,
+            padding: '12px 16px',
+            background: 'var(--color-card)',
+            color: 'var(--color-text)',
+            border: `1.5px solid ${hasError ? '#ef4444' : focused ? 'var(--color-teal)' : 'var(--color-line)'}`,
+            borderRadius: 12,
+            outline: 'none',
+            transition: 'border-color 0.2s',
+            opacity: props.disabled ? 0.5 : 1,
+          }}
+          onFocus={(e) => { setFocused(true); props.onFocus?.(e as never); }}
+          onBlur={(e) => { setFocused(false); props.onBlur?.(e as never); }}
           aria-invalid={hasError}
           aria-describedby={
             error ? `${props.id}-error` : helperText ? `${props.id}-helper` : undefined
@@ -143,12 +177,20 @@ export const TextAreaField = forwardRef<HTMLTextAreaElement, TextAreaFieldProps>
 
         {/* Helper Text or Error Message */}
         {error ? (
-          <p id={`${props.id}-error`} className="text-sm text-danger-600 flex items-start gap-1" role="alert">
+          <p
+            id={`${props.id}-error`}
+            className="flex items-start gap-1"
+            style={{ fontFamily: "'Libre Franklin', sans-serif", fontSize: 12, fontWeight: 600, color: '#ef4444' }}
+            role="alert"
+          >
             <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
             <span>{error}</span>
           </p>
         ) : helperText ? (
-          <p id={`${props.id}-helper`} className="text-sm text-neutral-500">
+          <p
+            id={`${props.id}-helper`}
+            style={{ fontFamily: "'Libre Franklin', sans-serif", fontSize: 12, fontWeight: 500, color: 'var(--color-sub)' }}
+          >
             {helperText}
           </p>
         ) : null}

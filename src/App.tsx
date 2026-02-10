@@ -26,8 +26,11 @@ import { BottomNav } from './components/organisms/BottomNav';
 import { ToastContainer } from './components/organisms/Toast';
 import { useToastStore } from './components/organisms/toastUtils';
 import { ErrorBoundary } from './components/organisms/ErrorBoundary';
+import { AuthCallbackPage } from './pages/AuthCallbackPage';
 import { useAuthStore } from './hooks/useAuthStore';
 import { useAppStore } from './hooks/useAppStore';
+import { useThemeStore } from './hooks/useThemeStore';
+import { supabase, isSupabaseConfigured } from './lib/supabase';
 import type { UserType, RenterProfile } from './types';
 
 type AppRoute = 'welcome' | 'role-select' | 'login' | 'renter-onboarding' | 'landlord-onboarding' | 'agency-onboarding' | 'admin-login' | 'admin-dashboard' | 'app';
@@ -38,9 +41,18 @@ type AppPage = 'swipe' | 'matches' | 'profile' | 'tenancy' | 'agency-messages' |
  * Handles public routes (welcome, onboarding) and protected routes (app pages)
  */
 function App() {
-  const { isAuthenticated, userType, currentUser, isAdminMode, impersonatedRole } = useAuthStore();
+  const store = useAuthStore();
+  const {
+    isAuthenticated, userType, currentUser, isAdminMode, impersonatedRole,
+    handleSupabaseSession, setSessionLoading,
+  } = store;
+  // Stabilize values that may be undefined from old persisted state
+  const isSessionLoading = store.isSessionLoading ?? false;
+  const supabaseUserId = store.supabaseUserId ?? null;
   const { addToast } = useToastStore();
   const { loadProperties } = useAppStore();
+  // Initialize theme from persisted store — ensures data-theme is set before first paint
+  useThemeStore();
 
   const [currentRoute, setCurrentRoute] = useState<AppRoute>('welcome');
   const [currentPage, setCurrentPage] = useState<AppPage>('swipe');
@@ -53,6 +65,33 @@ function App() {
       await initializeAdminProfile();
     };
     initAdmin();
+  }, []);
+
+  // Supabase Auth session listener
+  useEffect(() => {
+    if (!isSupabaseConfigured()) return;
+
+    setSessionLoading(true);
+
+    // Check for existing session on mount
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      handleSupabaseSession(session).finally(() => setSessionLoading(false));
+    });
+
+    // Subscribe to auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log('[App] Auth state change:', event);
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+          await handleSupabaseSession(session);
+        } else if (event === 'SIGNED_OUT') {
+          await handleSupabaseSession(null);
+        }
+      }
+    );
+
+    return () => subscription.unsubscribe();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Load properties from storage on app initialization
@@ -68,6 +107,9 @@ function App() {
 
   // Handle initial routing based on auth state
   useEffect(() => {
+    // Don't route while Supabase session is being resolved
+    if (isSessionLoading) return;
+
     // Admin routing
     if (isAdminMode) {
       if (!impersonatedRole) {
@@ -89,7 +131,23 @@ function App() {
       return;
     }
 
-    // Normal user routing
+    // Supabase user authenticated but no role selected yet → role selection
+    if (isAuthenticated && supabaseUserId && !userType) {
+      setCurrentRoute('role-select');
+      return;
+    }
+
+    // Supabase user authenticated with role but no domain profile (onboarding needed)
+    if (isAuthenticated && supabaseUserId && userType && !currentUser) {
+      let route: AppRoute = 'renter-onboarding';
+      if (userType === 'renter') route = 'renter-onboarding';
+      else if (userType === 'landlord') route = 'landlord-onboarding';
+      else if (userType === 'estate_agent' || userType === 'management_agency') route = 'agency-onboarding';
+      setCurrentRoute(route);
+      return;
+    }
+
+    // Normal user routing (password auth or completed Supabase auth)
     if (isAuthenticated && currentUser && 'onboardingComplete' in currentUser && currentUser.onboardingComplete) {
       setCurrentRoute('app');
     } else if (isAuthenticated && currentUser && 'onboardingComplete' in currentUser && !currentUser.onboardingComplete) {
@@ -112,7 +170,7 @@ function App() {
         setCurrentRoute('welcome');
       }
     }
-  }, [isAuthenticated, currentUser, userType, isAdminMode, impersonatedRole]);
+  }, [isAuthenticated, currentUser, userType, isAdminMode, impersonatedRole, isSessionLoading, supabaseUserId]);
 
   // Set default page based on user type and status
   useEffect(() => {
@@ -223,12 +281,13 @@ function App() {
                 {currentPage === 'swipe' && (
                   <motion.div
                     key="swipe"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
+                    initial={{ opacity: 0, y: 14 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    transition={{ duration: 0.5, ease: 'easeOut' }}
                   >
                     {userType === 'renter' ? (
-                      <SwipePage />
+                      <SwipePage onNavigateToProfile={() => setCurrentPage('profile')} />
                     ) : userType === 'estate_agent' || userType === 'management_agency' ? (
                       <AgencyDashboard onNavigateToDashboardBuilder={() => setCurrentPage('dashboard-builder')} />
                     ) : (
@@ -243,9 +302,10 @@ function App() {
                 {currentPage === 'matches' && (
                   <motion.div
                     key="matches"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
+                    initial={{ opacity: 0, y: 14 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    transition={{ duration: 0.5, ease: 'easeOut' }}
                   >
                     {(userType === 'estate_agent' || userType === 'management_agency') ? (
                       <AgencyMessagesPage />
@@ -254,12 +314,13 @@ function App() {
                     )}
                   </motion.div>
                 )}
-                {currentPage === 'tenancy' && ( // Added tenancy page rendering
+                {currentPage === 'tenancy' && (
                   <motion.div
                     key="tenancy"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
+                    initial={{ opacity: 0, y: 14 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    transition={{ duration: 0.5, ease: 'easeOut' }}
                   >
                     <CurrentRenterDashboard onNavigateToMatches={(matchId, conversationType) => {
                       setCurrentPage('matches');
@@ -276,9 +337,10 @@ function App() {
                 {currentPage === 'agency-messages' && userType === 'landlord' && (
                   <motion.div
                     key="agency-messages"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
+                    initial={{ opacity: 0, y: 14 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    transition={{ duration: 0.5, ease: 'easeOut' }}
                   >
                     <LandlordMessagesPage onBack={() => setCurrentPage('swipe')} />
                   </motion.div>
@@ -286,9 +348,10 @@ function App() {
                 {currentPage === 'profile' && (
                   <motion.div
                     key="profile"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
+                    initial={{ opacity: 0, y: 14 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    transition={{ duration: 0.5, ease: 'easeOut' }}
                   >
                     <ProfilePage />
                   </motion.div>
@@ -296,9 +359,10 @@ function App() {
                 {currentPage === 'properties' && (userType === 'landlord' || userType === 'estate_agent' || userType === 'management_agency') && (
                   <motion.div
                     key="properties"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
+                    initial={{ opacity: 0, y: 14 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    transition={{ duration: 0.5, ease: 'easeOut' }}
                   >
                     {(userType === 'estate_agent' || userType === 'management_agency')
                       ? <AgencyPropertiesPage />
@@ -309,9 +373,10 @@ function App() {
                 {currentPage === 'dashboard-builder' && (userType === 'landlord' || userType === 'estate_agent' || userType === 'management_agency') && (
                   <motion.div
                     key="dashboard-builder"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
+                    initial={{ opacity: 0, y: 14 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    transition={{ duration: 0.5, ease: 'easeOut' }}
                     className="h-[calc(100vh-64px)]"
                   >
                     <DashboardBuilderPage onBack={() => setCurrentPage('swipe')} />
@@ -331,9 +396,51 @@ function App() {
     }
   };
 
+  // Loading splash while Supabase session resolves
+  if (isSessionLoading) {
+    return (
+      <div
+        style={{
+          minHeight: '100vh',
+          background: 'var(--color-bg)',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 16,
+        }}
+      >
+        <h1
+          style={{
+            fontFamily: "'Bebas Neue', sans-serif",
+            fontSize: 32,
+            letterSpacing: 4,
+            color: 'var(--color-text)',
+            margin: 0,
+          }}
+        >
+          LETRIGHT
+        </h1>
+        <div
+          style={{
+            width: 32,
+            height: 32,
+            border: '3px solid var(--color-line)',
+            borderTopColor: 'var(--color-teal)',
+            borderRadius: '50%',
+            animation: 'spin 0.8s linear infinite',
+          }}
+        />
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      </div>
+    );
+  }
+
   return (
     <ErrorBoundary>
       <Routes>
+        {/* Auth callback for OAuth and magic link redirects */}
+        <Route path="/auth/callback" element={<AuthCallbackPage />} />
         {/* React Router managed routes */}
         <Route path="/landlord/discover" element={
           isAuthenticated && (userType === 'landlord' || isAdminMode) ? (

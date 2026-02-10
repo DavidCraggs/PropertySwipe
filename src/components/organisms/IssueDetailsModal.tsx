@@ -4,6 +4,7 @@ import { X, AlertTriangle, Clock, CheckCircle, User, Calendar, MessageSquare, Im
 import type { Issue, IssueStatus, IssuePriority } from '../../types';
 import { IconButton } from '../atoms/IconButton';
 import { Button } from '../atoms/Button';
+import { heading } from '../../utils/conceptCStyles';
 
 interface IssueDetailsModalProps {
   issue: Issue | null;
@@ -128,7 +129,8 @@ export const IssueDetailsModal: React.FC<IssueDetailsModalProps> = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
+            className="fixed inset-0 z-40"
+            style={{ background: 'rgba(0,0,0,0.5)' }}
           />
 
           {/* Modal */}
@@ -137,20 +139,21 @@ export const IssueDetailsModal: React.FC<IssueDetailsModalProps> = ({
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-            className="fixed inset-0 z-50 flex flex-col bg-white overflow-hidden"
+            className="fixed inset-0 z-50 flex flex-col overflow-hidden"
+            style={{ background: 'var(--color-card)', border: '1.5px solid var(--color-line)', borderRadius: 20 }}
           >
             {/* Sticky Header */}
-            <div className="sticky top-0 z-10 bg-white border-b border-neutral-200 px-4 py-3 flex items-center justify-between">
+            <div className="sticky top-0 z-10 px-4 py-3 flex items-center justify-between" style={{ background: 'var(--color-card)', borderBottom: '1.5px solid var(--color-line)' }}>
               <div className="flex-1 min-w-0 mr-4">
-                <h2 className="text-xl font-bold text-neutral-900 truncate">
+                <h2 className="truncate" style={heading(22, 1)}>
                   Issue Details
                 </h2>
-                <p className="text-sm text-neutral-600">
+                <p className="text-sm" style={{ color: 'var(--color-sub)' }}>
                   {issue.category.charAt(0).toUpperCase() + issue.category.slice(1).replace('_', ' ')} Issue
                 </p>
               </div>
               <IconButton
-                icon={<X size={24} />}
+                icon={<X size={24} style={{ color: 'var(--color-sub)' }} />}
                 variant="ghost"
                 size="md"
                 ariaLabel="Close details"
@@ -163,7 +166,7 @@ export const IssueDetailsModal: React.FC<IssueDetailsModalProps> = ({
               <div className="p-6 space-y-6">
                 {/* Subject and Badges */}
                 <div>
-                  <h3 className="text-2xl font-bold text-neutral-900 mb-3">
+                  <h3 className="mb-3" style={heading(26, 1)}>
                     {issue.subject}
                   </h3>
                   <div className="flex flex-wrap gap-2">
@@ -183,21 +186,21 @@ export const IssueDetailsModal: React.FC<IssueDetailsModalProps> = ({
                 </div>
 
                 {/* Key Dates */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-neutral-50 rounded-lg p-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 rounded-lg p-4" style={{ background: 'var(--color-bg)' }}>
                   <div className="flex items-start gap-2">
-                    <Calendar size={18} className="text-neutral-500 mt-0.5" />
+                    <Calendar size={18} className="mt-0.5" style={{ color: 'var(--color-sub)' }} />
                     <div>
-                      <div className="text-xs text-neutral-500">Raised</div>
-                      <div className="text-sm font-medium text-neutral-900">
+                      <div className="text-xs" style={{ color: 'var(--color-sub)' }}>Raised</div>
+                      <div className="text-sm font-medium" style={{ color: 'var(--color-text)' }}>
                         {formatDate(issue.raisedAt)}
                       </div>
                     </div>
                   </div>
                   <div className="flex items-start gap-2">
-                    <Clock size={18} className="text-neutral-500 mt-0.5" />
+                    <Clock size={18} className="mt-0.5" style={{ color: 'var(--color-sub)' }} />
                     <div>
-                      <div className="text-xs text-neutral-500">SLA Deadline</div>
-                      <div className={`text-sm font-medium ${issue.isOverdue ? 'text-danger-700' : 'text-neutral-900'}`}>
+                      <div className="text-xs" style={{ color: 'var(--color-sub)' }}>SLA Deadline</div>
+                      <div className={`text-sm font-medium ${issue.isOverdue ? 'text-danger-700' : ''}`} style={!issue.isOverdue ? { color: 'var(--color-text)' } : undefined}>
                         {formatDate(issue.slaDeadline)}
                       </div>
                     </div>
@@ -206,8 +209,8 @@ export const IssueDetailsModal: React.FC<IssueDetailsModalProps> = ({
                     <div className="flex items-start gap-2">
                       <CheckCircle size={18} className="text-success-500 mt-0.5" />
                       <div>
-                        <div className="text-xs text-neutral-500">Acknowledged</div>
-                        <div className="text-sm font-medium text-neutral-900">
+                        <div className="text-xs" style={{ color: 'var(--color-sub)' }}>Acknowledged</div>
+                        <div className="text-sm font-medium" style={{ color: 'var(--color-text)' }}>
                           {formatDate(issue.acknowledgedAt)}
                         </div>
                       </div>
@@ -217,8 +220,8 @@ export const IssueDetailsModal: React.FC<IssueDetailsModalProps> = ({
                     <div className="flex items-start gap-2">
                       <CheckCircle size={18} className="text-success-500 mt-0.5" />
                       <div>
-                        <div className="text-xs text-neutral-500">Resolved</div>
-                        <div className="text-sm font-medium text-neutral-900">
+                        <div className="text-xs" style={{ color: 'var(--color-sub)' }}>Resolved</div>
+                        <div className="text-sm font-medium" style={{ color: 'var(--color-text)' }}>
                           {formatDate(issue.resolvedAt)}
                         </div>
                       </div>
@@ -228,8 +231,8 @@ export const IssueDetailsModal: React.FC<IssueDetailsModalProps> = ({
 
                 {/* Description */}
                 <section>
-                  <h4 className="text-lg font-bold text-neutral-900 mb-3">Description</h4>
-                  <p className="text-neutral-700 leading-relaxed whitespace-pre-line">
+                  <h4 className="mb-3" style={heading(20, 1)}>Description</h4>
+                  <p className="leading-relaxed whitespace-pre-line" style={{ color: 'var(--color-sub)' }}>
                     {issue.description}
                   </p>
                 </section>
@@ -237,7 +240,7 @@ export const IssueDetailsModal: React.FC<IssueDetailsModalProps> = ({
                 {/* Photos */}
                 {issue.images && issue.images.length > 0 && (
                   <section>
-                    <h4 className="text-lg font-bold text-neutral-900 mb-3 flex items-center gap-2">
+                    <h4 className="mb-3 flex items-center gap-2" style={heading(20, 1)}>
                       <ImageIcon size={20} />
                       Photos ({issue.images.length})
                     </h4>
@@ -245,7 +248,8 @@ export const IssueDetailsModal: React.FC<IssueDetailsModalProps> = ({
                       {issue.images.map((image, index) => (
                         <div
                           key={index}
-                          className="relative aspect-square rounded-xl overflow-hidden bg-neutral-200"
+                          className="relative aspect-square rounded-xl overflow-hidden"
+                          style={{ background: 'var(--color-line)' }}
                         >
                           <img
                             src={image}
@@ -261,24 +265,24 @@ export const IssueDetailsModal: React.FC<IssueDetailsModalProps> = ({
                 {/* Status History */}
                 {issue.statusHistory && issue.statusHistory.length > 0 && (
                   <section>
-                    <h4 className="text-lg font-bold text-neutral-900 mb-3">Status History</h4>
+                    <h4 className="mb-3" style={heading(20, 1)}>Status History</h4>
                     <div className="space-y-3">
                       {issue.statusHistory.map((entry, index) => {
                         const entryStatus = statusConfig[entry.status];
                         return (
-                          <div key={index} className="flex items-start gap-3 p-3 bg-neutral-50 rounded-lg">
+                          <div key={index} className="flex items-start gap-3 p-3 rounded-lg" style={{ background: 'var(--color-bg)' }}>
                             <div className={`w-2 h-2 rounded-full mt-2 ${entryStatus.bg.replace('100', '500')}`} />
                             <div className="flex-1">
                               <div className="flex items-center gap-2">
                                 <span className={`text-sm font-medium ${entryStatus.text}`}>
                                   {entryStatus.label}
                                 </span>
-                                <span className="text-xs text-neutral-500">
+                                <span className="text-xs" style={{ color: 'var(--color-sub)' }}>
                                   {formatDate(entry.timestamp)}
                                 </span>
                               </div>
                               {entry.notes && (
-                                <p className="text-sm text-neutral-600 mt-1">{entry.notes}</p>
+                                <p className="text-sm mt-1" style={{ color: 'var(--color-sub)' }}>{entry.notes}</p>
                               )}
                             </div>
                           </div>
@@ -291,19 +295,19 @@ export const IssueDetailsModal: React.FC<IssueDetailsModalProps> = ({
                 {/* Messages Thread */}
                 {issue.messages && issue.messages.length > 0 && (
                   <section>
-                    <h4 className="text-lg font-bold text-neutral-900 mb-3 flex items-center gap-2">
+                    <h4 className="mb-3 flex items-center gap-2" style={heading(20, 1)}>
                       <MessageSquare size={20} />
                       Messages ({issue.messages.length})
                     </h4>
                     <div className="space-y-3">
                       {issue.messages.map((message, index) => (
-                        <div key={index} className="p-3 bg-neutral-50 rounded-lg">
+                        <div key={index} className="p-3 rounded-lg" style={{ background: 'var(--color-bg)' }}>
                           <div className="flex items-center gap-2 mb-2">
-                            <User size={16} className="text-neutral-500" />
-                            <span className="text-sm font-medium text-neutral-900">
+                            <User size={16} style={{ color: 'var(--color-sub)' }} />
+                            <span className="text-sm font-medium" style={{ color: 'var(--color-text)' }}>
                               {message.senderName}
                             </span>
-                            <span className="text-xs text-neutral-500">
+                            <span className="text-xs" style={{ color: 'var(--color-sub)' }}>
                               {formatDate(message.timestamp)}
                             </span>
                             {message.isInternal && (
@@ -312,7 +316,7 @@ export const IssueDetailsModal: React.FC<IssueDetailsModalProps> = ({
                               </span>
                             )}
                           </div>
-                          <p className="text-sm text-neutral-700">{message.content}</p>
+                          <p className="text-sm" style={{ color: 'var(--color-sub)' }}>{message.content}</p>
                         </div>
                       ))}
                     </div>
@@ -322,11 +326,11 @@ export const IssueDetailsModal: React.FC<IssueDetailsModalProps> = ({
                 {/* Resolution Summary */}
                 {issue.resolutionSummary && (
                   <section>
-                    <h4 className="text-lg font-bold text-neutral-900 mb-3">Resolution</h4>
-                    <div className="p-4 bg-success-50 rounded-lg border border-success-200">
-                      <p className="text-neutral-700">{issue.resolutionSummary}</p>
+                    <h4 className="mb-3" style={heading(20, 1)}>Resolution</h4>
+                    <div className="p-4 bg-success-50 rounded-lg" style={{ borderColor: 'var(--color-line)', border: '1.5px solid var(--color-line)' }}>
+                      <p style={{ color: 'var(--color-sub)' }}>{issue.resolutionSummary}</p>
                       {issue.resolutionCost !== undefined && issue.resolutionCost > 0 && (
-                        <p className="text-sm text-neutral-600 mt-2">
+                        <p className="text-sm mt-2" style={{ color: 'var(--color-sub)' }}>
                           Resolution cost: £{issue.resolutionCost.toLocaleString()}
                         </p>
                       )}
@@ -337,7 +341,7 @@ export const IssueDetailsModal: React.FC<IssueDetailsModalProps> = ({
                 {/* Status Update Actions */}
                 {showStatusActions && onStatusUpdate && availableTransitions.length > 0 && (
                   <section>
-                    <h4 className="text-lg font-bold text-neutral-900 mb-3">Update Status</h4>
+                    <h4 className="mb-3" style={heading(20, 1)}>Update Status</h4>
                     <div className="flex flex-wrap gap-2">
                       {availableTransitions.map((newStatus) => {
                         const statusInfo = statusConfig[newStatus];

@@ -145,11 +145,11 @@ export const ProfilePage: React.FC = () => {
 
   if (!currentUser) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-success-50 flex items-center justify-center p-4">
+      <div className="min-h-screen flex items-center justify-center p-4" style={{ background: 'var(--color-bg)' }}>
         <div className="text-center">
-          <User size={64} className="mx-auto text-neutral-400 mb-4" />
-          <h2 className="text-2xl font-bold text-neutral-900 mb-2">No Profile Yet</h2>
-          <p className="text-neutral-600">Please sign up to get started!</p>
+          <User size={64} className="mx-auto mb-4" style={{ color: 'var(--color-sub)' }} />
+          <h2 className="text-2xl font-bold mb-2" style={{ color: 'var(--color-text)' }}>No Profile Yet</h2>
+          <p style={{ color: 'var(--color-sub)' }}>Please sign up to get started!</p>
         </div>
       </div>
     );
@@ -163,13 +163,13 @@ export const ProfilePage: React.FC = () => {
 
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-success-50 pb-24">
+    <div className="min-h-screen" style={{ background: 'var(--color-bg)', color: 'var(--color-text)', paddingBottom: 96 }}>
       {/* Header */}
-      <header className="bg-white border-b border-neutral-200 px-4 py-6">
+      <header className="px-4 py-6" style={{ background: 'var(--color-card)', borderBottom: '1px solid var(--color-line)' }}>
         <div className="max-w-2xl mx-auto flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-neutral-900">Profile</h1>
-            <p className="text-neutral-600 mt-1">
+            <h1 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 32, letterSpacing: 3, color: 'var(--color-text)', margin: 0 }}>Profile</h1>
+            <p className="mt-1" style={{ color: 'var(--color-sub)' }}>
               {isRenter ? 'Your renter account' : 'Your vendor account'}
             </p>
           </div>
@@ -186,14 +186,14 @@ export const ProfilePage: React.FC = () => {
 
       <main className="max-w-2xl mx-auto px-4 py-8 space-y-6">
         {/* User Info Card */}
-        <div className="bg-white rounded-2xl shadow-sm p-6">
+        <div className="rounded-2xl p-6" style={{ background: 'var(--color-card)', border: '1.5px solid var(--color-line)', borderRadius: 16 }}>
           <div className="flex items-start gap-4">
-            <div className={`w-20 h-20 rounded-full flex items-center justify-center text-white text-2xl font-bold ${isRenter ? 'bg-gradient-to-br from-primary-500 to-primary-600' : 'bg-gradient-to-br from-secondary-500 to-secondary-600'}`}>
+            <div className="w-20 h-20 rounded-full flex items-center justify-center text-white text-2xl font-bold" style={{ background: isRenter ? 'var(--color-teal)' : 'var(--color-teal)' }}>
               {isRenter ? <ShoppingBag size={32} /> : <Home size={32} />}
             </div>
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-1">
-                <h2 className="text-2xl font-bold text-neutral-900">
+                <h2 className="text-2xl font-bold" style={{ color: 'var(--color-text)' }}>
                   {isAgency
                     ? (currentUser as AgencyProfile).companyName
                     : (currentUser as RenterProfile | LandlordProfile).names}
@@ -202,7 +202,7 @@ export const ProfilePage: React.FC = () => {
                   {isRenter ? 'Renter' : isAgency ? 'Agency' : 'Vendor'}
                 </span>
               </div>
-              <p className="text-sm text-neutral-500">
+              <p className="text-sm" style={{ color: 'var(--color-sub)' }}>
                 Member since {new Date(currentUser.createdAt).toLocaleDateString()}
               </p>
             </div>
@@ -221,10 +221,10 @@ export const ProfilePage: React.FC = () => {
         {!isAgency && (
           <div>
             {isLoadingRatings ? (
-              <div className="bg-white rounded-2xl shadow-sm p-6">
+              <div className="rounded-2xl p-6" style={{ background: 'var(--color-card)', border: '1.5px solid var(--color-line)', borderRadius: 16 }}>
                 <div className="animate-pulse">
-                  <div className="h-6 bg-neutral-200 rounded w-1/3 mb-4"></div>
-                  <div className="h-20 bg-neutral-200 rounded"></div>
+                  <div className="h-6 rounded w-1/3 mb-4" style={{ background: 'var(--color-line)' }}></div>
+                  <div className="h-20 rounded" style={{ background: 'var(--color-line)' }}></div>
                 </div>
               </div>
             ) : (
@@ -238,90 +238,90 @@ export const ProfilePage: React.FC = () => {
         )}
 
         {/* Statistics */}
-        <div className="bg-white rounded-2xl shadow-sm p-6">
+        <div className="rounded-2xl p-6" style={{ background: 'var(--color-card)', border: '1.5px solid var(--color-line)', borderRadius: 16 }}>
           <div className="flex items-center gap-2 mb-4">
-            <TrendingUp size={24} className="text-primary-600" />
-            <h3 className="text-xl font-bold text-neutral-900">Your Activity</h3>
+            <TrendingUp size={24} style={{ color: 'var(--color-teal)' }} />
+            <h3 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 20, letterSpacing: 2, color: 'var(--color-text)' }}>Your Activity</h3>
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="text-center p-4 bg-neutral-50 rounded-xl">
+            <div className="text-center p-4 rounded-xl" style={{ background: 'var(--color-bg)', border: '1px solid var(--color-line)', borderRadius: 12 }}>
               <div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                <Home size={24} className="text-primary-600" />
+                <Home size={24} style={{ color: 'var(--color-teal)' }} />
               </div>
-              <div className="text-2xl font-bold text-neutral-900">{stats.propertiesViewed}</div>
-              <div className="text-sm text-neutral-600">Viewed</div>
+              <div className="text-2xl font-bold" style={{ color: 'var(--color-text)' }}>{stats.propertiesViewed}</div>
+              <div className="text-sm" style={{ color: 'var(--color-sub)' }}>Viewed</div>
             </div>
 
-            <div className="text-center p-4 bg-neutral-50 rounded-xl">
+            <div className="text-center p-4 rounded-xl" style={{ background: 'var(--color-bg)', border: '1px solid var(--color-line)', borderRadius: 12 }}>
               <div className="w-12 h-12 bg-success-100 rounded-full flex items-center justify-center mx-auto mb-2">
                 <Heart size={24} className="text-success-600" />
               </div>
-              <div className="text-2xl font-bold text-neutral-900">{stats.propertiesLiked}</div>
-              <div className="text-sm text-neutral-600">Liked</div>
+              <div className="text-2xl font-bold" style={{ color: 'var(--color-text)' }}>{stats.propertiesLiked}</div>
+              <div className="text-sm" style={{ color: 'var(--color-sub)' }}>Liked</div>
             </div>
 
-            <div className="text-center p-4 bg-neutral-50 rounded-xl">
+            <div className="text-center p-4 rounded-xl" style={{ background: 'var(--color-bg)', border: '1px solid var(--color-line)', borderRadius: 12 }}>
               <div className="w-12 h-12 bg-danger-100 rounded-full flex items-center justify-center mx-auto mb-2">
                 <X size={24} className="text-danger-600" />
               </div>
-              <div className="text-2xl font-bold text-neutral-900">{stats.propertiesPassed}</div>
-              <div className="text-sm text-neutral-600">Passed</div>
+              <div className="text-2xl font-bold" style={{ color: 'var(--color-text)' }}>{stats.propertiesPassed}</div>
+              <div className="text-sm" style={{ color: 'var(--color-sub)' }}>Passed</div>
             </div>
 
-            <div className="text-center p-4 bg-neutral-50 rounded-xl">
+            <div className="text-center p-4 rounded-xl" style={{ background: 'var(--color-bg)', border: '1px solid var(--color-line)', borderRadius: 12 }}>
               <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-2">
                 <Heart size={24} className="text-purple-600" fill="currentColor" />
               </div>
-              <div className="text-2xl font-bold text-neutral-900">{stats.matchesCount}</div>
-              <div className="text-sm text-neutral-600">Matches</div>
+              <div className="text-2xl font-bold" style={{ color: 'var(--color-text)' }}>{stats.matchesCount}</div>
+              <div className="text-sm" style={{ color: 'var(--color-sub)' }}>Matches</div>
             </div>
           </div>
         </div>
 
         {/* Profile Details */}
         {isRenter && renterProfile && (
-          <div className="bg-white rounded-2xl shadow-sm p-6">
-            <h3 className="text-xl font-bold text-neutral-900 mb-4 flex items-center gap-2">
+          <div className="rounded-2xl p-6" style={{ background: 'var(--color-card)', border: '1.5px solid var(--color-line)', borderRadius: 16 }}>
+            <h3 className="mb-4 flex items-center gap-2" style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 20, letterSpacing: 2, color: 'var(--color-text)' }}>
               <User size={20} />
               Renter Profile
             </h3>
 
             <div className="space-y-3">
-              <div className="flex justify-between items-center py-2 border-b border-neutral-100">
-                <span className="text-neutral-600">Situation</span>
-                <span className="font-medium text-neutral-900 flex items-center gap-2">
+              <div className="flex justify-between items-center py-2 border-b" style={{ borderColor: 'var(--color-line)' }}>
+                <span style={{ color: 'var(--color-sub)' }}>Situation</span>
+                <span className="font-medium flex items-center gap-2" style={{ color: 'var(--color-text)' }}>
                   {renterProfile.situation === 'Family' ? <Users size={16} /> : <User size={16} />}
                   {renterProfile.situation}
                 </span>
               </div>
 
-              <div className="flex justify-between items-center py-2 border-b border-neutral-100">
-                <span className="text-neutral-600">Age(s)</span>
-                <span className="font-medium text-neutral-900">{renterProfile.ages}</span>
+              <div className="flex justify-between items-center py-2 border-b" style={{ borderColor: 'var(--color-line)' }}>
+                <span style={{ color: 'var(--color-sub)' }}>Age(s)</span>
+                <span className="font-medium" style={{ color: 'var(--color-text)' }}>{renterProfile.ages}</span>
               </div>
 
-              <div className="flex justify-between items-center py-2 border-b border-neutral-100">
-                <span className="text-neutral-600">Preferred Area</span>
-                <span className="font-medium text-neutral-900 flex items-center gap-2">
+              <div className="flex justify-between items-center py-2 border-b" style={{ borderColor: 'var(--color-line)' }}>
+                <span style={{ color: 'var(--color-sub)' }}>Preferred Area</span>
+                <span className="font-medium flex items-center gap-2" style={{ color: 'var(--color-text)' }}>
                   <MapPin size={16} />
                   {renterProfile.localArea}
                 </span>
               </div>
 
-              <div className="flex justify-between items-center py-2 border-b border-neutral-100">
-                <span className="text-neutral-600">Renter Type</span>
-                <span className="font-medium text-neutral-900">{renterProfile.renterType}</span>
+              <div className="flex justify-between items-center py-2 border-b" style={{ borderColor: 'var(--color-line)' }}>
+                <span style={{ color: 'var(--color-sub)' }}>Renter Type</span>
+                <span className="font-medium" style={{ color: 'var(--color-text)' }}>{renterProfile.renterType}</span>
               </div>
 
-              <div className="flex justify-between items-center py-2 border-b border-neutral-100">
-                <span className="text-neutral-600">Employment Status</span>
-                <span className="font-medium text-neutral-900">{renterProfile.employmentStatus}</span>
+              <div className="flex justify-between items-center py-2 border-b" style={{ borderColor: 'var(--color-line)' }}>
+                <span style={{ color: 'var(--color-sub)' }}>Employment Status</span>
+                <span className="font-medium" style={{ color: 'var(--color-text)' }}>{renterProfile.employmentStatus}</span>
               </div>
 
               <div className="flex justify-between items-center py-2">
-                <span className="text-neutral-600">Monthly Income</span>
-                <span className="font-medium text-neutral-900 flex items-center gap-2">
+                <span style={{ color: 'var(--color-sub)' }}>Monthly Income</span>
+                <span className="font-medium flex items-center gap-2" style={{ color: 'var(--color-text)' }}>
                   <CreditCard size={16} />
                   £{renterProfile.monthlyIncome?.toLocaleString()}
                 </span>
@@ -331,31 +331,31 @@ export const ProfilePage: React.FC = () => {
         )}
 
         {!isRenter && landlordProfile && (
-          <div className="bg-white rounded-2xl shadow-sm p-6">
-            <h3 className="text-xl font-bold text-neutral-900 mb-4 flex items-center gap-2">
+          <div className="rounded-2xl p-6" style={{ background: 'var(--color-card)', border: '1.5px solid var(--color-line)', borderRadius: 16 }}>
+            <h3 className="mb-4 flex items-center gap-2" style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 20, letterSpacing: 2, color: 'var(--color-text)' }}>
               <Home size={20} />
               Landlord Profile
             </h3>
 
             <div className="space-y-3">
-              <div className="flex justify-between items-center py-2 border-b border-neutral-100">
-                <span className="text-neutral-600">Property Type</span>
-                <span className="font-medium text-neutral-900">{landlordProfile.propertyType}</span>
+              <div className="flex justify-between items-center py-2 border-b" style={{ borderColor: 'var(--color-line)' }}>
+                <span style={{ color: 'var(--color-sub)' }}>Property Type</span>
+                <span className="font-medium" style={{ color: 'var(--color-text)' }}>{landlordProfile.propertyType}</span>
               </div>
 
-              <div className="flex justify-between items-center py-2 border-b border-neutral-100">
-                <span className="text-neutral-600">Preferred Tenants</span>
-                <span className="font-medium text-neutral-900">{landlordProfile.preferredTenantTypes.join(', ')}</span>
+              <div className="flex justify-between items-center py-2 border-b" style={{ borderColor: 'var(--color-line)' }}>
+                <span style={{ color: 'var(--color-sub)' }}>Preferred Tenants</span>
+                <span className="font-medium" style={{ color: 'var(--color-text)' }}>{landlordProfile.preferredTenantTypes.join(', ')}</span>
               </div>
 
-              <div className="flex justify-between items-center py-2 border-b border-neutral-100">
-                <span className="text-neutral-600">Furnishing Preference</span>
-                <span className="font-medium text-neutral-900">{landlordProfile.furnishingPreference}</span>
+              <div className="flex justify-between items-center py-2 border-b" style={{ borderColor: 'var(--color-line)' }}>
+                <span style={{ color: 'var(--color-sub)' }}>Furnishing Preference</span>
+                <span className="font-medium" style={{ color: 'var(--color-text)' }}>{landlordProfile.furnishingPreference}</span>
               </div>
 
-              <div className="flex justify-between items-center py-2 border-b border-neutral-100">
-                <span className="text-neutral-600">Pets Policy</span>
-                <span className="font-medium text-neutral-900">
+              <div className="flex justify-between items-center py-2 border-b" style={{ borderColor: 'var(--color-line)' }}>
+                <span style={{ color: 'var(--color-sub)' }}>Pets Policy</span>
+                <span className="font-medium" style={{ color: 'var(--color-text)' }}>
                   {landlordProfile.defaultPetsPolicy.willConsiderPets
                     ? `Will consider pets (max ${landlordProfile.defaultPetsPolicy.maxPetsAllowed})`
                     : 'No pets'}
@@ -363,36 +363,36 @@ export const ProfilePage: React.FC = () => {
               </div>
 
               <div className="flex justify-between items-center py-2">
-                <span className="text-neutral-600">PRS Registration</span>
-                <span className="font-medium text-neutral-900">{landlordProfile.prsRegistrationStatus}</span>
+                <span style={{ color: 'var(--color-sub)' }}>PRS Registration</span>
+                <span className="font-medium" style={{ color: 'var(--color-text)' }}>{landlordProfile.prsRegistrationStatus}</span>
               </div>
             </div>
           </div>
         )}
 
         {/* Your Data Rights (GDPR) */}
-        <div className="bg-white rounded-2xl shadow-sm p-6 border-2 border-primary-100">
+        <div className="rounded-2xl p-6 border-2 border-primary-100" style={{ background: 'var(--color-card)', borderRadius: 16 }}>
           <div className="flex items-center gap-2 mb-3">
-            <Shield size={24} className="text-primary-600" />
-            <h3 className="text-xl font-bold text-neutral-900">Your Data Rights</h3>
+            <Shield size={24} style={{ color: 'var(--color-teal)' }} />
+            <h3 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 20, letterSpacing: 2, color: 'var(--color-text)' }}>Your Data Rights</h3>
           </div>
-          <p className="text-neutral-600 mb-6">
+          <p className="mb-6" style={{ color: 'var(--color-sub)' }}>
             Under GDPR, you have the right to access, export, and delete your personal data at any time.
           </p>
 
           <div className="space-y-4">
             {/* Export Data */}
-            <div className="border border-neutral-200 rounded-xl p-4">
+            <div className="border rounded-xl p-4" style={{ borderColor: 'var(--color-line)' }}>
               <div className="flex items-start gap-3 mb-3">
                 <div className="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <Download size={20} className="text-primary-600" />
+                  <Download size={20} style={{ color: 'var(--color-teal)' }} />
                 </div>
                 <div className="flex-1">
-                  <h4 className="font-semibold text-neutral-900 mb-1">Download Your Data</h4>
-                  <p className="text-sm text-neutral-600">
+                  <h4 className="font-semibold mb-1" style={{ color: 'var(--color-text)' }}>Download Your Data</h4>
+                  <p className="text-sm" style={{ color: 'var(--color-sub)' }}>
                     Export all your personal data in JSON and CSV formats. Includes your profile, matches, messages, and ratings.
                   </p>
-                  <p className="text-xs text-neutral-500 mt-2">
+                  <p className="text-xs mt-2" style={{ color: 'var(--color-sub)' }}>
                     GDPR Article 15 (Right of Access) & Article 20 (Data Portability)
                   </p>
                 </div>
@@ -415,11 +415,11 @@ export const ProfilePage: React.FC = () => {
                   <Trash2 size={20} className="text-danger-600" />
                 </div>
                 <div className="flex-1">
-                  <h4 className="font-semibold text-neutral-900 mb-1">Delete Your Account</h4>
-                  <p className="text-sm text-neutral-600">
+                  <h4 className="font-semibold mb-1" style={{ color: 'var(--color-text)' }}>Delete Your Account</h4>
+                  <p className="text-sm" style={{ color: 'var(--color-sub)' }}>
                     Request permanent deletion of your account and all associated data. You'll have 30 days to cancel before deletion is final.
                   </p>
-                  <p className="text-xs text-neutral-500 mt-2">
+                  <p className="text-xs mt-2" style={{ color: 'var(--color-sub)' }}>
                     GDPR Article 17 (Right to Erasure / "Right to be Forgotten")
                   </p>
                 </div>
@@ -436,10 +436,10 @@ export const ProfilePage: React.FC = () => {
             </div>
 
             {/* Privacy Information */}
-            <div className="border border-neutral-200 rounded-xl p-4 bg-neutral-50">
+            <div className="border rounded-xl p-4" style={{ background: 'var(--color-bg)', borderColor: 'var(--color-line)' }}>
               <div className="flex items-start gap-3">
-                <FileText size={20} className="text-neutral-600 flex-shrink-0 mt-0.5" />
-                <div className="text-sm text-neutral-600">
+                <FileText size={20} className="flex-shrink-0 mt-0.5" style={{ color: 'var(--color-sub)' }} />
+                <div className="text-sm" style={{ color: 'var(--color-sub)' }}>
                   <p className="mb-2">
                     <strong>Your privacy matters.</strong> We process your data in compliance with UK GDPR and the Data Protection Act 2018.
                   </p>
@@ -456,9 +456,9 @@ export const ProfilePage: React.FC = () => {
         </div>
 
         {/* Danger Zone */}
-        <div className="bg-white rounded-2xl shadow-sm p-6 border-2 border-danger-100">
+        <div className="rounded-2xl p-6 border-2 border-danger-100" style={{ background: 'var(--color-card)', borderRadius: 16 }}>
           <h3 className="text-xl font-bold text-danger-600 mb-2">Danger Zone</h3>
-          <p className="text-neutral-600 mb-4">
+          <p className="mb-4" style={{ color: 'var(--color-sub)' }}>
             Reset all your data including liked properties, matches, and preferences. This action
             cannot be undone.
           </p>
@@ -496,13 +496,13 @@ export const ProfilePage: React.FC = () => {
           <div className="space-y-3">
             <p>Are you sure you want to request account deletion?</p>
             <p className="font-medium">This will:</p>
-            <ul className="list-disc list-inside space-y-1 text-neutral-600">
+            <ul className="list-disc list-inside space-y-1" style={{ color: 'var(--color-sub)' }}>
               <li>Start a 30-day grace period before permanent deletion</li>
               <li>Send you a verification email</li>
               <li>Allow you to cancel within 30 days</li>
               <li>Permanently delete all your data after 30 days</li>
             </ul>
-            <p className="text-xs text-neutral-500 mt-2">
+            <p className="text-xs mt-2" style={{ color: 'var(--color-sub)' }}>
               This action complies with GDPR Article 17 (Right to Erasure).
             </p>
           </div>

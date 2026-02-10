@@ -7,6 +7,7 @@ import { IconButton } from '../atoms/IconButton';
 import { StarRating } from '../molecules/StarRating';
 import { formatDate } from '../../utils/formatters';
 import { useToastStore } from './toastUtils';
+import { heading } from '../../utils/conceptCStyles';
 
 interface RatingModalProps {
     isOpen: boolean;
@@ -207,7 +208,8 @@ export function RatingModal({
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         onClick={onClose}
-                        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
+                        className="fixed inset-0 z-40"
+                        style={{ background: 'rgba(0,0,0,0.5)' }}
                     />
 
                     {/* Modal */}
@@ -216,15 +218,16 @@ export function RatingModal({
                         animate={{ y: 0 }}
                         exit={{ y: '100%' }}
                         transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-                        className="fixed inset-0 z-50 flex flex-col bg-white overflow-hidden md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-full md:max-w-2xl md:max-h-[90vh] md:rounded-2xl"
+                        className="fixed inset-0 z-50 flex flex-col overflow-hidden md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-full md:max-w-2xl md:max-h-[90vh]"
+                        style={{ background: 'var(--color-card)', border: '1.5px solid var(--color-line)', borderRadius: 20 }}
                     >
                         {/* Header */}
-                        <div className="sticky top-0 z-10 bg-white border-b border-neutral-200 px-6 py-4 flex items-center justify-between">
-                            <h2 className="text-xl font-bold text-neutral-900">
+                        <div className="sticky top-0 z-10 px-6 py-4 flex items-center justify-between" style={{ background: 'var(--color-card)', borderBottom: '1.5px solid var(--color-line)' }}>
+                            <h2 style={heading(22, 1)}>
                                 Rate {ratedName}
                             </h2>
                             <IconButton
-                                icon={<X size={24} />}
+                                icon={<X size={24} style={{ color: 'var(--color-sub)' }} />}
                                 variant="ghost"
                                 size="md"
                                 ariaLabel="Close rating modal"
@@ -237,18 +240,18 @@ export function RatingModal({
                             {alreadyRated ? (
                                 <div className="flex flex-col items-center justify-center py-12 text-center">
                                     <CheckCircle className="w-16 h-16 text-success-500 mb-4" />
-                                    <h3 className="text-lg font-semibold text-neutral-900 mb-2">
+                                    <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--color-text)' }}>
                                         Already Rated
                                     </h3>
-                                    <p className="text-neutral-600">
+                                    <p style={{ color: 'var(--color-sub)' }}>
                                         You have already submitted a rating for this {ratingType}.
                                     </p>
                                 </div>
                             ) : (
                                 <div className="space-y-6">
                                     {/* Tenancy Dates */}
-                                    <div className="bg-neutral-50 rounded-lg p-4">
-                                        <p className="text-sm text-neutral-600">
+                                    <div className="rounded-lg p-4" style={{ background: 'var(--color-bg)' }}>
+                                        <p className="text-sm" style={{ color: 'var(--color-sub)' }}>
                                             Tenancy: {match.tenancyStartDate && formatDate(match.tenancyStartDate.toString())} - {match.tenancyCompletedAt && formatDate(match.tenancyCompletedAt.toString())}
                                         </p>
                                     </div>
@@ -269,7 +272,7 @@ export function RatingModal({
 
                                     {/* Category Ratings */}
                                     <div className="space-y-4">
-                                        <h3 className="text-sm font-semibold text-neutral-900">Category Ratings *</h3>
+                                        <h3 className="text-sm font-semibold" style={{ color: 'var(--color-text)' }}>Category Ratings *</h3>
 
                                         <StarRating
                                             value={categoryScores.communication}
@@ -330,7 +333,7 @@ export function RatingModal({
 
                                     {/* Review Text */}
                                     <div>
-                                        <label className="block text-sm font-medium text-neutral-700 mb-2">
+                                        <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-sub)' }}>
                                             Review * (50-1000 characters)
                                         </label>
                                         <textarea
@@ -340,15 +343,16 @@ export function RatingModal({
                                                 if (errors.review) setErrors(prev => ({ ...prev, review: '' }));
                                             }}
                                             rows={6}
-                                            className="w-full px-3 py-2 border-2 border-neutral-200 rounded-lg focus:border-primary-500 focus:ring-0 outline-none resize-none"
+                                            className="w-full px-3 py-2 border-2 rounded-lg focus:ring-0 outline-none resize-none"
+                                            style={{ borderColor: 'var(--color-line)', background: 'var(--color-card)', color: 'var(--color-text)' }}
                                             placeholder="Share your experience..."
                                         />
                                         <div className="flex items-center justify-between mt-1">
-                                            <p className={`text-sm ${characterCount < 50 ? 'text-danger-600' : characterCount > 1000 ? 'text-danger-600' : 'text-neutral-500'}`}>
+                                            <p className={`text-sm ${characterCount < 50 ? 'text-danger-600' : characterCount > 1000 ? 'text-danger-600' : ''}`} style={characterCount >= 50 && characterCount <= 1000 ? { color: 'var(--color-sub)' } : undefined}>
                                                 {characterCount} / 1000 characters
                                             </p>
                                             {characterCount < 50 && (
-                                                <p className="text-sm text-neutral-500">
+                                                <p className="text-sm" style={{ color: 'var(--color-sub)' }}>
                                                     {50 - characterCount} more needed
                                                 </p>
                                             )}
@@ -364,9 +368,10 @@ export function RatingModal({
                                             type="checkbox"
                                             checked={wouldRecommend}
                                             onChange={(e) => setWouldRecommend(e.target.checked)}
-                                            className="w-5 h-5 rounded border-neutral-300 text-primary-600 focus:ring-primary-500"
+                                            className="w-5 h-5 rounded text-primary-600 focus:ring-primary-500"
+                                            style={{ borderColor: 'var(--color-line)' }}
                                         />
-                                        <span className="text-sm font-medium text-neutral-700">
+                                        <span className="text-sm font-medium" style={{ color: 'var(--color-sub)' }}>
                                             I would recommend this {ratingType} to others
                                         </span>
                                     </label>
@@ -376,7 +381,7 @@ export function RatingModal({
 
                         {/* Footer */}
                         {!alreadyRated && (
-                            <div className="sticky bottom-0 bg-white border-t border-neutral-200 px-6 py-4 flex gap-3">
+                            <div className="sticky bottom-0 px-6 py-4 flex gap-3" style={{ background: 'var(--color-card)', borderTop: '1.5px solid var(--color-line)' }}>
                                 <Button
                                     variant="outline"
                                     onClick={onClose}

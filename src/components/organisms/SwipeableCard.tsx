@@ -1,8 +1,7 @@
 import { useRef, useState } from 'react';
 import { motion, useMotionValue, useTransform } from 'framer-motion';
 import type { PanInfo } from 'framer-motion';
-import { Heart, X } from 'lucide-react';
-import { SWIPE_THRESHOLD, ANIMATION_DURATION } from '../../utils/constants';
+import { SWIPE_THRESHOLD, SWIPE_EXIT, ANIMATION_DURATION } from '../../utils/constants';
 
 interface SwipeableCardProps {
   children: React.ReactNode;
@@ -14,14 +13,14 @@ interface SwipeableCardProps {
 }
 
 /**
- * SwipeableCard wrapper component
- * Implements touch/mouse drag with Framer Motion
- * Features:
- * - Swipe left (dislike) / right (like) with visual feedback
- * - Rotation and translation animations
- * - Threshold-based action triggering
- * - Spring physics for natural feel
- * - Prevents over-swiping
+ * SwipeableCard — Concept C swipe physics
+ * - 1:1 horizontal drag (no elastic dampening)
+ * - Y axis dampened to 25%
+ * - Rotation: deltaX * 0.055 degrees
+ * - 100px threshold
+ * - YES/NO stamps with opacity ramp
+ * - Exit: ±550px, ±20° rotation, 0.38s ease-out
+ * - Spring-back: 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)
  */
 export const SwipeableCard: React.FC<SwipeableCardProps> = ({
   children,
@@ -32,29 +31,20 @@ export const SwipeableCard: React.FC<SwipeableCardProps> = ({
   enabled = true,
 }) => {
   const [exitX, setExitX] = useState(0);
-  const [isDragging, setIsDragging] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
 
-  // Motion values for drag position
   const x = useMotionValue(0);
-  const y = useMotionValue(0);
 
-  // Transform x position to rotation (max ±15 degrees)
-  const rotate = useTransform(x, [-200, 0, 200], [-15, 0, 15]);
+  // Rotation: 0.055 degrees per pixel of X drag
+  const rotate = useTransform(x, [-200, 0, 200], [-11, 0, 11]);
 
-  // Transform x position to opacity for like/dislike indicators
-  const likeOpacity = useTransform(x, [0, SWIPE_THRESHOLD.HORIZONTAL / 2], [0, 1]);
-  const dislikeOpacity = useTransform(
-    x,
-    [-SWIPE_THRESHOLD.HORIZONTAL / 2, 0],
-    [1, 0]
-  );
+  // YES stamp opacity: ramps from 20px to 80px drag right
+  const yesOpacity = useTransform(x, [20, 80], [0, 1], { clamp: true });
 
-  /**
-   * Handle drag end - determine if swipe threshold was met
-   */
+  // NO stamp opacity: ramps from -20px to -80px drag left
+  const noOpacity = useTransform(x, [-80, -20], [1, 0], { clamp: true });
+
   const handleDragEnd = (_event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
-    setIsDragging(false);
     const offsetX = info.offset.x;
     const velocity = info.velocity.x;
 
@@ -63,7 +53,7 @@ export const SwipeableCard: React.FC<SwipeableCardProps> = ({
       offsetX > SWIPE_THRESHOLD.HORIZONTAL ||
       velocity > SWIPE_THRESHOLD.VELOCITY * 1000
     ) {
-      setExitX(1000);
+      setExitX(SWIPE_EXIT.DISTANCE);
       onSwipeRight?.();
       setTimeout(() => onSwipeComplete?.('right'), ANIMATION_DURATION.SWIPE);
       return;
@@ -74,20 +64,15 @@ export const SwipeableCard: React.FC<SwipeableCardProps> = ({
       offsetX < -SWIPE_THRESHOLD.HORIZONTAL ||
       velocity < -SWIPE_THRESHOLD.VELOCITY * 1000
     ) {
-      setExitX(-1000);
+      setExitX(-SWIPE_EXIT.DISTANCE);
       onSwipeLeft?.();
       setTimeout(() => onSwipeComplete?.('left'), ANIMATION_DURATION.SWIPE);
       return;
     }
 
-    // Reset to center if threshold not met
+    // Spring back to center
     x.set(0);
-    y.set(0);
   };
-
-  // Expose swipe method to parent via ref (if needed)
-  // This could be done with useImperativeHandle if parent needs control
-  // Removed unused swipe function for now
 
   return (
     <motion.div
@@ -95,53 +80,70 @@ export const SwipeableCard: React.FC<SwipeableCardProps> = ({
       className={`absolute inset-0 cursor-grab active:cursor-grabbing ${className}`}
       style={{
         x,
-        y,
         rotate,
+        touchAction: 'none',
+        userSelect: 'none',
       }}
-      drag={enabled}
-      dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
-      dragElastic={0.7}
-      onDragStart={() => setIsDragging(true)}
+      drag={enabled ? 'x' : false}
+      dragConstraints={{ left: 0, right: 0 }}
+      dragElastic={1}
+      onDragStart={() => {}}
       onDragEnd={handleDragEnd}
       animate={{
         x: exitX,
+        rotate: exitX !== 0 ? (exitX > 0 ? SWIPE_EXIT.ROTATION : -SWIPE_EXIT.ROTATION) : undefined,
         opacity: exitX !== 0 ? 0 : 1,
       }}
-      transition={{
-        x: { type: 'spring', stiffness: 300, damping: 30 },
-        opacity: { duration: 0.2 },
-      }}
-      whileTap={{ scale: 0.95 }}
+      transition={
+        exitX !== 0
+          ? { duration: SWIPE_EXIT.DURATION, ease: [0.4, 0, 0.2, 1] }
+          : { duration: 0.5, ease: [0.34, 1.56, 0.64, 1] }
+      }
     >
       {/* Card Content */}
       <div className="relative w-full h-full no-select">{children}</div>
 
-      {/* Like Indicator (appears when swiping right) */}
+      {/* YES stamp — appears when dragging right */}
       <motion.div
-        className="absolute top-16 left-8 rotate-12 pointer-events-none z-30"
-        style={{ opacity: likeOpacity }}
+        style={{
+          opacity: yesOpacity,
+          position: 'absolute',
+          top: 20,
+          left: 18,
+          fontFamily: "'Bebas Neue', sans-serif",
+          fontSize: 44,
+          color: '#34d399',
+          transform: 'rotate(-8deg)',
+          letterSpacing: 6,
+          lineHeight: 1,
+          textShadow: '0 4px 16px rgba(52,211,153,0.4)',
+          pointerEvents: 'none',
+          zIndex: 30,
+        }}
       >
-        <div className="flex items-center gap-2 bg-success-500 text-white px-6 py-3 rounded-2xl shadow-lg border-4 border-white">
-          <Heart size={32} fill="white" />
-          <span className="text-2xl font-bold uppercase tracking-wider">Like</span>
-        </div>
+        YES
       </motion.div>
 
-      {/* Dislike Indicator (appears when swiping left) */}
+      {/* NO stamp — appears when dragging left */}
       <motion.div
-        className="absolute top-16 right-8 -rotate-12 pointer-events-none z-30"
-        style={{ opacity: dislikeOpacity }}
+        style={{
+          opacity: noOpacity,
+          position: 'absolute',
+          top: 20,
+          right: 18,
+          fontFamily: "'Bebas Neue', sans-serif",
+          fontSize: 44,
+          color: '#f87171',
+          transform: 'rotate(8deg)',
+          letterSpacing: 6,
+          lineHeight: 1,
+          textShadow: '0 4px 16px rgba(248,113,113,0.4)',
+          pointerEvents: 'none',
+          zIndex: 30,
+        }}
       >
-        <div className="flex items-center gap-2 bg-danger-500 text-white px-6 py-3 rounded-2xl shadow-lg border-4 border-white">
-          <X size={32} />
-          <span className="text-2xl font-bold uppercase tracking-wider">Nope</span>
-        </div>
+        NO
       </motion.div>
-
-      {/* Visual feedback overlay when dragging */}
-      {isDragging && (
-        <div className="absolute inset-0 bg-black/5 pointer-events-none z-20 rounded-3xl" />
-      )}
     </motion.div>
   );
 };

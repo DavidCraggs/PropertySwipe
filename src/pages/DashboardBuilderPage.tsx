@@ -40,8 +40,10 @@ interface DashboardBuilderPageProps {
 }
 
 export function DashboardBuilderPage({ onBack }: DashboardBuilderPageProps) {
-  const { currentUser } = useAuthStore();
-  const userId = currentUser?.id;
+  const { currentUser, supabaseUserId } = useAuthStore();
+  // Use Supabase Auth user ID (matches auth.users FK) when available,
+  // fall back to profile ID for local/password auth mode
+  const userId = supabaseUserId || currentUser?.id;
 
   // Dashboard state
   const [dashboards, setDashboards] = useState<CustomDashboard[]>([]);

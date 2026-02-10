@@ -9,6 +9,7 @@ import { PropertyInfoGrid } from '../molecules/PropertyInfoGrid';
 import { LocationMap } from '../molecules/LocationMap';
 import { ImageGallery } from '../molecules/ImageGallery';
 import { formatPrice, formatDate } from '../../utils/formatters';
+import { pageHeader, heading, bodyText } from '../../utils/conceptCStyles';
 
 interface PropertyDetailsModalProps {
   property: Property | null;
@@ -88,20 +89,21 @@ export const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-              className={`fixed inset-0 z-50 flex flex-col bg-white overflow-hidden ${className}`}
+              style={{ background: 'var(--color-card)' }}
+              className={`fixed inset-0 z-50 flex flex-col overflow-hidden ${className}`}
             >
               {/* Sticky Header */}
-              <div className="sticky top-0 z-10 bg-white border-b border-neutral-200 px-4 py-3 flex items-center justify-between">
+              <div style={{ ...pageHeader, position: 'sticky', top: 0, zIndex: 10 }} className="px-4 py-3 flex items-center justify-between">
                 <div className="flex-1 min-w-0 mr-4">
-                  <h2 className="text-xl font-bold text-neutral-900 truncate">
+                  <h2 style={heading(22, 2)} className="truncate">
                     {property.address.street}
                   </h2>
-                  <p className="text-sm text-neutral-600">
+                  <p style={{ color: 'var(--color-sub)' }} className="text-sm">
                     {property.address.city}, {property.address.postcode}
                   </p>
                 </div>
                 <IconButton
-                  icon={<X size={24} />}
+                  icon={<X size={24} style={{ color: 'var(--color-sub)' }} />}
                   variant="ghost"
                   size="md"
                   ariaLabel="Close details"
@@ -137,14 +139,14 @@ export const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({
                   <div>
                     <div className="flex items-start justify-between mb-4">
                       <div>
-                        <h3 className="text-4xl font-bold text-neutral-900 mb-2">
-                          {formatPrice(property.rentPcm)}<span className="text-2xl font-medium text-neutral-600"> pcm</span>
+                        <h3 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 40, color: 'var(--color-teal)', lineHeight: 1.1, margin: 0 }} className="mb-2">
+                          {formatPrice(property.rentPcm)}<span style={{ ...bodyText(24), color: 'var(--color-sub)' }}> pcm</span>
                         </h3>
-                        <p className="text-sm text-neutral-600">
+                        <p style={{ ...bodyText(14), color: 'var(--color-sub)' }}>
                           Deposit: {formatPrice(property.deposit)}
                         </p>
                         {property.availableFrom && (
-                          <p className="text-sm text-neutral-600">
+                          <p style={{ ...bodyText(14), color: 'var(--color-sub)' }}>
                             Available from {formatDate(property.availableFrom)}
                           </p>
                         )}
@@ -170,14 +172,14 @@ export const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({
 
                   {/* Key Information */}
                   <section>
-                    <h4 className="text-lg font-bold text-neutral-900 mb-4">Key Information</h4>
+                    <h4 style={heading(22, 2)} className="mb-4">Key Information</h4>
                     <PropertyInfoGrid property={property} />
                   </section>
 
                   {/* Description */}
                   <section>
-                    <h4 className="text-lg font-bold text-neutral-900 mb-4">Description</h4>
-                    <p className="text-neutral-700 leading-relaxed whitespace-pre-line">
+                    <h4 style={heading(22, 2)} className="mb-4">Description</h4>
+                    <p style={{ ...bodyText(14) }} className="leading-relaxed whitespace-pre-line">
                       {property.description}
                     </p>
                   </section>
@@ -185,7 +187,7 @@ export const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({
                   {/* Features */}
                   {property.features.length > 0 && (
                     <section>
-                      <h4 className="text-lg font-bold text-neutral-900 mb-4">Key Features</h4>
+                      <h4 style={heading(22, 2)} className="mb-4">Key Features</h4>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         {property.features.map((feature, index) => (
                           <div
@@ -193,7 +195,7 @@ export const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({
                             className="flex items-center gap-2 p-3 bg-success-50 rounded-lg border border-success-100"
                           >
                             <div className="w-2 h-2 bg-success-500 rounded-full flex-shrink-0" />
-                            <span className="text-sm text-neutral-900">{feature}</span>
+                            <span style={{ ...bodyText(14) }}>{feature}</span>
                           </div>
                         ))}
                       </div>
@@ -202,7 +204,7 @@ export const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({
 
                   {/* Image Grid */}
                   <section>
-                    <h4 className="text-lg font-bold text-neutral-900 mb-4">Gallery</h4>
+                    <h4 style={heading(22, 2)} className="mb-4">Gallery</h4>
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                       {property.images.slice(0, 6).map((image, index) => (
                         <button
@@ -234,7 +236,7 @@ export const PropertyDetailsModal: React.FC<PropertyDetailsModalProps> = ({
 
                   {/* Location */}
                   <section>
-                    <h4 className="text-lg font-bold text-neutral-900 mb-4">Location</h4>
+                    <h4 style={heading(22, 2)} className="mb-4">Location</h4>
                     <LocationMap property={property} />
                   </section>
                 </div>

@@ -322,18 +322,19 @@ export function VendorDashboard({ onNavigateToMatches, onNavigateToAgencyMessage
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-secondary-50 via-white to-primary-50 pb-24">
+    <div className="min-h-screen" style={{ background: 'var(--color-bg)', color: 'var(--color-text)', paddingBottom: 96 }}>
       {/* Header */}
-      <header className="bg-white border-b border-neutral-200 px-4 py-6">
+      <header className="px-4 py-6" style={{ background: 'var(--color-card)', borderBottom: '1px solid var(--color-line)' }}>
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-neutral-900">Landlord Dashboard</h1>
-            <p className="text-neutral-600 mt-1">Manage your rental listing and connect with renters</p>
+            <h1 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 32, letterSpacing: 3, color: 'var(--color-text)', margin: 0 }}>Landlord Dashboard</h1>
+            <p style={{ fontFamily: "'Libre Franklin', sans-serif", fontSize: 13, fontWeight: 600, color: 'var(--color-sub)', marginTop: 4 }}>Manage your rental listing and connect with renters</p>
           </div>
           {onNavigateToDashboardBuilder && (
             <button
               onClick={onNavigateToDashboardBuilder}
-              className="flex items-center gap-2 px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-xl font-medium transition-colors"
+              className="flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-colors"
+              style={{ background: 'var(--color-teal)', color: '#fff' }}
             >
               <LayoutDashboard size={20} />
               <span className="hidden sm:inline">Custom Dashboard</span>
@@ -344,9 +345,9 @@ export function VendorDashboard({ onNavigateToMatches, onNavigateToAgencyMessage
 
       <main className="max-w-4xl mx-auto px-4 py-8 space-y-6">
         {/* Welcome Card */}
-        <div className="bg-gradient-to-r from-secondary-500 to-secondary-600 rounded-2xl shadow-lg p-6 text-white">
-          <h2 className="text-2xl font-bold mb-2">Welcome back, {landlordProfile?.names}!</h2>
-          <p className="text-secondary-100">
+        <div className="rounded-2xl p-6" style={{ background: 'var(--color-teal)', color: '#fff' }}>
+          <h2 className="mb-2" style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 32, letterSpacing: 3, color: '#fff', margin: 0, marginBottom: 8 }}>Welcome back, {landlordProfile?.names}!</h2>
+          <p style={{ color: 'rgba(255,255,255,0.85)' }}>
             {landlordProfile?.preferredTenantTypes && landlordProfile.preferredTenantTypes.length > 0
               ? `Looking for ${landlordProfile.preferredTenantTypes.join(', ')} tenants`
               : 'Looking for quality tenants'} for your {landlordProfile?.propertyType} property
@@ -355,75 +356,75 @@ export function VendorDashboard({ onNavigateToMatches, onNavigateToAgencyMessage
 
         {/* Stats Grid */}
         <div className="grid grid-cols-2 lg:grid-cols-6 gap-4">
-          <div className="bg-white rounded-xl shadow-sm p-5">
+          <div className="rounded-xl p-5" style={{ background: 'var(--color-card)', border: '1.5px solid var(--color-line)' }}>
             <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center">
-                <Eye className="w-5 h-5 text-primary-600" />
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: 'rgba(13,148,136,0.06)' }}>
+                <Eye className="w-5 h-5" style={{ color: 'var(--color-teal)' }} />
               </div>
-              <div className="text-2xl font-bold text-neutral-900">{stats.totalViews}</div>
+              <div className="text-2xl font-bold" style={{ color: 'var(--color-text)' }}>{stats.totalViews}</div>
             </div>
-            <div className="text-sm text-neutral-600">Profile Views</div>
+            <div className="text-sm" style={{ color: 'var(--color-sub)' }}>Profile Views</div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm p-5">
+          <div className="rounded-xl p-5" style={{ background: 'var(--color-card)', border: '1.5px solid var(--color-line)' }}>
             <div className="flex items-center gap-3 mb-2">
               <div className="w-10 h-10 bg-success-100 rounded-lg flex items-center justify-center">
                 <Heart className="w-5 h-5 text-success-600" />
               </div>
-              <div className="text-2xl font-bold text-neutral-900">{stats.interestedRenters}</div>
+              <div className="text-2xl font-bold" style={{ color: 'var(--color-text)' }}>{stats.interestedRenters}</div>
             </div>
-            <div className="text-sm text-neutral-600">Interested Renters</div>
+            <div className="text-sm" style={{ color: 'var(--color-sub)' }}>Interested Renters</div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm p-5">
+          <div className="rounded-xl p-5" style={{ background: 'var(--color-card)', border: '1.5px solid var(--color-line)' }}>
             <div className="flex items-center gap-3 mb-2">
               <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
                 <MessageSquare className="w-5 h-5 text-purple-600" />
               </div>
-              <div className="text-2xl font-bold text-neutral-900">{stats.messages}</div>
+              <div className="text-2xl font-bold" style={{ color: 'var(--color-text)' }}>{stats.messages}</div>
             </div>
-            <div className="text-sm text-neutral-600">Messages</div>
+            <div className="text-sm" style={{ color: 'var(--color-sub)' }}>Messages</div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm p-5">
+          <div className="rounded-xl p-5" style={{ background: 'var(--color-card)', border: '1.5px solid var(--color-line)' }}>
             <div className="flex items-center gap-3 mb-2">
               <div className="w-10 h-10 bg-secondary-100 rounded-lg flex items-center justify-center">
                 <Calendar className="w-5 h-5 text-secondary-600" />
               </div>
-              <div className="text-2xl font-bold text-neutral-900">{stats.viewingsScheduled}</div>
+              <div className="text-2xl font-bold" style={{ color: 'var(--color-text)' }}>{stats.viewingsScheduled}</div>
             </div>
-            <div className="text-sm text-neutral-600">Viewings Booked</div>
+            <div className="text-sm" style={{ color: 'var(--color-sub)' }}>Viewings Booked</div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm p-5 relative">
+          <div className="rounded-xl p-5 relative" style={{ background: 'var(--color-card)', border: '1.5px solid var(--color-line)' }}>
             {stats.viewingRequests > 0 && (
               <div className="absolute -top-1 -right-1 w-6 h-6 bg-danger-500 text-white rounded-full flex items-center justify-center text-xs font-bold animate-pulse">
                 {stats.viewingRequests}
               </div>
             )}
             <div className="flex items-center gap-3 mb-2">
-              <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${stats.viewingRequests > 0 ? 'bg-danger-100' : 'bg-neutral-100'
-                }`}>
-                <Clock className={`w-5 h-5 ${stats.viewingRequests > 0 ? 'text-danger-600' : 'text-neutral-600'
-                  }`} />
+              <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${stats.viewingRequests > 0 ? 'bg-danger-100' : ''
+                }`} style={stats.viewingRequests > 0 ? undefined : { background: 'var(--color-bg)' }}>
+                <Clock className={`w-5 h-5 ${stats.viewingRequests > 0 ? 'text-danger-600' : ''
+                  }`} style={stats.viewingRequests > 0 ? undefined : { color: 'var(--color-sub)' }} />
               </div>
-              <div className="text-2xl font-bold text-neutral-900">{stats.viewingRequests}</div>
+              <div className="text-2xl font-bold" style={{ color: 'var(--color-text)' }}>{stats.viewingRequests}</div>
             </div>
-            <div className="text-sm text-neutral-600">
+            <div className="text-sm" style={{ color: 'var(--color-sub)' }}>
               {stats.viewingRequests > 0 ? 'Viewing Requests' : 'No Requests'}
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-sm p-5">
+          <div className="rounded-xl p-5" style={{ background: 'var(--color-card)', border: '1.5px solid var(--color-line)' }}>
             <div className="flex items-center gap-3 mb-2">
-              <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${stats.totalIssuesOpen > 0 ? 'bg-warning-100' : 'bg-neutral-100'
-                }`}>
-                <AlertTriangle className={`w-5 h-5 ${stats.totalIssuesOpen > 0 ? 'text-warning-600' : 'text-neutral-600'
-                  }`} />
+              <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${stats.totalIssuesOpen > 0 ? 'bg-warning-100' : ''
+                }`} style={stats.totalIssuesOpen > 0 ? undefined : { background: 'var(--color-bg)' }}>
+                <AlertTriangle className={`w-5 h-5 ${stats.totalIssuesOpen > 0 ? 'text-warning-600' : ''
+                  }`} style={stats.totalIssuesOpen > 0 ? undefined : { color: 'var(--color-sub)' }} />
               </div>
-              <div className="text-2xl font-bold text-neutral-900">{stats.totalIssuesOpen}</div>
+              <div className="text-2xl font-bold" style={{ color: 'var(--color-text)' }}>{stats.totalIssuesOpen}</div>
             </div>
-            <div className="text-sm text-neutral-600">
+            <div className="text-sm" style={{ color: 'var(--color-sub)' }}>
               {stats.totalIssuesOpen > 0 ? 'Open Issues' : 'No Issues'}
             </div>
           </div>
@@ -431,7 +432,7 @@ export function VendorDashboard({ onNavigateToMatches, onNavigateToAgencyMessage
 
         {/* Property Listing Card */}
         {landlordProperty ? (
-          <div className="bg-white rounded-2xl shadow-sm">
+          <div className="rounded-2xl" style={{ background: 'var(--color-card)', border: '1.5px solid var(--color-line)' }}>
             <div className="relative h-64 overflow-hidden">
               {/* FIX BUG #13: Use PropertyImage with loading states */}
               <PropertyImage
@@ -439,32 +440,32 @@ export function VendorDashboard({ onNavigateToMatches, onNavigateToAgencyMessage
                 alt={landlordProperty.address?.street || 'Property'}
                 className="w-full h-full object-cover"
               />
-              <div className="absolute top-4 right-4 bg-white/95 backdrop-blur-sm px-4 py-2 rounded-full font-bold text-lg">
+              <div className="absolute top-4 right-4 backdrop-blur-sm px-4 py-2 rounded-full font-bold text-lg" style={{ background: 'var(--color-card)', color: 'var(--color-text)' }}>
                 £{landlordProperty.rentPcm.toLocaleString()} pcm
               </div>
             </div>
-            <div className="p-6 relative z-10 bg-white">
-              <h3 className="text-2xl font-bold text-neutral-900 mb-2">
+            <div className="p-6 relative z-10" style={{ background: 'var(--color-card)' }}>
+              <h3 className="mb-2" style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 22, letterSpacing: 2, color: 'var(--color-text)' }}>
                 {landlordProperty.address?.street || 'Property Address'}
               </h3>
-              <p className="text-neutral-600 mb-4">
+              <p className="mb-4" style={{ color: 'var(--color-sub)' }}>
                 {landlordProperty.address?.city || 'City'}, {landlordProperty.address?.postcode || 'Postcode'}
               </p>
               <div className="flex flex-wrap gap-2 mb-4">
-                <span className="px-3 py-1 bg-neutral-100 rounded-full text-sm text-neutral-700">
+                <span className="px-3 py-1 rounded-full text-sm" style={{ background: 'var(--color-bg)', color: 'var(--color-sub)' }}>
                   {landlordProperty.bedrooms || 0} bed
                 </span>
-                <span className="px-3 py-1 bg-neutral-100 rounded-full text-sm text-neutral-700">
+                <span className="px-3 py-1 rounded-full text-sm" style={{ background: 'var(--color-bg)', color: 'var(--color-sub)' }}>
                   {landlordProperty.bathrooms || 0} bath
                 </span>
-                <span className="px-3 py-1 bg-neutral-100 rounded-full text-sm text-neutral-700">
+                <span className="px-3 py-1 rounded-full text-sm" style={{ background: 'var(--color-bg)', color: 'var(--color-sub)' }}>
                   {landlordProperty.propertyType || 'Property'}
                 </span>
-                <span className="px-3 py-1 bg-neutral-100 rounded-full text-sm text-neutral-700">
+                <span className="px-3 py-1 rounded-full text-sm" style={{ background: 'var(--color-bg)', color: 'var(--color-sub)' }}>
                   EPC: {landlordProperty.epcRating || 'N/A'}
                 </span>
               </div>
-              <p className="text-neutral-700 line-clamp-3 mb-4">{landlordProperty.description || 'No description available'}</p>
+              <p className="line-clamp-3 mb-4" style={{ color: 'var(--color-sub)' }}>{landlordProperty.description || 'No description available'}</p>
 
               {/* Property Action Buttons */}
               <div className="flex gap-2 flex-wrap">
@@ -480,9 +481,13 @@ export function VendorDashboard({ onNavigateToMatches, onNavigateToAgencyMessage
                   disabled={!canLandlordEdit}
                   className={`flex-1 min-w-[120px] px-4 py-2 rounded-lg font-medium text-sm transition-colors flex items-center justify-center gap-2 ${
                     canLandlordEdit
-                      ? 'bg-primary-500 hover:bg-primary-600 text-white'
-                      : 'bg-neutral-200 text-neutral-500 cursor-not-allowed'
+                      ? ''
+                      : 'cursor-not-allowed'
                   }`}
+                  style={canLandlordEdit
+                    ? { background: 'var(--color-teal)', color: '#fff' }
+                    : { background: 'var(--color-line)', color: 'var(--color-sub)' }
+                  }
                   title={!canLandlordEdit ? 'Property editing is managed by your agency' : undefined}
                 >
                   <Edit className="w-4 h-4" />
@@ -490,7 +495,8 @@ export function VendorDashboard({ onNavigateToMatches, onNavigateToAgencyMessage
                 </button>
                 <button
                   onClick={handleUnlinkProperty}
-                  className="px-4 py-2 bg-neutral-100 hover:bg-neutral-200 text-neutral-700 rounded-lg font-medium text-sm transition-colors flex items-center gap-2"
+                  className="px-4 py-2 rounded-lg font-medium text-sm transition-colors flex items-center gap-2"
+                  style={{ background: 'var(--color-bg)', color: 'var(--color-sub)' }}
                 >
                   <LinkIcon className="w-4 h-4" />
                   Unlink
@@ -506,16 +512,17 @@ export function VendorDashboard({ onNavigateToMatches, onNavigateToAgencyMessage
             </div>
           </div>
         ) : (
-          <div className="bg-white rounded-2xl shadow-sm p-8 text-center">
-            <Home size={48} className="mx-auto text-neutral-400 mb-4" />
-            <h3 className="text-xl font-bold text-neutral-900 mb-2">No Property Linked</h3>
-            <p className="text-neutral-600 mb-4">
+          <div className="rounded-2xl p-8 text-center" style={{ background: 'var(--color-card)', border: '1.5px solid var(--color-line)' }}>
+            <Home size={48} className="mx-auto mb-4" style={{ color: 'var(--color-sub)' }} />
+            <h3 className="mb-2" style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 22, letterSpacing: 2, color: 'var(--color-text)' }}>No Property Linked</h3>
+            <p className="mb-4" style={{ color: 'var(--color-sub)' }}>
               Create a new property listing or link an existing one to start receiving interest from renters
             </p>
             <div className="flex gap-3 justify-center">
               <button
                 onClick={() => setShowPropertyCreator(true)}
-                className="px-6 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-xl font-medium transition-colors flex items-center gap-2"
+                className="px-6 py-2 rounded-xl font-medium transition-colors flex items-center gap-2"
+                style={{ background: 'var(--color-teal)', color: '#fff' }}
               >
                 <PlusCircle className="w-5 h-5" />
                 Create New Property
@@ -533,19 +540,19 @@ export function VendorDashboard({ onNavigateToMatches, onNavigateToAgencyMessage
 
         {/* Agency Management Delegation Settings */}
         {landlordProperty?.managingAgencyId && (
-          <div className="bg-white rounded-2xl shadow-sm p-6">
+          <div className="rounded-2xl p-6" style={{ background: 'var(--color-card)', border: '1.5px solid var(--color-line)' }}>
             <div className="flex items-center gap-2 mb-4">
-              <Shield size={24} className="text-primary-600" />
-              <h3 className="text-xl font-bold text-neutral-900">Agency Management Settings</h3>
+              <Shield size={24} style={{ color: 'var(--color-teal)' }} />
+              <h3 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 22, letterSpacing: 2, color: 'var(--color-text)' }}>Agency Management Settings</h3>
             </div>
 
-            <p className="text-neutral-600 text-sm mb-4">
+            <p className="text-sm mb-4" style={{ color: 'var(--color-sub)' }}>
               Control how your managing agency can interact with this property.
             </p>
 
             <div className="space-y-4">
               {/* Full Management Toggle */}
-              <label className="flex items-start gap-3 p-4 bg-neutral-50 rounded-lg border border-neutral-200 cursor-pointer hover:border-primary-300 transition-colors">
+              <label className="flex items-start gap-3 p-4 rounded-lg cursor-pointer transition-colors" style={{ background: 'var(--color-bg)', border: '1.5px solid var(--color-line)' }}>
                 <input
                   type="checkbox"
                   checked={landlordProperty?.isFullyManagedByAgency || false}
@@ -553,13 +560,14 @@ export function VendorDashboard({ onNavigateToMatches, onNavigateToAgencyMessage
                     e.target.checked,
                     landlordProperty?.landlordCanEditWhenManaged || false
                   )}
-                  className="mt-0.5 w-5 h-5 text-primary-600 rounded border-neutral-300 focus:ring-primary-500"
+                  className="mt-0.5 w-5 h-5 rounded"
+                  style={{ accentColor: 'var(--color-teal)' }}
                 />
                 <div>
-                  <div className="font-medium text-neutral-900">
+                  <div className="font-medium" style={{ color: 'var(--color-text)' }}>
                     Delegate full property management to agency
                   </div>
-                  <p className="text-sm text-neutral-600 mt-1">
+                  <p className="text-sm mt-1" style={{ color: 'var(--color-sub)' }}>
                     When enabled, the agency can update property details, pricing, and availability on your behalf.
                   </p>
                 </div>
@@ -567,7 +575,7 @@ export function VendorDashboard({ onNavigateToMatches, onNavigateToAgencyMessage
 
               {/* Landlord Retains Edit Rights Toggle - only shown when full management is enabled */}
               {landlordProperty?.isFullyManagedByAgency && (
-                <label className="flex items-start gap-3 p-4 bg-primary-50 rounded-lg border border-primary-200 cursor-pointer hover:border-primary-400 transition-colors ml-6">
+                <label className="flex items-start gap-3 p-4 rounded-lg cursor-pointer transition-colors ml-6" style={{ background: 'rgba(13,148,136,0.06)', border: '1.5px solid var(--color-teal)' }}>
                   <input
                     type="checkbox"
                     checked={landlordProperty?.landlordCanEditWhenManaged || false}
@@ -575,13 +583,14 @@ export function VendorDashboard({ onNavigateToMatches, onNavigateToAgencyMessage
                       true,
                       e.target.checked
                     )}
-                    className="mt-0.5 w-5 h-5 text-primary-600 rounded border-neutral-300 focus:ring-primary-500"
+                    className="mt-0.5 w-5 h-5 rounded"
+                    style={{ accentColor: 'var(--color-teal)' }}
                   />
                   <div>
-                    <div className="font-medium text-neutral-900">
+                    <div className="font-medium" style={{ color: 'var(--color-text)' }}>
                       I still want to be able to edit property details
                     </div>
-                    <p className="text-sm text-neutral-600 mt-1">
+                    <p className="text-sm mt-1" style={{ color: 'var(--color-sub)' }}>
                       Keep the ability to edit property details yourself, even with full agency management enabled.
                     </p>
                   </div>
@@ -590,18 +599,18 @@ export function VendorDashboard({ onNavigateToMatches, onNavigateToAgencyMessage
 
               {/* Status Display */}
               {landlordProperty?.isFullyManagedByAgency && (
-                <div className="mt-4 p-4 bg-primary-50 border border-primary-200 rounded-lg">
-                  <div className="flex items-center gap-2 text-primary-700 mb-2">
+                <div className="mt-4 p-4 rounded-lg" style={{ background: 'rgba(13,148,136,0.06)', border: '1.5px solid var(--color-teal)' }}>
+                  <div className="flex items-center gap-2 mb-2" style={{ color: 'var(--color-teal)' }}>
                     <Shield size={18} />
                     <span className="font-medium">Full Management Active</span>
                   </div>
-                  <p className="text-sm text-primary-600">
+                  <p className="text-sm" style={{ color: 'var(--color-teal)' }}>
                     {landlordProperty?.landlordCanEditWhenManaged
                       ? 'Your agency has full management control, and you retain editing rights.'
                       : 'Your agency has exclusive control over property details. Contact them to request changes.'}
                   </p>
                   {landlordProperty?.lastEditedAt && (
-                    <p className="text-xs text-neutral-500 mt-2">
+                    <p className="text-xs mt-2" style={{ color: 'var(--color-sub)' }}>
                       Last edited: {new Date(landlordProperty.lastEditedAt).toLocaleDateString('en-GB', {
                         day: 'numeric',
                         month: 'short',
@@ -619,10 +628,10 @@ export function VendorDashboard({ onNavigateToMatches, onNavigateToAgencyMessage
 
         {/* Phase 4: Active Tenancies Section */}
         {activeTenancies.length > 0 && (
-          <div className="bg-white rounded-2xl shadow-sm p-6">
+          <div className="rounded-2xl p-6" style={{ background: 'var(--color-card)', border: '1.5px solid var(--color-line)' }}>
             <div className="flex items-center gap-2 mb-6">
               <Home size={24} className="text-success-600" />
-              <h3 className="text-xl font-bold text-neutral-900">Active Tenancies</h3>
+              <h3 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 22, letterSpacing: 2, color: 'var(--color-text)' }}>Active Tenancies</h3>
               <span className="ml-auto px-3 py-1 bg-success-100 text-success-700 rounded-full text-sm font-medium">
                 {stats.activeTenants} active
               </span>
@@ -643,10 +652,10 @@ export function VendorDashboard({ onNavigateToMatches, onNavigateToAgencyMessage
         )}
 
         {/* Interested Renters */}
-        <div className="bg-white rounded-2xl shadow-sm p-6">
+        <div className="rounded-2xl p-6" style={{ background: 'var(--color-card)', border: '1.5px solid var(--color-line)' }}>
           <div className="flex items-center gap-2 mb-6">
             <Users size={24} className="text-secondary-600" />
-            <h3 className="text-xl font-bold text-neutral-900">Interested Renters</h3>
+            <h3 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 22, letterSpacing: 2, color: 'var(--color-text)' }}>Interested Renters</h3>
             {stats.interestedRenters > 0 && (
               <span className="ml-auto px-3 py-1 bg-success-100 text-success-700 rounded-full text-sm font-medium">
                 {stats.interestedRenters} active
@@ -656,9 +665,9 @@ export function VendorDashboard({ onNavigateToMatches, onNavigateToAgencyMessage
 
           {renterInterests.length === 0 ? (
             <div className="text-center py-12">
-              <Heart size={48} className="mx-auto text-neutral-300 mb-4" />
-              <h4 className="text-lg font-semibold text-neutral-700 mb-2">No renters yet</h4>
-              <p className="text-neutral-500">
+              <Heart size={48} className="mx-auto mb-4" style={{ color: 'var(--color-sub)' }} />
+              <h4 className="text-lg font-semibold mb-2" style={{ color: 'var(--color-text)' }}>No renters yet</h4>
+              <p style={{ color: 'var(--color-sub)' }}>
                 When renters express interest in your property, they'll appear here
               </p>
             </div>
@@ -681,14 +690,14 @@ export function VendorDashboard({ onNavigateToMatches, onNavigateToAgencyMessage
 
         {/* Agency Messages Card */}
         {landlordProfile?.id && hasAgencyLinks && (
-          <div className="bg-white rounded-2xl shadow-sm p-6">
+          <div className="rounded-2xl p-6" style={{ background: 'var(--color-card)', border: '1.5px solid var(--color-line)' }}>
             <div className="flex items-center gap-3 mb-4">
               <div className="w-12 h-12 bg-secondary-100 rounded-xl flex items-center justify-center">
                 <MessageSquare size={24} className="text-secondary-600" />
               </div>
               <div className="flex-1">
-                <h3 className="text-lg font-bold text-neutral-900">Agency Messages</h3>
-                <p className="text-sm text-neutral-500">
+                <h3 className="text-lg font-bold" style={{ color: 'var(--color-text)' }}>Agency Messages</h3>
+                <p className="text-sm" style={{ color: 'var(--color-sub)' }}>
                   Communicate with your linked agencies
                 </p>
               </div>
@@ -715,21 +724,22 @@ export function VendorDashboard({ onNavigateToMatches, onNavigateToAgencyMessage
 
         {/* Create Management Contract Button */}
         {landlordProfile?.id && landlordProperties.length > 0 && (
-          <div className="bg-white rounded-2xl shadow-sm p-6">
+          <div className="rounded-2xl p-6" style={{ background: 'var(--color-card)', border: '1.5px solid var(--color-line)' }}>
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 bg-primary-100 rounded-xl flex items-center justify-center">
-                <FileText size={24} className="text-primary-600" />
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: 'rgba(13,148,136,0.06)' }}>
+                <FileText size={24} style={{ color: 'var(--color-teal)' }} />
               </div>
               <div className="flex-1">
-                <h3 className="text-lg font-bold text-neutral-900">Agency Management Contracts</h3>
-                <p className="text-sm text-neutral-500">
+                <h3 className="text-lg font-bold" style={{ color: 'var(--color-text)' }}>Agency Management Contracts</h3>
+                <p className="text-sm" style={{ color: 'var(--color-sub)' }}>
                   Create formal contracts with management agencies
                 </p>
               </div>
             </div>
             <button
               onClick={() => setShowContractWizard(true)}
-              className="w-full px-4 py-3 bg-primary-500 hover:bg-primary-600 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
+              className="w-full px-4 py-3 rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
+              style={{ background: 'var(--color-teal)', color: '#fff' }}
             >
               <FileText size={20} />
               Create Management Contract
@@ -739,12 +749,12 @@ export function VendorDashboard({ onNavigateToMatches, onNavigateToAgencyMessage
 
 
         {/* Tips Card */}
-        <div className="bg-primary-50 border border-primary-200 rounded-2xl p-6">
+        <div className="rounded-2xl p-6" style={{ background: 'rgba(13,148,136,0.06)', border: '1.5px solid var(--color-teal)' }}>
           <div className="flex items-start gap-3">
-            <TrendingUp size={24} className="text-primary-600 flex-shrink-0" />
+            <TrendingUp size={24} className="flex-shrink-0" style={{ color: 'var(--color-teal)' }} />
             <div>
-              <h4 className="font-bold text-neutral-900 mb-2">Tips to attract renters:</h4>
-              <ul className="space-y-1 text-sm text-neutral-700">
+              <h4 className="font-bold mb-2" style={{ color: 'var(--color-text)' }}>Tips to attract renters:</h4>
+              <ul className="space-y-1 text-sm" style={{ color: 'var(--color-sub)' }}>
                 <li>• Respond quickly to messages - renters appreciate fast communication</li>
                 <li>• Be flexible with viewing times to accommodate more potential renters</li>
                 <li>• Keep your property listing up-to-date with recent photos</li>
@@ -830,7 +840,7 @@ export function VendorDashboard({ onNavigateToMatches, onNavigateToAgencyMessage
       {showPropertyCreator && (
         <div className="fixed inset-0 bg-black/50 z-50 overflow-y-auto">
           <div className="min-h-screen flex items-center justify-center p-4 py-8">
-            <div className="bg-white rounded-2xl w-full max-w-3xl shadow-2xl">
+            <div className="rounded-2xl w-full max-w-3xl shadow-2xl" style={{ background: 'var(--color-card)' }}>
               <PropertyForm
                 mode="create"
                 onSubmit={async (propertyData) => {
@@ -874,7 +884,7 @@ export function VendorDashboard({ onNavigateToMatches, onNavigateToAgencyMessage
       {showPropertyEditor && landlordProperty && (
         <div className="fixed inset-0 bg-black/50 z-50 overflow-y-auto">
           <div className="min-h-screen flex items-center justify-center p-4 py-8">
-            <div className="bg-white rounded-2xl w-full max-w-3xl shadow-2xl">
+            <div className="rounded-2xl w-full max-w-3xl shadow-2xl" style={{ background: 'var(--color-card)' }}>
               <PropertyForm
                 mode="edit"
                 initialData={landlordProperty}
@@ -914,25 +924,26 @@ export function VendorDashboard({ onNavigateToMatches, onNavigateToAgencyMessage
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && landlordProperty && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl p-6 max-w-md w-full">
+          <div className="rounded-2xl p-6 max-w-md w-full" style={{ background: 'var(--color-card)' }}>
             <div className="flex items-center gap-3 mb-4">
               <div className="w-12 h-12 bg-danger-100 rounded-full flex items-center justify-center">
                 <Trash2 className="w-6 h-6 text-danger-600" />
               </div>
-              <h3 className="text-xl font-bold text-neutral-900">Delete Property?</h3>
+              <h3 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 22, letterSpacing: 2, color: 'var(--color-text)' }}>Delete Property?</h3>
             </div>
 
-            <p className="text-neutral-700 mb-2">
+            <p className="mb-2" style={{ color: 'var(--color-sub)' }}>
               Are you sure you want to delete <strong>{landlordProperty.address.street}</strong>?
             </p>
-            <p className="text-sm text-neutral-600 mb-6">
+            <p className="text-sm mb-6" style={{ color: 'var(--color-sub)' }}>
               This will permanently remove the property and all associated matches. This action cannot be undone.
             </p>
 
             <div className="flex gap-3">
               <button
                 onClick={() => setShowDeleteConfirm(false)}
-                className="flex-1 px-4 py-2 bg-neutral-100 hover:bg-neutral-200 text-neutral-700 rounded-lg font-medium transition-colors"
+                className="flex-1 px-4 py-2 rounded-lg font-medium transition-colors"
+                style={{ background: 'var(--color-bg)', color: 'var(--color-sub)' }}
               >
                 Cancel
               </button>
@@ -1047,7 +1058,7 @@ export function VendorDashboard({ onNavigateToMatches, onNavigateToAgencyMessage
         message={
           <div className="space-y-2">
             <p>Please confirm that you have physically seen original documents proving the tenant's right to rent in the UK.</p>
-            <p className="text-xs text-neutral-500">This is a legal requirement. You must keep copies of these documents for the duration of the tenancy and for at least one year after it ends.</p>
+            <p className="text-xs" style={{ color: 'var(--color-sub)' }}>This is a legal requirement. You must keep copies of these documents for the duration of the tenancy and for at least one year after it ends.</p>
           </div>
         }
         confirmText="Confirm Verification"
@@ -1088,15 +1099,15 @@ function RenterInterestCard({ match, onScheduleViewing, onViewChat, onApprovePet
   const lastMessage = match.messages[match.messages.length - 1];
 
   return (
-    <div className="border-2 border-neutral-200 rounded-xl p-4 hover:border-primary-300 transition-colors">
+    <div className="rounded-xl p-4 transition-colors" style={{ border: '1.5px solid var(--color-line)' }}>
       <div className="flex items-start gap-4">
-        <div className="w-12 h-12 bg-gradient-to-br from-primary-500 to-primary-600 rounded-full flex items-center justify-center text-white font-bold">
+        <div className="w-12 h-12 rounded-full flex items-center justify-center font-bold" style={{ background: 'var(--color-teal)', color: '#fff' }}>
           {match.renterName?.charAt(0).toUpperCase() || 'R'}
         </div>
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <h4 className="font-semibold text-neutral-900">{match.renterName || 'Interested Renter'}</h4>
+            <h4 className="font-semibold" style={{ color: 'var(--color-text)' }}>{match.renterName || 'Interested Renter'}</h4>
             {match.unreadCount > 0 && (
               <span className="px-2 py-0.5 bg-danger-500 text-white text-xs font-bold rounded-full">
                 {match.unreadCount}
@@ -1104,7 +1115,7 @@ function RenterInterestCard({ match, onScheduleViewing, onViewChat, onApprovePet
             )}
           </div>
 
-          <p className="text-sm text-neutral-600 mb-2">
+          <p className="text-sm mb-2" style={{ color: 'var(--color-sub)' }}>
             Interested • {new Date(match.timestamp).toLocaleDateString()}
           </p>
 
@@ -1193,7 +1204,8 @@ function RenterInterestCard({ match, onScheduleViewing, onViewChat, onApprovePet
               </div>
               <button
                 onClick={() => onVerifyRightToRent?.(match)}
-                className="w-full px-3 py-1.5 bg-white border border-warning-300 text-warning-700 rounded-lg text-xs font-medium hover:bg-warning-50 transition-colors"
+                className="w-full px-3 py-1.5 border border-warning-300 text-warning-700 rounded-lg text-xs font-medium hover:bg-warning-50 transition-colors"
+                style={{ background: 'var(--color-card)' }}
               >
                 Verify Documents
               </button>
@@ -1201,25 +1213,27 @@ function RenterInterestCard({ match, onScheduleViewing, onViewChat, onApprovePet
           )}
 
           {lastMessage && (
-            <div className="bg-neutral-50 rounded-lg p-3 text-sm">
-              <p className="text-xs text-neutral-500 mb-1">
+            <div className="rounded-lg p-3 text-sm" style={{ background: 'var(--color-bg)' }}>
+              <p className="text-xs mb-1" style={{ color: 'var(--color-sub)' }}>
                 {lastMessage.senderType === 'renter' ? match.renterName : 'You'}
               </p>
-              <p className="text-neutral-700 line-clamp-2">{lastMessage.content}</p>
+              <p className="line-clamp-2" style={{ color: 'var(--color-sub)' }}>{lastMessage.content}</p>
             </div>
           )}
 
           <div className="mt-3 flex gap-2">
             <button
               onClick={() => onViewChat?.(match)}
-              className="flex-1 px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-lg font-medium text-sm transition-colors"
+              className="flex-1 px-4 py-2 rounded-lg font-medium text-sm transition-colors"
+              style={{ background: 'var(--color-teal)', color: '#fff' }}
             >
               View Chat
             </button>
             {!match.hasViewingScheduled && (
               <button
                 onClick={() => onScheduleViewing(match)}
-                className="px-4 py-2 bg-neutral-100 hover:bg-neutral-200 text-neutral-700 rounded-lg font-medium text-sm transition-colors"
+                className="px-4 py-2 rounded-lg font-medium text-sm transition-colors"
+                style={{ background: 'var(--color-bg)', color: 'var(--color-sub)' }}
               >
                 Schedule Viewing
               </button>
@@ -1257,13 +1271,13 @@ function ActiveTenancyCard({ match, issues = [], onViewMessages, onViewIssue }: 
   return (
     <div className="border-2 border-success-200 bg-success-50/30 rounded-xl p-4 hover:border-success-400 transition-colors">
       <div className="flex items-start gap-4">
-        <div className="w-12 h-12 bg-gradient-to-br from-success-500 to-success-600 rounded-full flex items-center justify-center text-white font-bold">
+        <div className="w-12 h-12 bg-success-500 rounded-full flex items-center justify-center text-white font-bold">
           {match.renterName?.charAt(0).toUpperCase() || 'T'}
         </div>
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <h4 className="font-semibold text-neutral-900">{match.renterName || 'Current Tenant'}</h4>
+            <h4 className="font-semibold" style={{ color: 'var(--color-text)' }}>{match.renterName || 'Current Tenant'}</h4>
             <span className="px-2 py-0.5 bg-success-500 text-white text-xs font-bold rounded-full">
               ACTIVE
             </span>
@@ -1275,7 +1289,7 @@ function ActiveTenancyCard({ match, issues = [], onViewMessages, onViewIssue }: 
           </div>
 
           {/* Tenancy Info */}
-          <div className="flex items-center gap-4 mb-3 text-sm text-neutral-600">
+          <div className="flex items-center gap-4 mb-3 text-sm" style={{ color: 'var(--color-sub)' }}>
             {moveInDate && (
               <span>
                 Moved in: {moveInDate.toLocaleDateString()}
@@ -1313,7 +1327,7 @@ function ActiveTenancyCard({ match, issues = [], onViewMessages, onViewIssue }: 
                       : 'No Open Issues'}
                   </span>
                 </div>
-                <span className="text-xs text-neutral-600">
+                <span className="text-xs" style={{ color: 'var(--color-sub)' }}>
                   {resolvedIssues}/{totalIssues} resolved
                 </span>
               </div>
@@ -1322,18 +1336,18 @@ function ActiveTenancyCard({ match, issues = [], onViewMessages, onViewIssue }: 
 
           {/* Last Message Preview */}
           {lastMessage && (
-            <div className="bg-white rounded-lg p-3 text-sm mb-3 border border-neutral-200">
-              <p className="text-xs text-neutral-500 mb-1">
+            <div className="rounded-lg p-3 text-sm mb-3" style={{ background: 'var(--color-card)', border: '1.5px solid var(--color-line)' }}>
+              <p className="text-xs mb-1" style={{ color: 'var(--color-sub)' }}>
                 {lastMessage.senderType === 'renter' ? match.renterName : 'You'}
               </p>
-              <p className="text-neutral-700 line-clamp-2">{lastMessage.content}</p>
+              <p className="line-clamp-2" style={{ color: 'var(--color-sub)' }}>{lastMessage.content}</p>
             </div>
           )}
 
           {/* Issues List */}
           {issues.length > 0 && (
             <div className="mb-3 space-y-2">
-              <p className="text-xs font-medium text-neutral-600">Issues:</p>
+              <p className="text-xs font-medium" style={{ color: 'var(--color-sub)' }}>Issues:</p>
               {issues.slice(0, 3).map(issue => (
                 <button
                   key={issue.id}
@@ -1345,7 +1359,7 @@ function ActiveTenancyCard({ match, issues = [], onViewMessages, onViewIssue }: 
                   }`}
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-neutral-900 truncate">{issue.subject}</span>
+                    <span className="text-sm font-medium truncate" style={{ color: 'var(--color-text)' }}>{issue.subject}</span>
                     <span className={`text-xs px-2 py-0.5 rounded-full ${
                       issue.status === 'resolved' || issue.status === 'closed'
                         ? 'bg-success-100 text-success-700'
@@ -1357,7 +1371,7 @@ function ActiveTenancyCard({ match, issues = [], onViewMessages, onViewIssue }: 
                 </button>
               ))}
               {issues.length > 3 && (
-                <p className="text-xs text-neutral-500 text-center">+{issues.length - 3} more issues</p>
+                <p className="text-xs text-center" style={{ color: 'var(--color-sub)' }}>+{issues.length - 3} more issues</p>
               )}
             </div>
           )}

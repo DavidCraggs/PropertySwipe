@@ -124,7 +124,7 @@ export const LandlordSwipePage: React.FC = () => {
   const remaining = Math.max(0, totalInterests - currentIndex);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-success-50 pb-24">
+    <div className="min-h-screen pb-24">
       {/* Header */}
       <header className="max-w-md mx-auto px-4 py-6">
         <h1 className="text-3xl font-bold text-center bg-gradient-to-r from-primary-600 to-success-600 bg-clip-text text-transparent mb-2">
