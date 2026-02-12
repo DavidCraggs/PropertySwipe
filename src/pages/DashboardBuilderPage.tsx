@@ -338,10 +338,18 @@ export function DashboardBuilderPage({ onBack }: DashboardBuilderPageProps) {
                 ) : (
                   <div className="py-1">
                     {dashboards.map(dashboard => (
-                      <button
+                      <div
                         key={dashboard.id}
+                        role="button"
+                        tabIndex={0}
                         onClick={() => handleSelectDashboard(dashboard)}
-                        className={`w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors group ${
+                        onKeyDown={e => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            handleSelectDashboard(dashboard);
+                          }
+                        }}
+                        className={`w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors group cursor-pointer ${
                           activeDashboard?.id === dashboard.id
                             ? 'bg-primary-50 text-primary-700'
                             : 'hover:bg-neutral-50 text-neutral-700'
@@ -363,7 +371,7 @@ export function DashboardBuilderPage({ onBack }: DashboardBuilderPageProps) {
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
-                      </button>
+                      </div>
                     ))}
                   </div>
                 )}

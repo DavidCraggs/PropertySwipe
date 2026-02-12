@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 import { X, Save } from 'lucide-react';
 import type { DashboardWidget, WidgetConfig, WidgetType, DataSource } from '../../../types';
 import { WIDGET_TYPE_INFO } from './WidgetRenderer';
+import { TABLE_COLUMN_PRESETS } from '../../../services/DashboardBuilderService';
 
 interface WidgetConfigModalProps {
   widget: DashboardWidget | null;
@@ -85,6 +86,7 @@ export function WidgetConfigModal({
   const [selectedMetric, setSelectedMetric] = useState<string>('count');
   const [dateRange, setDateRange] = useState<string>('month');
   const [refreshInterval, setRefreshInterval] = useState<number>(0);
+  const [selectedColumns, setSelectedColumns] = useState<string[]>([]);
 
   // Determine the widget type (existing or new)
   const currentWidgetType = widget?.widgetType || widgetType;
@@ -93,10 +95,15 @@ export function WidgetConfigModal({
   useEffect(() => {
     if (widget) {
       setTitle(widget.title);
-      setDataSource(widget.config.dataSource || 'properties');
+      const ds = widget.config.dataSource || 'properties';
+      setDataSource(ds);
       setSelectedMetric(widget.config.metrics?.[0] || 'count');
       setDateRange(widget.config.dateRange || 'month');
       setRefreshInterval(widget.config.refreshInterval || 0);
+      setSelectedColumns(
+        (widget.config.filters?.columns as string[]) ||
+        TABLE_COLUMN_PRESETS[ds]?.defaults || []
+      );
     } else if (widgetType) {
       // New widget - set defaults
       const info = WIDGET_TYPE_INFO[widgetType];
@@ -105,6 +112,7 @@ export function WidgetConfigModal({
       setSelectedMetric('count');
       setDateRange('month');
       setRefreshInterval(0);
+      setSelectedColumns(TABLE_COLUMN_PRESETS['properties']?.defaults || []);
     }
   }, [widget, widgetType]);
 
@@ -117,6 +125,11 @@ export function WidgetConfigModal({
       dateRange: dateRange as WidgetConfig['dateRange'],
       refreshInterval: refreshInterval > 0 ? refreshInterval : undefined,
     };
+
+    // Include selected columns for table widgets
+    if (currentWidgetType === 'table' && selectedColumns.length > 0) {
+      config.filters = { ...config.filters, columns: selectedColumns };
+    }
 
     onSave({ title, config });
     onClose();
@@ -178,6 +191,8 @@ export function WidgetConfigModal({
                 if (newMetrics.length > 0) {
                   setSelectedMetric(newMetrics[0].value);
                 }
+                // Reset columns to new source defaults
+                setSelectedColumns(TABLE_COLUMN_PRESETS[newSource]?.defaults || []);
               }}
               className="w-full px-3 py-2 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
             >
@@ -206,6 +221,40 @@ export function WidgetConfigModal({
               ))}
             </select>
           </div>
+
+          {/* Column Picker (for table widgets) */}
+          {currentWidgetType === 'table' && TABLE_COLUMN_PRESETS[dataSource] && (
+            <div>
+              <label className="block text-sm font-medium text-neutral-700 mb-2">
+                Columns
+              </label>
+              <div className="border border-neutral-200 rounded-lg p-2 max-h-48 overflow-y-auto space-y-1">
+                {TABLE_COLUMN_PRESETS[dataSource].available.map(col => (
+                  <label
+                    key={col.key}
+                    className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-neutral-50 cursor-pointer"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedColumns.includes(col.key)}
+                      onChange={e => {
+                        if (e.target.checked) {
+                          setSelectedColumns(prev => [...prev, col.key]);
+                        } else {
+                          setSelectedColumns(prev => prev.filter(k => k !== col.key));
+                        }
+                      }}
+                      className="w-4 h-4 rounded border-neutral-300 text-primary-500 focus:ring-primary-500"
+                    />
+                    <span className="text-sm text-neutral-700">{col.label}</span>
+                  </label>
+                ))}
+              </div>
+              {selectedColumns.length === 0 && (
+                <p className="text-xs text-warning-600 mt-1">Select at least one column</p>
+              )}
+            </div>
+          )}
 
           {/* Date Range (for charts and stats) */}
           {(currentWidgetType === 'stat_card' ||

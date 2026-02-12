@@ -478,7 +478,7 @@ export async function unshareDashboard(dashboardId: string, userId: string): Pro
 export async function getWidgetData(
   widget: DashboardWidget,
   userId: string
-): Promise<StatCardData | ChartDataPoint[] | ActivityFeedItem[] | Property[] | Issue[] | Record<string, unknown>[]> {
+): Promise<StatCardData | ChartDataPoint[] | ActivityFeedItem[] | Property[] | Issue[] | TableDataResult | Record<string, unknown>[]> {
   const { config, widgetType } = widget;
 
   switch (widgetType) {
@@ -786,24 +786,245 @@ async function getActivityFeedData(_config: WidgetConfig, userId: string): Promi
   return activities.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime()).slice(0, 10);
 }
 
+// =====================================================
+// TABLE DATA — COLUMN PRESETS & SMART FORMATTING
+// =====================================================
+
+export interface TableColumn {
+  key: string;
+  label: string;
+}
+
+export interface TableDataResult {
+  columns: TableColumn[];
+  rows: Record<string, string | number>[];
+}
+
+interface ColumnPreset {
+  defaults: string[];
+  available: TableColumn[];
+}
+
+export const TABLE_COLUMN_PRESETS: Record<string, ColumnPreset> = {
+  properties: {
+    defaults: ['address', 'rent_pcm', 'bedrooms', 'status', 'available_from'],
+    available: [
+      { key: 'address', label: 'Address' },
+      { key: 'rent_pcm', label: 'Rent (PCM)' },
+      { key: 'deposit', label: 'Deposit' },
+      { key: 'bedrooms', label: 'Beds' },
+      { key: 'bathrooms', label: 'Baths' },
+      { key: 'property_type', label: 'Type' },
+      { key: 'furnishing', label: 'Furnishing' },
+      { key: 'status', label: 'Status' },
+      { key: 'epc_rating', label: 'EPC' },
+      { key: 'available_from', label: 'Available From' },
+      { key: 'council_tax_band', label: 'Council Tax' },
+      { key: 'city', label: 'City' },
+      { key: 'postcode', label: 'Postcode' },
+    ],
+  },
+  matches: {
+    defaults: ['property_address', 'renter_name', 'status', 'created_at'],
+    available: [
+      { key: 'property_address', label: 'Property' },
+      { key: 'renter_name', label: 'Renter' },
+      { key: 'status', label: 'Status' },
+      { key: 'created_at', label: 'Date' },
+    ],
+  },
+  issues: {
+    defaults: ['subject', 'property_address', 'priority', 'status', 'raised_at'],
+    available: [
+      { key: 'subject', label: 'Subject' },
+      { key: 'property_address', label: 'Property' },
+      { key: 'priority', label: 'Priority' },
+      { key: 'status', label: 'Status' },
+      { key: 'category', label: 'Category' },
+      { key: 'raised_at', label: 'Raised' },
+    ],
+  },
+};
+
+/** Format a currency value */
+function formatCurrency(val: unknown): string {
+  if (val == null) return '—';
+  const num = Number(val);
+  if (isNaN(num)) return String(val);
+  return `£${num.toLocaleString('en-GB')}`;
+}
+
+/** Format a date value */
+function formatDate(val: unknown): string {
+  if (!val) return '—';
+  const d = new Date(val as string);
+  if (isNaN(d.getTime())) return String(val);
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+/** Format a status value to title case */
+function formatStatus(val: unknown): string {
+  if (!val) return '—';
+  return String(val).replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
+
+/** Extract a readable value from a property for a given column key */
+function extractPropertyField(property: Record<string, unknown>, key: string): string | number {
+  switch (key) {
+    case 'address': {
+      const addr = property.address as Record<string, string> | undefined;
+      if (!addr) return '—';
+      // Handle both camelCase (localStorage) and snake_case (Supabase) shapes
+      return [addr.street, addr.city].filter(Boolean).join(', ') || '—';
+    }
+    case 'city': {
+      const addr = property.address as Record<string, string> | undefined;
+      return addr?.city || '—';
+    }
+    case 'postcode': {
+      const addr = property.address as Record<string, string> | undefined;
+      return addr?.postcode || '—';
+    }
+    case 'rent_pcm':
+      return formatCurrency(property.rentPcm ?? property.rent_pcm);
+    case 'deposit':
+      return formatCurrency(property.deposit);
+    case 'bedrooms':
+      return property.bedrooms != null ? Number(property.bedrooms) : 0;
+    case 'bathrooms':
+      return property.bathrooms != null ? Number(property.bathrooms) : 0;
+    case 'property_type':
+      return formatStatus(property.propertyType ?? property.property_type);
+    case 'furnishing':
+      return formatStatus(property.furnishing);
+    case 'status': {
+      const isAvail = property.isAvailable ?? property.is_available;
+      return isAvail ? 'Available' : 'Let';
+    }
+    case 'epc_rating':
+      return String(property.epcRating ?? property.epc_rating ?? '—');
+    case 'available_from':
+      return formatDate(property.availableFrom ?? property.available_from);
+    case 'council_tax_band': {
+      const bills = property.bills as Record<string, unknown> | undefined;
+      return bills?.councilTaxBand ? String(bills.councilTaxBand) : '—';
+    }
+    default:
+      return property[key] != null ? String(property[key]) : '—';
+  }
+}
+
+/** Extract a readable value from a match row */
+function extractMatchField(row: Record<string, unknown>, key: string): string | number {
+  switch (key) {
+    case 'property_address':
+      return String(row.property_address ?? row.propertyAddress ?? '—');
+    case 'renter_name':
+      return String(row.renter_name ?? row.renterName ?? '—');
+    case 'status':
+      return formatStatus(row.status);
+    case 'created_at':
+      return formatDate(row.created_at ?? row.createdAt);
+    default:
+      return row[key] != null ? String(row[key]) : '—';
+  }
+}
+
+/** Extract a readable value from an issue row */
+function extractIssueField(row: Record<string, unknown>, key: string): string | number {
+  switch (key) {
+    case 'subject':
+      return String(row.subject ?? '—');
+    case 'property_address':
+      return String(row.property_address ?? row.propertyAddress ?? '—');
+    case 'priority':
+      return formatStatus(row.priority);
+    case 'status':
+      return formatStatus(row.status);
+    case 'category':
+      return formatStatus(row.category);
+    case 'raised_at':
+      return formatDate(row.raised_at ?? row.raisedAt);
+    default:
+      return row[key] != null ? String(row[key]) : '—';
+  }
+}
+
 /**
- * Get table data (generic)
+ * Get table data with labelled columns and formatted values
  */
-async function getTableData(config: WidgetConfig, userId: string): Promise<Record<string, unknown>[]> {
+async function getTableData(config: WidgetConfig, userId: string): Promise<TableDataResult> {
   const { dataSource, filters } = config;
+  const preset = TABLE_COLUMN_PRESETS[dataSource];
+  const selectedKeys = (filters?.columns as string[]) || preset?.defaults || [];
 
-  const { data, error } = await supabase
-    .from(dataSource)
-    .select('*')
-    .eq('landlord_id', userId)
-    .limit(filters?.limit as number || 20);
+  // Build column definitions
+  const allAvailable = preset?.available || [];
+  const columns: TableColumn[] = selectedKeys
+    .map(key => allAvailable.find(c => c.key === key))
+    .filter((c): c is TableColumn => c != null);
 
-  if (error) {
-    console.error('[DashboardBuilder] Failed to fetch table data:', error);
-    return [];
+  // If no valid columns found, fall back to first 5 available
+  if (columns.length === 0 && allAvailable.length > 0) {
+    columns.push(...allAvailable.slice(0, 5));
   }
 
-  return data || [];
+  const limit = (filters?.limit as number) || 20;
+
+  // Fetch raw data — use Supabase when configured (matching other widget data functions),
+  // fall back to localStorage only when Supabase isn't available at all
+  let rawData: Record<string, unknown>[] = [];
+
+  if (isSupabaseConfigured()) {
+    const { data, error } = await supabase
+      .from(dataSource)
+      .select('*')
+      .eq('landlord_id', userId)
+      .limit(limit);
+
+    if (error) {
+      console.error('[DashboardBuilder] Failed to fetch table data:', error);
+      return { columns, rows: [] };
+    }
+    rawData = data || [];
+  } else {
+    // localStorage fallback (no Supabase configured)
+    try {
+      const stored = localStorage.getItem(dataSource === 'properties' ? 'properties' : dataSource);
+      if (stored) {
+        const allItems: Record<string, unknown>[] = JSON.parse(stored);
+        rawData = allItems
+          .filter(item => {
+            const lid = (item.landlordId ?? item.landlord_id) as string;
+            return lid === userId;
+          })
+          .slice(0, limit);
+      }
+    } catch {
+      console.error('[DashboardBuilder] Failed to read localStorage for table data');
+    }
+  }
+
+  // Extract the appropriate field extractor based on data source
+  const extractField = dataSource === 'properties'
+    ? extractPropertyField
+    : dataSource === 'issues'
+      ? extractIssueField
+      : dataSource === 'matches'
+        ? extractMatchField
+        : (row: Record<string, unknown>, key: string) =>
+            row[key] != null ? String(row[key]) : '—';
+
+  // Map raw data to formatted rows
+  const rows = rawData.map(item => {
+    const row: Record<string, string | number> = {};
+    for (const col of columns) {
+      row[col.key] = extractField(item, col.key);
+    }
+    return row;
+  });
+
+  return { columns, rows };
 }
 
 // =====================================================

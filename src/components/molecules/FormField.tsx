@@ -47,12 +47,12 @@ export const FormField = forwardRef<HTMLInputElement, FormFieldProps>(
 
           <input
             ref={ref}
-            className={`w-full ${icon ? 'pl-10' : ''} disabled:cursor-not-allowed ${className}`}
+            className={`w-full disabled:cursor-not-allowed ${className}`}
             style={{
               fontFamily: "'Libre Franklin', sans-serif",
               fontSize: 14,
               fontWeight: 500,
-              padding: '12px 16px',
+              padding: icon ? '12px 16px 12px 40px' : '12px 16px',
               background: 'var(--color-card)',
               color: 'var(--color-text)',
               border: `1.5px solid ${hasError ? '#ef4444' : focused ? 'var(--color-teal)' : 'var(--color-line)'}`,

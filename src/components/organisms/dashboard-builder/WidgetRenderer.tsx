@@ -27,7 +27,7 @@ import type {
   Property,
   Issue,
 } from '../../../types';
-import { getWidgetData } from '../../../services/DashboardBuilderService';
+import { getWidgetData, type TableDataResult } from '../../../services/DashboardBuilderService';
 
 interface WidgetRendererProps {
   widget: DashboardWidget;
@@ -124,7 +124,7 @@ export function WidgetRenderer({
       case 'recent_activity':
         return <ActivityFeedWidget data={data as ActivityFeedItem[]} />;
       case 'table':
-        return <TableWidget data={data as Record<string, unknown>[]} />;
+        return <TableWidget data={data as TableDataResult} />;
       default:
         return <div className="text-neutral-500">Unknown widget type</div>;
     }
@@ -568,12 +568,44 @@ function ActivityFeedWidget({ data }: { data: ActivityFeedItem[] }) {
 // TABLE WIDGET
 // =====================================================
 
-function TableWidget({ data }: { data: Record<string, unknown>[] }) {
-  if (!data || data.length === 0) {
+function TableWidget({ data }: { data: TableDataResult }) {
+  // Handle both new TableDataResult shape and legacy Record[] shape
+  const isNewShape = data && 'columns' in data && 'rows' in data;
+  const columns = isNewShape ? (data as TableDataResult).columns : [];
+  const rows = isNewShape ? (data as TableDataResult).rows : [];
+
+  if (!columns.length || !rows.length) {
     return <EmptyState message="No data available" />;
   }
 
-  const columns = Object.keys(data[0]).slice(0, 5);
+  const statusColors: Record<string, string> = {
+    available: 'bg-success-100 text-success-700',
+    let: 'bg-primary-100 text-primary-700',
+    emergency: 'bg-danger-100 text-danger-700',
+    urgent: 'bg-warning-100 text-warning-700',
+    routine: 'bg-primary-100 text-primary-700',
+    open: 'bg-warning-100 text-warning-700',
+    closed: 'bg-neutral-100 text-neutral-700',
+    resolved: 'bg-success-100 text-success-700',
+    pending: 'bg-warning-100 text-warning-700',
+    matched: 'bg-success-100 text-success-700',
+  };
+
+  function renderCell(value: string | number, key: string) {
+    const strVal = String(value);
+    const lowerVal = strVal.toLowerCase();
+
+    // Status/priority badges
+    if ((key === 'status' || key === 'priority') && statusColors[lowerVal]) {
+      return (
+        <span className={`inline-block px-1.5 py-0.5 rounded text-xs font-medium ${statusColors[lowerVal]}`}>
+          {strVal}
+        </span>
+      );
+    }
+
+    return strVal;
+  }
 
   return (
     <div className="overflow-auto">
@@ -581,27 +613,27 @@ function TableWidget({ data }: { data: Record<string, unknown>[] }) {
         <thead>
           <tr className="border-b border-neutral-200">
             {columns.map(col => (
-              <th key={col} className="px-2 py-1 text-left font-medium text-neutral-700 capitalize">
-                {col.replace(/_/g, ' ')}
+              <th key={col.key} className="px-2 py-1.5 text-left font-medium text-neutral-700 text-xs uppercase tracking-wide">
+                {col.label}
               </th>
             ))}
           </tr>
         </thead>
         <tbody>
-          {data.slice(0, 10).map((row, i) => (
+          {rows.slice(0, 15).map((row, i) => (
             <tr key={i} className="border-b border-neutral-100 hover:bg-neutral-50">
               {columns.map(col => (
-                <td key={col} className="px-2 py-1.5 text-neutral-600 truncate max-w-[150px]">
-                  {String(row[col] ?? '')}
+                <td key={col.key} className="px-2 py-1.5 text-neutral-600 truncate max-w-[200px]">
+                  {renderCell(row[col.key], col.key)}
                 </td>
               ))}
             </tr>
           ))}
         </tbody>
       </table>
-      {data.length > 10 && (
+      {rows.length > 15 && (
         <div className="text-xs text-neutral-500 text-center pt-2">
-          +{data.length - 10} more rows
+          +{rows.length - 15} more rows
         </div>
       )}
     </div>
